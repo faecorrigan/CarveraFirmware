@@ -126,6 +126,8 @@ static const uint8_t OXFF = 0xFF;
 
 #define SD_COMMAND_TIMEOUT 5000
 
+unsigned int u16SDCardInitNum=0;	//lsf add 2024.3.22
+
 SDCard::SDCard(PinName mosi, PinName miso, PinName sclk, PinName cs) :
   _spi(mosi, miso, sclk), _cs(cs) {
     _cs.output();
@@ -198,6 +200,8 @@ SDCard::SDCard(PinName mosi, PinName miso, PinName sclk, PinName cs) :
 
 #define BLOCK2ADDR(block)   (((cardtype == SDCARD_V1) || (cardtype == SDCARD_V2))?(block << 9):((cardtype == SDCARD_V2HC)?(block):0))
 
+#define	RWRETRYTCOUNT					5000	//lsf add 2024.3.22
+extern SDCard sd;	//lsf add 2024.3.22
 SDCard::CARD_TYPE SDCard::initialise_card() {
     // Set to 25kHz for initialisation, and clock card with cs = 1
     _spi.frequency(25000);
@@ -317,15 +321,26 @@ int SDCard::disk_read(char *buffer, uint32_t block_number)
     if (cardtype == SDCARD_FAIL)
         return -1;
     // set read address for single block (CMD17)
+
     if(_cmd(SDCMD_READ_SINGLE_BLOCK, BLOCK2ADDR(block_number)) != 0) {
         return 1;
     }
 
     // receive the data
-    _read(buffer, 512);
-
+    //_read(buffer, 512);				//lsf modify 2024.3.21
+    if(1 == _read(buffer, 512))
+    {
+    	u16SDCardInitNum ++;
+    	sd.disk_initialize();			// initialize the SD card
+    	if(_cmd(SDCMD_READ_SINGLE_BLOCK, BLOCK2ADDR(block_number)) != 0) {
+	        return 1;
+	    }
+    	if(1 == _read(buffer, 512))		// Re-read the buffer
+    	{
+    		return 1;
+    	}
+    }
     busyflag = false;
-
     return 0;
 }
 
@@ -455,10 +470,14 @@ int SDCard::_cmd8() {
 }
 
 int SDCard::_read(char *buffer, int length) {
+	unsigned int Retry = RWRETRYTCOUNT;	//lsf add 2024.3.21
     _cs = 0;
 
     // read until start byte (0xFF)
-    while(_spi.write(0xFF) != 0xFE);
+    //while(_spi.write(0xFF) != 0xFE);	lsf modify 2024.3.21
+    while((_spi.write(0xFF) != 0xFE) && --Retry);
+    if(0 == Retry)
+    	return 1;		//lsf add 2024.3.21
 //     uint8_t r;
 //     while((r = _spi.write(0xFF)) != 0xFE)
 //     {
@@ -509,7 +528,6 @@ int SDCard::_write(const char *buffer, int length) {
     _spi.write(0xFF);
     return 0;
 }
-
 static int ext_bits(char *data, int msb, int lsb) {
     int bits = 0;
     int size = 1 + msb - lsb;
