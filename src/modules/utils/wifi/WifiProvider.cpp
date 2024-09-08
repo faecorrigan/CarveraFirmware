@@ -150,7 +150,8 @@ void WifiProvider::receive_wifi_data() {
 	        }
 	        // convert CR to NL (for host OSs that don't send NL)
 	        if( WifiData[i] == '\r' ) {
-	        	received = '\n';
+//	        	received = '\n';
+				WifiData[i] = '\n';
 	        }
 	        this->buffer.push_back(char(WifiData[i]));
 		}
