@@ -36,6 +36,7 @@ class MainButton : public Module {
         uint8_t led_update_timer;
         uint32_t button_press_time;
         uint32_t long_press_time_ms;
+        std::string long_press_enable;
 
         bool auto_sleep;
         uint8_t auto_sleep_min;
