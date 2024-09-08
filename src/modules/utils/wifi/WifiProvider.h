@@ -19,7 +19,7 @@ using namespace std;
 #include "M8266WIFIDrv.h"
 #include "libs/RingBuffer.h"
 
-#define WIFI_DATA_MAX_SIZE 2048
+#define WIFI_DATA_MAX_SIZE 1460
 #define WIFI_DATA_TIMEOUT_MS 10
 #define MAX_WLAN_SIGNALS 8
 
