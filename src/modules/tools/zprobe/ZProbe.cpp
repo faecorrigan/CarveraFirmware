@@ -465,6 +465,8 @@ void ZProbe::probe_XYZ(Gcode *gcode)
 
     if(this->pin.get() != invert_probe) {
         gcode->stream->printf("Error:ZProbe triggered before move, aborting command.\n");
+        THEKERNEL->call_event(ON_HALT, nullptr);
+        THEKERNEL->set_halt_reason(PROBE_FAIL);
         return;
     }
 
