@@ -52,7 +52,9 @@ class Player : public Module {
         void cancel_transfer(StreamOutput *stream);
         unsigned int crc16_ccitt(unsigned char *data, unsigned int len);
         int check_crc(int crc, unsigned char *data, unsigned int len);
-
+		
+		int decompress(string sfilename, string dfilename, uint32_t sfilesize, StreamOutput* stream);
+//		int compressfile(string sfilename, string dfilename, StreamOutput* stream);
         // 2024
         // bool check_cluster(const char *gcode_str, float *x_value, float *y_value, float *distance, float *slope, float *s_value);
 
