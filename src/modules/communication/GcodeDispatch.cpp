@@ -94,6 +94,24 @@ try_again:
 			}
         }
 
+        if ( first_char == 'G'){
+			//check if has G90/G91
+			std::string g90_g91_command;
+			std::string modified_command = possible_command;
+			size_t g90_pos = modified_command.find("G90");
+			size_t g91_pos = modified_command.find("G91");
+			// if we have G90 or G91，then we move G90/G91 to the beginning
+			if (g90_pos != std::string::npos) {
+				g90_g91_command = "G90";
+				modified_command.erase(g90_pos, 3); // delete "G90"
+				possible_command = g90_g91_command + modified_command;
+			} else if (g91_pos != std::string::npos) {
+				g90_g91_command = "G91";
+				modified_command.erase(g91_pos, 3); // delete "G91"
+				possible_command = g90_g91_command + modified_command;
+			}
+		}
+
         //Remove comments
         size_t comment = possible_command.find_first_of(";(");
         if( comment != string::npos ) {
