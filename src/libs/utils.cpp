@@ -196,7 +196,7 @@ void system_reset( bool dfu )
 }
 
 // Convert a path indication ( absolute or relative ) into a path ( absolute )
-string absolute_from_relative( string path )
+std::string absolute_from_relative( std::string path )
 {
     string cwd = THEKERNEL->current_path;
 
@@ -228,11 +228,68 @@ string absolute_from_relative( string path )
 }
 
 // Change from origin path to sub path
-string change_to_md5_path( string origin )
+std::string change_to_md5_path( std::string origin )
 {
 	unsigned found = origin.find("gcodes/");
 	string filename = origin.substr(found + 7);
+	string path = "/sd/gcodes";
+	DIR * d = opendir(path.c_str());
+	if(NULL == d )
+	{
+		mkdir(path.c_str(), 0);
+	}
+	else
+	{
+		closedir(d);	
+	}
+	path = "/sd/gcodes/.md5";
+	d = opendir(path.c_str());
+	if(NULL == d )
+	{
+		mkdir(path.c_str(), 0);
+	}
+	else
+	{
+		closedir(d);	
+	}
+	
 	return "/sd/gcodes/.md5/" + filename;
+}
+
+// Change from origin path to quicklz file sub path
+std::string change_to_lz_path( std::string origin )
+{
+	unsigned found = origin.find("gcodes/");
+	string filename = origin.substr(found + 7);	
+	string path = "/sd/gcodes/.lz";
+	DIR * d = opendir(path.c_str());
+	if(NULL == d )
+	{
+		mkdir(path.c_str(), 0);
+	}
+	else
+	{
+		closedir(d);	
+	}
+	return "/sd/gcodes/.lz/" + filename;
+}
+
+
+// Check the quicklz/md5 file path
+#define	FR_OK 0
+#define FR_EXIST 8
+void check_and_make_path( std::string origin )
+{
+	size_t pos = 0;
+    std::string dir;
+    int res;
+    int ret = 0;
+
+    while ((pos = origin.find_first_of('/', pos)) != std::string::npos) {
+        dir = origin.substr(0, pos++);
+        if (dir.empty()) continue;  // Skip leading '/'
+        mkdir(dir.c_str(),0);
+    }
 }
 
 // FIXME this does not handle empty strings correctly
