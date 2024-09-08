@@ -36,8 +36,8 @@ public:
      */
     MSCFileSystem(const char* name);
     virtual int disk_initialize();
-    virtual int disk_write(const char *buffer, int block_number);
-    virtual int disk_read(char *buffer, int block_number);    
+    virtual int disk_write(const char *buffer, uint32_t block_number, uint32_t count);
+    virtual int disk_read(char *buffer, uint32_t block_number, uint32_t count);    
     virtual int disk_status();
     virtual int disk_sync();
     virtual int disk_sectors();
