@@ -27,6 +27,7 @@ public:
     static bool parse_command(const char *cmd, string args, StreamOutput *stream);
     static void print_mem(StreamOutput *stream) { mem_command("", stream); }
     static void version_command(string parameters, StreamOutput *stream );
+    static void ftype_command( string parameters, StreamOutput *stream );
 
 private:
 
