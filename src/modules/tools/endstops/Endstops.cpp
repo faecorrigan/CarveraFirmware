@@ -403,7 +403,7 @@ bool Endstops::load_config()
 void Endstops::get_global_configs()
 {
     // NOTE the debounce count is in milliseconds so probably does not need to beset anymore
-    this->debounce_ms= THEKERNEL->config->value(endstop_debounce_ms_checksum)->by_default(0)->as_number();
+    this->debounce_ms= THEKERNEL->config->value(endstop_debounce_ms_checksum)->by_default(10)->as_number();
     this->debounce_count= THEKERNEL->config->value(endstop_debounce_count_checksum)->by_default(100)->as_number();
 
     this->is_corexy= THEKERNEL->config->value(corexy_homing_checksum)->by_default(false)->as_bool();
@@ -546,7 +546,8 @@ void Endstops::back_off_home(axis_bitmap_t axis)
             if(!axis[e.axis_index]) continue; // only for axes we asked to move
 
             // if not triggered no need to move off
-            if(e.pin_info != nullptr && e.pin_info->limit_enable && debounced_get(&e.pin_info->pin)) {
+//            if(e.pin_info != nullptr && e.pin_info->limit_enable && debounced_get(&e.pin_info->pin)) {
+			if(e.pin_info != nullptr && e.pin_info->limit_enable && e.pin_info->triggered) {
                 char ax= e.axis;
                 params.push_back({ax, THEROBOT->from_millimeters(e.retract * (e.home_direction ? 1 : -1))});
                 // select slowest of them all
