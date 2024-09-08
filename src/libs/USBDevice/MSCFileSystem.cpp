@@ -114,14 +114,14 @@ int MSCFileSystem::disk_initialize()
     return 0;
 }
 
-int MSCFileSystem::disk_write(const char *buffer, int block_number)
+int MSCFileSystem::disk_write(const char *buffer, uint32_t block_number, uint32_t count)
 {
     if ( OK == MS_BulkSend(block_number, 1, (USB_INT08U *)buffer) )
         return 0;
     return 1;
 }
 
-int MSCFileSystem::disk_read(char *buffer, int block_number)
+int MSCFileSystem::disk_read(char *buffer, uint32_t block_number, uint32_t count)
 {
     if ( OK == MS_BulkRecv(block_number, 1, (USB_INT08U *)buffer) )
         return 0;
