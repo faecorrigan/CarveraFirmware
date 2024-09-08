@@ -12,7 +12,7 @@ public:
      * @param block block number
      * @returns 0 if successful
      */
-    virtual int disk_read(char * data, uint32_t block) { return 0; };
+    virtual int disk_read(char * data, uint32_t block, uint32_t count) { return 0; };
 
     /*
      * write a block on a storage chip
@@ -21,7 +21,7 @@ public:
      * @param block block number
      * @returns 0 if successful
      */
-    virtual int disk_write(const char * data, uint32_t block) { return 0; };
+    virtual int disk_write(const char * data, uint32_t block, uint32_t count) { return 0; };
 
     /*
      * Disk initilization
