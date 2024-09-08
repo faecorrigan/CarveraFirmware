@@ -56,6 +56,7 @@
 #include "mbed.h" // for wait_ms()
 
 extern unsigned int g_maximumHeapAddress;
+extern unsigned char xbuff[8200];
 
 #define EOT  0x04
 #define CAN  0x16 //0x18
@@ -70,8 +71,10 @@ extern "C" uint32_t  __end__;
 extern "C" uint32_t  __malloc_free_list;
 extern "C" uint32_t  _sbrk(int size);
 
+// support upload file type definition
+#define FILETYPE	"lz"		//compressed by quicklz
 // version definition
-#define VERSION "0.9.7"
+#define VERSION "0.9.8"
 
 // command lookup table
 const SimpleShell::ptentry_t SimpleShell::commands_table[] = {
@@ -90,6 +93,7 @@ const SimpleShell::ptentry_t SimpleShell::commands_table[] = {
     {"break",    SimpleShell::break_command},
     {"help",     SimpleShell::help_command},
     {"?",        SimpleShell::help_command},
+	{"ftype",	 SimpleShell::ftype_command},
     {"version",  SimpleShell::version_command},
     {"mem",      SimpleShell::mem_command},
     {"get",      SimpleShell::get_command},
@@ -381,6 +385,8 @@ void SimpleShell::ls_command( string parameters, StreamOutput *stream )
     DIR *d;
     struct dirent *p;
     struct tm timeinfo;
+    char dirTmp[256]; 
+    unsigned int npos=0;
     d = opendir(path.c_str());
     if (d != NULL) {
         while ((p = readdir(d)) != NULL) {
@@ -393,13 +399,27 @@ void SimpleShell::ls_command( string parameters, StreamOutput *stream )
         	if (opts.find("-s", 0, 2) != string::npos) {
         	    get_fftime(p->d_date, p->d_time, &timeinfo);
         		// name size date
-                stream->printf("%s%s %d %04d%02d%02d%02d%02d%02d\r\n", string(p->d_name).c_str(),  p->d_isdir ? "/" : "",
+                memset(dirTmp, 0, sizeof(dirTmp));
+                sprintf(dirTmp, "%s%s %d %04d%02d%02d%02d%02d%02d\r\n", string(p->d_name).c_str(),  p->d_isdir ? "/" : "",
                 		p->d_isdir ? 0 : p->d_fsize, timeinfo.tm_year + 1980, timeinfo.tm_mon, timeinfo.tm_mday,
                 				timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
         	} else {
         		// only name
-                stream->printf("%s%s\r\n", string(p->d_name).c_str(), p->d_isdir ? "/" : "");
+                memset(dirTmp, 0, sizeof(dirTmp));
+                sprintf(dirTmp, "%s%s\r\n", string(p->d_name).c_str(), p->d_isdir ? "/" : "");
         	}
+        	memcpy(&xbuff[npos], dirTmp, strlen(dirTmp));
+        	npos += strlen(dirTmp);
+        	if(npos >= 7900)
+        	{
+        		stream->puts((char *)xbuff, npos);
+        		npos = 0;
+        	}
+        	
+        }
+        if( npos != 0)
+        {
+        	stream->puts((char *)xbuff, npos);
         }
         closedir(d);
         if(opts.find("-e", 0, 2) != string::npos) {
@@ -428,30 +448,49 @@ void SimpleShell::rm_command( string parameters, StreamOutput *stream )
 	bool send_eof = false;
     string path = absolute_from_relative(shift_parameter( parameters ));
     string md5_path = change_to_md5_path(path);
+    string lz_path = change_to_lz_path(path);
     if(!parameters.empty() && shift_parameter(parameters) == "-e") {
     	send_eof = true;
     }
 
-    const char *fn = absolute_from_relative(path).c_str();
-    int s = remove(fn);
+    string toRemove = absolute_from_relative(path);
+    int s = remove(toRemove.c_str());
     if (s != 0) {
         if(send_eof) {
             stream->_putc(CAN);
         }
-    	stream->printf("Could not delete %s \r\n", fn);
+    	stream->printf("Could not delete %s \r\n", toRemove.c_str());
     } else {
-    	const char *fn_md5 = absolute_from_relative(md5_path).c_str();
-    	s = remove(fn_md5);
+    	string str_md5 = absolute_from_relative(md5_path);
+    	s = remove(str_md5.c_str());
+/*
 		if (s != 0) {
 			if(send_eof) {
 				stream->_putc(CAN);
 			}
-			stream->printf("Could not delete %s \r\n", fn_md5);
-		} else {
-	        if(send_eof) {
-	            stream->_putc(EOT);
-	        }
-		}
+			stream->printf("Could not delete %s \r\n", str_md5.c_str());
+		} 
+		else {
+			string str_lz = absolute_from_relative(lz_path);
+			s = remove(str_lz.c_str());
+			if (s != 0){
+				if(send_eof) {
+					stream->_putc(CAN);
+				}
+				stream->printf("Could not delete %s \r\n", str_lz.c_str());
+			}
+			else {
+		        if(send_eof) {
+		            stream->_putc(EOT);
+	        	}
+			
+			}
+    	}*/
+    	string str_lz = absolute_from_relative(lz_path);
+		s = remove(str_lz.c_str());
+		if(send_eof) {
+            stream->_putc(EOT);
+    	}
     }
 }
 
@@ -461,8 +500,10 @@ void SimpleShell::mv_command( string parameters, StreamOutput *stream )
 	bool send_eof = false;
     string from = absolute_from_relative(shift_parameter( parameters ));
     string md5_from = change_to_md5_path(from);
+    string lz_from = change_to_lz_path(from);
     string to = absolute_from_relative(shift_parameter(parameters));
     string md5_to = change_to_md5_path(to);
+    string lz_to = change_to_lz_path(to);
     if(!parameters.empty() && shift_parameter(parameters) == "-e") {
     	send_eof = true;
     }
@@ -474,18 +515,32 @@ void SimpleShell::mv_command( string parameters, StreamOutput *stream )
     	stream->printf("Could not rename %s to %s\r\n", from.c_str(), to.c_str());
     } else  {
     	s = rename(md5_from.c_str(), md5_to.c_str());
-        if (s != 0)  {
+/*        if (s != 0)  {
         	if (send_eof) {
         		stream->_putc(CAN);
         	}
         	stream->printf("Could not rename %s to %s\r\n", md5_from.c_str(), md5_to.c_str());
         }
         else {
-			if (send_eof) {
+        	s = rename(lz_from.c_str(), lz_to.c_str());
+        	if (s != 0)  {
+	        	if (send_eof) {
+	        		stream->_putc(CAN);
+	        	}
+	        	stream->printf("Could not rename %s to %s\r\n", lz_from.c_str(), lz_to.c_str());
+        	}
+        	else {
+        		if (send_eof) {
 				stream->_putc(EOT);
-			}
-			stream->printf("renamed %s to %s\r\n", from.c_str(), to.c_str());
-        }
+				}
+				stream->printf("renamed %s to %s\r\n", from.c_str(), to.c_str());
+        	}
+        }*/
+        s = rename(lz_from.c_str(), lz_to.c_str());
+        if (send_eof) {
+			stream->_putc(EOT);
+		}
+		stream->printf("renamed %s to %s\r\n", from.c_str(), to.c_str());
     }
 }
 
@@ -495,6 +550,7 @@ void SimpleShell::mkdir_command( string parameters, StreamOutput *stream )
 	bool send_eof = false;
     string path = absolute_from_relative(shift_parameter( parameters ));
     string md5_path = change_to_md5_path(path);
+    string lz_path = change_to_lz_path(path);
     if(!parameters.empty() && shift_parameter(parameters) == "-e") {
     	send_eof = true;
     }
@@ -506,17 +562,31 @@ void SimpleShell::mkdir_command( string parameters, StreamOutput *stream )
     	stream->printf("could not create directory %s\r\n", path.c_str());
     } else {
     	result = mkdir(md5_path.c_str(), 0);
-        if (result != 0) {
+/*        if (result != 0) {
         	if (send_eof) {
         		stream->_putc(CAN); // ^Z terminates error
         	}
         	stream->printf("could not create md5 directory %s\r\n", md5_path.c_str());
-        } else {
+        } 
+        else if (mkdir(lz_path.c_str(), 0) != 0) {
+        	if (send_eof) {
+        		stream->_putc(CAN); // ^Z terminates error
+        	}
+        	stream->printf("could not create lz directory %s\r\n", lz_path.c_str());
+        }    
+        else {
         	if (send_eof) {
             	stream->_putc(EOT); // ^D terminates the upload
         	}
         	stream->printf("created directory %s\r\n", path.c_str());
         }
+*/
+		mkdir(lz_path.c_str(), 0);
+		if (send_eof) {
+            	stream->_putc(EOT); // ^D terminates the upload
+        	}
+        stream->printf("created directory %s\r\n", path.c_str());
+		
     }
 }
 
@@ -1039,6 +1109,11 @@ void SimpleShell::power_command(string parameters, StreamOutput *stream)
 	}
 }
 
+// Print the types of files we support for uploading
+void SimpleShell::ftype_command( string parameters, StreamOutput *stream )
+{
+	stream->printf("ftype = %s\n", FILETYPE);
+}
 // print out build version
 void SimpleShell::version_command( string parameters, StreamOutput *stream )
 {
