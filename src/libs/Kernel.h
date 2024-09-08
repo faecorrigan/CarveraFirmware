@@ -18,6 +18,8 @@
 #include <vector>
 #include <string>
 
+// 9 WCS offsets
+#define MAX_WCS 9UL
 //Module manager
 class Config;
 class Module;
@@ -86,6 +88,7 @@ typedef struct {
 	float TLO;
 	// int TOOL;
 	float G54[3];
+//	float G54[5*MAX_WCS];
 	float REFMZ;
 	float TOOLMZ;
 	float reserve;
@@ -203,6 +206,7 @@ class Kernel {
             bool aborted: 1;
             bool zprobing:1;
         };
+        int iic_page_write(unsigned char u8PageNum, unsigned char u8len, unsigned char *pu8Array);
 
 };
 
