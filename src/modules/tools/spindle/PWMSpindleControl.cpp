@@ -135,6 +135,7 @@ void PWMSpindleControl::on_pin_rise()
 		uint32_t timestamp = us_ticker_read();
 		rev_time = timestamp - last_rev_time;
 		last_rev_time = timestamp;
+		time_since_update = 0;
 	}
 	irq_count ++;
 }
@@ -142,24 +143,19 @@ void PWMSpindleControl::on_pin_rise()
 uint32_t PWMSpindleControl::on_update_speed(uint32_t dummy)
 {
     // If we don't get any interrupts for 1 second, set current RPM to 0
-    uint32_t new_irq = irq_count;
-    if (last_irq != new_irq)
-        time_since_update = 0;
-    else
-        time_since_update++;
-    last_irq = new_irq;
-
-    if (time_since_update > UPDATE_FREQ)
-    	rev_time = 0;
-
-    // Calculate current RPM
-    uint32_t t = rev_time;
-    if (t == 0) {
-        current_rpm = 0;
-    } else {
-        float new_rpm = 1000000 * acc_ratio * 60.0f / t;
-        current_rpm = smoothing_decay * new_rpm + (1.0f - smoothing_decay) * current_rpm;
+    if (++time_since_update > UPDATE_FREQ)
+    {
+    	current_rpm = 0;
     }
+    else{    // Calculate current RPM
+
+	    uint32_t t = rev_time;
+	    if (t > 2000 * acc_ratio ) //RPM < 30000
+	    {	
+	        float new_rpm = 1000000 * acc_ratio * 60.0f / t;
+	        current_rpm = smoothing_decay * new_rpm + (1.0f - smoothing_decay) * current_rpm;
+	    }
+	}
 
     if (spindle_on) {
     	if (update_count > UPDATE_FREQ / 5) {
