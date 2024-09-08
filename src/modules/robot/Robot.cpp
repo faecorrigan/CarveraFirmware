@@ -633,6 +633,24 @@ void Robot::on_gcode_received(void *argument)
                     		if (fabs(ma) > 360) {
                     			THEROBOT->reset_axis_position(fmodf(ma, 360.0), A_AXIS);
                     		}
+                    	} else if(gcode->has_letter('R')){
+                    		// first shrink A value
+                    		float ma = actuators[A_AXIS]->get_current_position();
+                    		ma = fmodf(ma, 360.0);
+                    		THEROBOT->reset_axis_position(ma, A_AXIS);
+                    		// second 
+                    		float mb = gcode->get_value('A');
+                    		mb = fmodf(mb, 360.0);
+                    		
+                    		float delta[A_AXIS+1];
+                    		for (size_t j = 0; j <= A_AXIS; ++j) delta[j]= 0;
+                    		delta[A_AXIS]= mb - ma; // we go the max
+                    		THEROBOT->delta_move(delta, this->seek_rate, A_AXIS+1);
+                    		// wait for A moving
+        					THECONVEYOR->wait_for_idle();
+                    		// third
+                    		THEROBOT->reset_axis_position(gcode->get_value('A'), A_AXIS);                    		
+                    		
                     	} else {
                         	THEROBOT->reset_axis_position(gcode->get_value('A'), A_AXIS);
                     	}
