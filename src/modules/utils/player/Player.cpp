@@ -32,6 +32,7 @@
 #include "TemperatureControlPool.h"
 #include "StepTicker.h"
 #include "Block.h"
+#include "quicklz.h"
 
 #include <math.h>
 
@@ -51,8 +52,8 @@
 
 extern SDFAT mounter;
 
-static unsigned char xbuff[8200] __attribute__((section("AHBSRAM1"))); /* 2 for data length, 8192 for XModem + 3 head chars + 2 crc + nul */
-
+unsigned char xbuff[8200] __attribute__((section("AHBSRAM1"))); /* 2 for data length, 8192 for XModem + 3 head chars + 2 crc + nul */
+static unsigned char fbuff[4096] __attribute__((section("AHBSRAM1")));
 // used for XMODEM
 #define SOH  0x01
 #define STX  0x02
@@ -1065,7 +1066,161 @@ void Player::set_serial_rx_irq(bool enable)
     bool enable_irq = enable;
     PublicData::set_value( atc_handler_checksum, set_serial_rx_irq_checksum, &enable_irq );
 }
+int Player::decompress(string sfilename, string dfilename, uint32_t sfilesize, StreamOutput* stream)
+{
+	FILE *f_in = NULL, *f_out = NULL;
+	uint16_t  u16Sum = 0;
+	uint8_t u8ReadBuffer_hdr[BLOCK_HEADER_SIZE] = { 0 };
+	uint32_t u32DcmprsSize = 0, u32BlockSize = 0, u32BlockNum = 0, u32TotalDcmprsSize = 0, i = 0,j = 0,k=0;
+	qlz_state_decompress s_stDecompressState;
+	char error_msg[64];
+	memset(error_msg, 0, sizeof(error_msg));
+	sprintf(error_msg, "Nothing!");
+	char info_msg[64];
+	memset(info_msg, 0, sizeof(info_msg));
+	sprintf(info_msg, "Nothing!");
 
+	f_in= fopen(sfilename.c_str(), "rb");
+	f_out= fopen(dfilename.c_str(), "w+");
+	if (f_in == NULL || f_out == NULL)
+	{
+		sprintf(error_msg, "Error: failed to create file [%s]!\r\n", filename.substr(0, 30).c_str());
+		goto _exit;
+	}
+	for(i = 0; i < sfilesize-2; i+= BLOCK_HEADER_SIZE + u32BlockSize)
+	{
+
+		fread(u8ReadBuffer_hdr, sizeof(char), BLOCK_HEADER_SIZE, f_in);
+		u32BlockSize = u8ReadBuffer_hdr[0] * (1 << 24) + u8ReadBuffer_hdr[1] * (1 << 16) + u8ReadBuffer_hdr[2] * (1 << 8) + u8ReadBuffer_hdr[3];
+		if(!u32BlockSize)
+		{
+			goto _exit;
+		}
+		fread(xbuff, sizeof(char), u32BlockSize, f_in);
+		u32DcmprsSize = qlz_decompress((const char *)xbuff, fbuff, &s_stDecompressState);
+		if(!u32DcmprsSize)
+		{
+			goto _exit;
+		}
+		for(j = 0; j < u32DcmprsSize; j++)
+		{
+			u16Sum += fbuff[j];
+		}
+		// Set the file write system buffer 4096 Byte
+		setvbuf(f_out, (char*)&xbuff[4096], _IOFBF, 4096);
+		fwrite(fbuff, sizeof(char),u32DcmprsSize, f_out);
+		u32TotalDcmprsSize += u32DcmprsSize;
+		u32BlockNum += 1;
+		if(++k>10)
+		{
+			k=0;
+			THEKERNEL->call_event(ON_IDLE);
+			sprintf(info_msg, "#Info: decompart = %u\r\n", u32BlockNum);
+			stream->printf(info_msg);
+		}
+	}
+	fread(fbuff, sizeof(char), 2, f_in);
+	if(u16Sum != ((fbuff[0] <<8) + fbuff[1]))
+	{
+		goto _exit;
+	}
+
+	if (f_in != NULL)
+		fclose(f_in);
+	if (f_out!= NULL)
+		fclose(f_out);
+	sprintf(info_msg, "#Info: decompart = %u\r\n", u32BlockNum);
+	stream->printf(info_msg);
+	return 1;
+_exit:
+	if (f_in != NULL)
+		fclose(f_in );
+	if (f_out != NULL)
+		fclose(f_out);
+	stream->printf(error_msg);
+	return 0;
+}
+/*
+int Player::compressfile(string sfilename, string dfilename, StreamOutput* stream)
+{
+	FILE *f_in = NULL, *f_out = NULL;
+	uint16_t  u16Sum = 0;	
+	uint8_t sumdata[2];
+	uint8_t buffer_hdr[BLOCK_HEADER_SIZE] = { 0 };
+	uint32_t file_size = 0;	
+	uint32_t u32cmprsSize = 0, u32BlockSize = 0, u32TotalCmprsSize = 0, i = 0,k=0;
+	qlz_state_compress s_stCompressState;
+	char info_msg[64];
+//	memset(info_msg, 0, sizeof(info_msg));
+//	sprintf(info_msg, "Nothing!");
+
+	f_in= fopen(sfilename.c_str(), "rb");
+	f_out= fopen(dfilename.c_str(), "w+");
+	if (f_in == NULL || f_out == NULL)
+	{
+		sprintf(info_msg, "Error: failed to create file [%s]!\r\n", filename.substr(0, 30).c_str());
+		goto _exit;
+	}
+	file_size = ftell(f_in);
+	if (file_size == 0)
+	{
+		sprintf(info_msg, "Error: [qlz] File size = 0\n");
+		goto _exit;
+	}
+	while(feof(f_in))
+	{
+		u32BlockSize = fread(xbuff, sizeof(char), COMPRESS_BUFFER_SIZE, f_in);
+		for(i=0; i< u32BlockSize; i++ )
+			u16Sum += xbuff[i];
+		/* The destination buffer must be at least size + 400 bytes large because incompressible data may increase in size. */
+/*		u32cmprsSize = qlz_compress((const char *)xbuff, (char *)fbuff, u32BlockSize, &s_stCompressState);
+		if(!u32cmprsSize)
+		{
+			goto _exit;
+		}
+		buffer_hdr[3] = u32cmprsSize % (1 << 8);
+		buffer_hdr[2] = (u32cmprsSize % (1 << 16)) / (1 << 8);
+		buffer_hdr[1] = (u32cmprsSize % (1 << 24)) / (1 << 16);
+		buffer_hdr[0] = u32cmprsSize / (1 << 24); 
+ 
+		fwrite(buffer_hdr, 1,BLOCK_HEADER_SIZE, f_out);
+		// Set the file write system buffer 4096 Byte
+		setvbuf(f_out, (char*)&xbuff[4096], _IOFBF, 4096);
+		fwrite(fbuff, sizeof(char),u32cmprsSize, f_out);
+		u32TotalCmprsSize += u32cmprsSize;
+		if(++k>100)
+		{
+			k=0;
+			THEKERNEL->call_event(ON_IDLE);
+			sprintf(info_msg, "Info: ComSize = %u, Filesize = %u\r\n", u32TotalCmprsSize, file_size);
+			stream->printf(info_msg);
+		}
+	}
+	
+	sumdata[0] = u16Sum >> 8;
+	sumdata[1] = u16Sum &0x00FF; 
+	fwrite(sumdata, 1, 2, f_out);
+	if(u16Sum != ((fbuff[0] <<8) + fbuff[1]))
+	{
+		goto _exit;
+	}
+
+	if (f_in)
+		fclose(f_in);
+	if (f_out)
+		fclose(f_out);
+	sprintf(info_msg, "Info: ComSize = %u, Filesize = %u\r\n", u32TotalCmprsSize, file_size);
+	stream->printf(info_msg);
+	return 1;
+_exit:
+	if (f_in)
+		fclose(f_in);
+	if (f_out)
+		fclose(f_out);
+	stream->printf(info_msg);
+	return 0;
+}
+*/	
 void Player::upload_command( string parameters, StreamOutput *stream )
 {
     unsigned char *p;
@@ -1079,6 +1234,7 @@ void Player::upload_command( string parameters, StreamOutput *stream )
     int timeouts = MAXRETRANS;
     int recv_count = 0;
     bool md5_received = false;
+    uint32_t u32filesize = 0;
 
     // open file
 	char error_msg[64];
@@ -1086,6 +1242,9 @@ void Player::upload_command( string parameters, StreamOutput *stream )
 	sprintf(error_msg, "Nothing!");
     string filename = absolute_from_relative(shift_parameter(parameters));
     string md5_filename = change_to_md5_path(filename);
+    string lzfilename = change_to_lz_path(filename);
+    check_and_make_path(md5_filename);
+    check_and_make_path(lzfilename);
 
 	// diasble serial rx irq in case of serial stream, and internal process in case of wifi
     if (stream->type() == 0) {
@@ -1101,9 +1260,25 @@ void Player::upload_command( string parameters, StreamOutput *stream )
         THEKERNEL->set_uploading(false);
         return;
     }
-
-    FILE *fd = fopen(filename.c_str(), "wb");
+	
+	//if file is lzCompress file,then need to put .lz dir
+	unsigned int start_pos = filename.find(".lz");
+	FILE *fd;
+	if (start_pos != string::npos) {
+		start_pos = lzfilename.rfind(".lz");
+		lzfilename=lzfilename.substr(0, start_pos);
+    	fd = fopen(lzfilename.c_str(), "wb");
+    }
+    else {
+    	fd = fopen(filename.c_str(), "wb");
+    }
+		
     FILE *fd_md5 = NULL;
+    //if file is lzCompress file,then need to Decompress
+	start_pos = md5_filename.find(".lz");
+	if (start_pos != string::npos) {
+		md5_filename=md5_filename.substr(0, start_pos);
+	}
     if (filename.find("firmware.bin") == string::npos) {
     	fd_md5 = fopen(md5_filename.c_str(), "wb");
     }
@@ -1113,12 +1288,16 @@ void Player::upload_command( string parameters, StreamOutput *stream )
     	sprintf(error_msg, "Error: failed to open file [%s]!\r\n", fd == NULL ? filename.substr(0, 30).c_str() : md5_filename.substr(0, 30).c_str() );
     	goto upload_error;
     }
-
+	
+	// stop TIMER0 and TIMER1 for save time
+	NVIC_DisableIRQ(TIMER0_IRQn);
+	NVIC_DisableIRQ(TIMER1_IRQn);
     for (;;) {
         for (retry = 0; retry < MAXRETRANS; ++retry) {  // approx 3 seconds allowed to make connection
             if (trychar)
             	stream->_putc(trychar);
             if ((c = inbyte(stream, TIMEOUT_MS)) >= 0) {
+            	retry = 0;
             	switch (c) {
                 case SOH:
                     bufsz = 128;
@@ -1145,6 +1324,10 @@ void Player::upload_command( string parameters, StreamOutput *stream )
                     break;
                 }
             }
+			else
+			{
+				safe_delay_ms(10);
+			}
         }
 
         if (trychar == 'C') {
@@ -1169,11 +1352,13 @@ void Player::upload_command( string parameters, StreamOutput *stream )
         while (recv_count > 0) {
         	c = inbytes(stream, &recv_buff, recv_count, TIMEOUT_MS);
         	if (c < 0) {
+        		safe_delay_ms(10);
         		timeouts --;
         		if (timeouts < 0) {
             		goto reject;
         		}
         	} else {
+        		timeouts = MAXRETRANS;
             	for (int i = 0; i < c; i ++) {
             		*p++ = recv_buff[i];
             	}
@@ -1194,7 +1379,11 @@ void Player::upload_command( string parameters, StreamOutput *stream )
             continue;
         } else if (xbuff[1] == (unsigned char)(~xbuff[2]) &&
         		xbuff[1] == packetno && check_crc(crc, &xbuff[3], bufsz + 1 + is_stx)) {
+
+            // Set the file write system buffer 4096 Byte
+        	setvbuf(fd, (char*)fbuff, _IOFBF, 4096);
 			fwrite(&xbuff[4 + is_stx], sizeof(char), len, fd);
+			u32filesize += len;
 			++ packetno;
 			retrans = MAXRETRANS + 1;
 			THEKERNEL->call_event(ON_IDLE);
@@ -1210,6 +1399,10 @@ void Player::upload_command( string parameters, StreamOutput *stream )
 		}
     }
 upload_error:
+	// renable TIME0 and TIME1
+	NVIC_EnableIRQ(TIMER0_IRQn);     // Enable interrupt handler
+	NVIC_EnableIRQ(TIMER1_IRQn);     // Enable interrupt handler
+
 	if (fd != NULL) {
 		fclose(fd);
 		fd = NULL;
@@ -1228,6 +1421,7 @@ upload_error:
 	stream->printf(error_msg);
 	return;
 upload_success:
+
 	if (fd != NULL) {
 		fclose(fd);
 		fd = NULL;
@@ -1237,11 +1431,25 @@ upload_success:
 		fd_md5 = NULL;
 	}
 	flush_input(stream);
+
+    THEKERNEL->set_uploading(false);
+	//if file is lzCompress file,then need to Decompress
+	start_pos = filename.find(".lz");
+	string srcfilename=lzfilename;
+	string desfilename= filename;
+	if (start_pos != string::npos) {
+		desfilename=filename.substr(0, start_pos);
+		if(!decompress(srcfilename,desfilename,u32filesize,stream))
+			goto upload_error;
+    }
+
+	// renable TIME0 and TIME1
+	NVIC_EnableIRQ(TIMER0_IRQn);     // Enable interrupt handler
+	NVIC_EnableIRQ(TIMER1_IRQn);     // Enable interrupt handler
     if (stream->type() == 0) {
     	set_serial_rx_irq(true);
     }
-    THEKERNEL->set_uploading(false);
-	stream->printf("Info: upload success: %s.\r\n", filename.c_str());
+	stream->printf("Info: upload success: %s.\r\n", desfilename.c_str());
 }
 
 
@@ -1277,6 +1485,7 @@ void Player::download_command( string parameters, StreamOutput *stream )
 	memset(error_msg, 0, sizeof(error_msg));
     string filename = absolute_from_relative(shift_parameter(parameters));
     string md5_filename = change_to_md5_path(filename);
+    string lz_filename = change_to_lz_path(filename);
 
 	// diasble irq
     if (stream->type() == 0) {
@@ -1306,17 +1515,22 @@ void Player::download_command( string parameters, StreamOutput *stream )
     } else {
     	strcpy(md5, this->md5_str);
     }
-
-    fd = fopen(filename.c_str(), "rb");
-    if (NULL == fd) {
-	    cancel_transfer(stream);
-		sprintf(error_msg, "Error: failed to open file [%s]!\r\n", filename.substr(0, 30).c_str());
-		goto download_error;
-    }
+	
+	fd = fopen(lz_filename.c_str(), "rb");		//first try to open /.lz/filename
+	if (NULL == fd) {	
+	    fd = fopen(filename.c_str(), "rb");
+	    if (NULL == fd) {
+		    cancel_transfer(stream);
+			sprintf(error_msg, "Error: failed to open file [%s]!\r\n", filename.substr(0, 30).c_str());
+			goto download_error;
+	    }
+	}
+    
 
     for(;;) {
 		for (retry = 0; retry < MAXRETRANS; ++retry) {
 			if ((c = inbyte(stream, TIMEOUT_MS)) >= 0) {
+				retry = 0;
 				switch (c) {
 				case 'C':
 					crc = 1;
@@ -1335,6 +1549,10 @@ void Player::download_command( string parameters, StreamOutput *stream )
 				default:
 					break;
 				}
+			}
+			else
+			{
+				safe_delay_ms(10);
 			}
 		}
         cancel_transfer(stream);
@@ -1393,6 +1611,7 @@ void Player::download_command( string parameters, StreamOutput *stream )
 					resend = false;
 				}
 				if ((c = inbyte(stream, TIMEOUT_MS)) >= 0 ) {
+					retry = 0;
 					switch (c) {
 					case ACK:
 						++packetno;
@@ -1411,6 +1630,11 @@ void Player::download_command( string parameters, StreamOutput *stream )
 						break;
 					}
 				}
+				else
+				{
+					safe_delay_ms(500);
+				}
+
 			}
 
 	        cancel_transfer(stream);
