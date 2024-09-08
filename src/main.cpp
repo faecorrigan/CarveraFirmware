@@ -40,7 +40,8 @@
 // Debug
 #include "libs/SerialMessage.h"
 
-#include "libs/USBDevice/SDCard/SDCard.h"
+//#include "libs/USBDevice/SDCard/SDCard.h"
+#include "libs/USBDevice/SDCard/SDFileSystem.h"
 // #include "libs/USBDevice/USBSerial/USBSerial.h"
 // #include "libs/USBDevice/DFU.h"
 #include "libs/SDFAT.h"
@@ -63,7 +64,8 @@
 #define watchdog_timeout_checksum  CHECKSUM("watchdog_timeout")
 
 // USB Stuff
-SDCard sd  __attribute__ ((section ("AHBSRAM0"))) (P0_18, P0_17, P0_15, P0_16);      // this selects SPI1 as the sdcard as it is on Smoothieboard
+//SDCard sd  __attribute__ ((section ("AHBSRAM0"))) (P0_18, P0_17, P0_15, P0_16);      // this selects SPI1 as the sdcard as it is on Smoothieboard
+SDFileSystem sd __attribute__ ((section ("AHBSRAM0"))) (P0_18, P0_17, P0_15, P0_16, 12000000);
 //SDCard sd(P0_18, P0_17, P0_15, P0_16);  // this selects SPI0 as the sdcard
 //SDCard sd(P0_18, P0_17, P0_15, P2_8);  // this selects SPI0 as the sdcard witrh a different sd select
 
@@ -169,14 +171,14 @@ void init() {
 
     #ifndef NO_TOOLS_EXTRUDER
     // NOTE this must be done first before Temperature control so ToolManager can handle Tn before temperaturecontrol module does
-    ExtruderMaker *em= new ExtruderMaker();
+    ExtruderMaker *em= new(AHB0) ExtruderMaker();
     em->load_tools();
     delete em;
     #endif
 
     // #ifndef NO_TOOLS_TEMPERATURECONTROL
     // Note order is important here must be after extruder so Tn as a parameter will get executed first
-    TemperatureControlPool *tp= new TemperatureControlPool();
+    TemperatureControlPool *tp= new(AHB0) TemperatureControlPool();
     tp->load_tools();
     delete tp;
 
@@ -185,11 +187,11 @@ void init() {
     kernel->add_module( new(AHB0) Endstops() );
     #endif
     #ifndef NO_TOOLS_LASER
-    kernel->add_module( new Laser() );
+    kernel->add_module( new(AHB0) Laser() );
     #endif
 
     #ifndef NO_TOOLS_SPINDLE
-    SpindleMaker *sm = new SpindleMaker();
+    SpindleMaker *sm = new(AHB0) SpindleMaker();
     sm->load_spindle();
     delete sm;
     //kernel->add_module( new(AHB0) Spindle() );
@@ -246,7 +248,7 @@ void init() {
     float t= kernel->config->value( watchdog_timeout_checksum )->by_default(10.0F)->as_number();
     if(t > 0.1F) {
         // NOTE setting WDT_RESET with the current bootloader would leave it in DFU mode which would be suboptimal
-        kernel->add_module( new Watchdog(t * 1000000, WDT_RESET )); // WDT_RESET));
+        kernel->add_module( new(AHB0) Watchdog(t * 1000000, WDT_RESET )); // WDT_RESET));
         kernel->streams->printf("Watchdog enabled for %1.3f seconds\n", t);
     }else{
         kernel->streams->printf("WARNING Watchdog is disabled\n");
