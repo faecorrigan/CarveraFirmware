@@ -1123,6 +1123,8 @@ void ATCHandler::on_main_loop(void *argument)
 	        rapid_move(true, this->clearance_x, this->clearance_y, NAN);
 		} else if (goto_position == 2) {
 			// goto work origin
+			// shrink A value first before move
+			// shrink B value first before move
 			rapid_move(false, 0, 0, NAN);
 		} else if (goto_position == 3) {
 			// goto anchor 1
