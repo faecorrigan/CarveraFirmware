@@ -29,6 +29,7 @@ using namespace std;
 #define main_button_LED_B_pin_checksum    			CHECKSUM("main_button_LED_B_pin")
 #define main_button_poll_frequency_checksum			CHECKSUM("main_button_poll_frequency")
 #define main_long_press_time_ms_checksum			CHECKSUM("main_button_long_press_time")
+#define main_button_long_press_checksum				CHECKSUM("main_button_long_press_enable")
 
 #define e_stop_pin_checksum							CHECKSUM("e_stop_pin")
 #define ps12_pin_checksum							CHECKSUM("ps12_pin")
@@ -42,6 +43,7 @@ using namespace std;
 #define stop_on_cover_open_checksum					CHECKSUM("stop_on_cover_open")
 
 #define sd_ok_checksum								CHECKSUM("sd_ok")
+
 
 MainButton::MainButton()
 {
@@ -71,6 +73,7 @@ void MainButton::on_module_loaded()
     this->main_button_LED_B.from_string( THEKERNEL->config->value( main_button_LED_B_pin_checksum )->by_default("1.14")->as_string())->as_output();
     this->poll_frequency = THEKERNEL->config->value( main_button_poll_frequency_checksum )->by_default(20)->as_number();
     this->long_press_time_ms = THEKERNEL->config->value( main_long_press_time_ms_checksum )->by_default(3000)->as_number();
+    this->long_press_enable = THEKERNEL->config->value( main_button_long_press_checksum )->by_default(false)->as_string();
 
     this->e_stop.from_string( THEKERNEL->config->value( e_stop_pin_checksum )->by_default("0.26^")->as_string())->as_input();
     this->PS12.from_string( THEKERNEL->config->value( ps12_pin_checksum )->by_default("0.22")->as_string())->as_output();
@@ -233,11 +236,21 @@ void MainButton::on_idle(void *argument)
     				system_reset(false);
     				break;
     		}
-    	} else if (button_state == BUTTON_LONG_PRESSED) {
+    	} else if (button_state == BUTTON_LONG_PRESSED ) {
     		switch (state) {
     			case IDLE:
-    				// restart last job (if there is)
-    			    PublicData::set_value( player_checksum, restart_job_checksum, NULL);
+    				if (this->long_press_enable == "Repeat" ) {
+	    				// restart last job (if there is)
+	    			    PublicData::set_value( player_checksum, restart_job_checksum, NULL);
+	    			}
+	    			else if(this->long_press_enable == "Sleep" ) {
+	    				// turn off 12V/24V power supply
+						this->switch_power_12(0);
+						this->switch_power_24(0);
+	        			// go to sleep
+	    				THEKERNEL->set_sleeping(true);
+	    				THEKERNEL->call_event(ON_HALT, nullptr);
+	    			}
 
 // turn off 12V/24V power supply
 //    				this->switch_power_12(0);
