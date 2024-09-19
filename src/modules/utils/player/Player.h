@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <cstdint>
 #include <map>
 #include <vector>
 #include <queue>

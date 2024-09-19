@@ -213,7 +213,7 @@ void MemoryPool::debug(StreamOutput* str)
     uint32_t free = 0;
     str->printf("Start: %ub MemoryPool at %p\n", size, p);
     do {
-        str->printf("\tChunk at %p (%4lu): %s, %lu bytes\n", p, offset(p), (p->used?"used":"free"), p->next);
+        str->printf("\tChunk at %p (%4lu): %s, %i bytes\n", p, offset(p), (p->used?"used":"free"), p->next);
         tot += p->next;
         if (p->used == 0)
             free += p->next;

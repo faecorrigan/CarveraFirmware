@@ -8,6 +8,7 @@
 #pragma once
 
 #include <bitset>
+#include <cstdint>
 #include "ActuatorCoordinates.h"
 
 class Block {
