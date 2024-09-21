@@ -1,4 +1,5 @@
-
+.DS_Store
+settings.json
 /gcc-arm-none-eabi
 /LPC1768
 /mbed/drop
