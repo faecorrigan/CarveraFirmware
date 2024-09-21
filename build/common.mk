@@ -51,7 +51,7 @@ STACK_SIZE ?= 0
 
 # Configure MRI variables based on BUILD_TYPE build type variable.
 ifeq "$(BUILD_TYPE)" "Release"
-OPTIMIZATION ?= 2
+OPTIMIZATION ?= s
 MRI_ENABLE = 0
 MRI_SEMIHOST_STDIO ?= 0
 endif
@@ -65,7 +65,7 @@ endif
 
 
 ifeq "$(BUILD_TYPE)" "Checked"
-OPTIMIZATION ?= 2
+OPTIMIZATION ?= s
 MRI_ENABLE = 1
 MRI_SEMIHOST_STDIO ?= 1
 endif
