@@ -50,7 +50,6 @@
 #include "MainButtonPublicAccess.h"
 #include "system_LPC17xx.h"
 #include "LPC17xx.h"
-#include "MSCFileSystemPublicAccess.h"
 #include "WifiPublicAccess.h"
 
 #include "mbed.h" // for wait_ms()
@@ -1360,8 +1359,6 @@ void SimpleShell::get_command( string parameters, StreamOutput *stream)
 		stream->printf("Curr: %1.3f,%1.3f,%1.3f, Comp: %1.3f,%1.3f,%1.3f\n", old_mpos[0], old_mpos[1], old_mpos[2], mpos[0], mpos[1], mpos[2]);
     } else if (what == "wp" || what == "wp_state") {
     	PublicData::get_value(atc_handler_checksum, show_wp_state_checksum, NULL);
-    } else if (what == "msc") {
-    	PublicData::get_value(msc_file_system_checksum, check_usb_host_checksum, NULL);
     } else {
         stream->printf("error: unknown option %s\n", what.c_str());
     }

@@ -25,7 +25,6 @@
 #include "modules/utils/player/Player.h"
 #include "modules/utils/mainbutton/MainButton.h"
 #include "modules/communication/SerialConsole2.h"
-#include "libs/USBDevice/MSCFileSystem.h"
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -150,11 +149,6 @@ void init() {
 
     // ATC Handler
     kernel->add_module( new(AHB0) ATCHandler() );
-
-    // MSC File System Handler
-    kernel->add_module( new(AHB0) MSCFileSystem("ud") );
-
-    // Serial Console 2
     kernel->add_module( new(AHB0) SerialConsole2() );
 
     kernel->add_module( new(AHB0) MainButton() );
