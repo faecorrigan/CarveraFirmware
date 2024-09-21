@@ -169,23 +169,27 @@ void WifiProvider::get_broadcast_from_ip_and_netmask(char *broadcast_addr, char 
 {
 	uint32_t i_ip = ip_to_int(ip_addr);
 	uint32_t i_mask = ip_to_int(netmask);
-	uint32_t i_broadcast = i_ip | (i_mask ^ 0xffffffff);
+
+    // Calculate the broadcast address using bitwise NOT
+	uint32_t i_broadcast = i_ip | (~i_mask);
+
+    // Convert the broadcast integer back to string format
 	int_to_ip(i_broadcast, broadcast_addr);
 }
 
 void WifiProvider::int_to_ip(uint32_t i_ip, char *ip_addr) {
-    unsigned char bytes[4];
-    bytes[0] = i_ip & 0xFF;
-    bytes[1] = (i_ip >> 8) & 0xFF;
-    bytes[2] = (i_ip >> 16) & 0xFF;
-    bytes[3] = (i_ip >> 24) & 0xFF;
-	snprintf(ip_addr, 16, "%d.%d.%d.%d", bytes[3], bytes[2], bytes[1], bytes[0]);
+    unsigned int bytes[4];
+    bytes[0] = (i_ip >> 24) & 0xFF;
+    bytes[1] = (i_ip >> 16) & 0xFF;
+    bytes[2] = (i_ip >> 8) & 0xFF;
+    bytes[3] = i_ip & 0xFF;
+    snprintf(ip_addr, 16, "%u.%u.%u.%u", bytes[0], bytes[1], bytes[2], bytes[3]);
 }
 
 uint32_t WifiProvider::ip_to_int(char* ip_addr) {
-  unsigned char bytes[4];
+    unsigned int bytes[4];
   sscanf(ip_addr, "%u.%u.%u.%u", &bytes[0], &bytes[1], &bytes[2], &bytes[3]);
-  return bytes[0] * 16777216 + bytes[1] * 65536 + bytes[2] * 256 + bytes[3];
+    return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
 }
 
 void WifiProvider::on_second_tick(void *)
