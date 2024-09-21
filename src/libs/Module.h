@@ -38,6 +38,7 @@ public:
     virtual void on_module_loaded() {};
 
     void register_for_event(_EVENT_ENUM event_id);
+    void unregister_for_event(_EVENT_ENUM event_id);
 
     // event callbacks, not every module will implement all of these
     // there should be one for each _EVENT_ENUM

@@ -19,6 +19,7 @@
 #include "modules/tools/drillingcycles/Drillingcycles.h"
 #include "modules/tools/atc/ATCHandler.h"
 #include "modules/utils/wifi/WifiProvider.h"
+#include "modules/utils/webserver/WebServer.h"
 #include "modules/robot/Conveyor.h"
 #include "modules/utils/simpleshell/SimpleShell.h"
 #include "modules/utils/configurator/Configurator.h"
@@ -93,14 +94,16 @@ void init() {
 
     // Create and add main modules
     kernel->add_module( new(AHB0) Player() );
-
-    // ATC Handler
     kernel->add_module( new(AHB0) ATCHandler() );
     kernel->add_module( new(AHB0) WirelessProbe() );
     kernel->add_module( new(AHB0) MainButton() );
-    // Wifi Provider
-    kernel->add_module( new(AHB0) WifiProvider() );
 
+    // Instantiate WifiProvider and add to kernel
+    WifiProvider* wifi_provider = new(AHB0) WifiProvider();
+    kernel->add_module( wifi_provider );
+
+    // Instantiate WebServer with wifi_provider and add to kernel
+    kernel->add_module( new(AHB0) WebServer(wifi_provider) );
 
     // these modules can be completely disabled in the Makefile by adding to EXCLUDE_MODULES
     #ifndef NO_TOOLS_SWITCH

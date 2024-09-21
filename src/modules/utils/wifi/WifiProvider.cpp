@@ -67,6 +67,8 @@ void WifiProvider::on_module_loaded()
         return;
     }
 
+	data_callbacks.clear();
+
     // Load configuration values
     this->tcp_port = THEKERNEL->config->value(wifi_checksum, tcp_port_checksum)->by_default(2222)->as_int();
     this->udp_send_port = THEKERNEL->config->value(wifi_checksum, udp_send_port_checksum)->by_default(3333)->as_int();
@@ -119,48 +121,62 @@ void WifiProvider::receive_wifi_data()
     u8 link_no;
     u16 received = 0;
     u16 status;
+	u8 remote_ip[4];
+	u16 remote_port;
 
     while (true) {
-        received = M8266WIFI_SPI_RecvData(WifiData, WIFI_DATA_MAX_SIZE, WIFI_DATA_TIMEOUT_MS, &link_no, &status);
-        if (link_no == udp_link_no) {
-            // Ignore UDP data
-            return;
-        }
-        for (int i = 0; i < received; i++) {
-            // Handle special control characters
-            if (WifiData[i] == '?') {
-                query_flag = true;
-                continue;
-            }
-            if (WifiData[i] == '*') {
-                diagnose_flag = true;
-                continue;
-            }
-            if (WifiData[i] == 'X' - 'A' + 1) { // Ctrl+X
-                halt_flag = true;
-                continue;
-            }
-            if (THEKERNEL->is_feed_hold_enabled()) {
-                if (WifiData[i] == '!') { // Safe pause
-                    THEKERNEL->set_feed_hold(true);
-                    continue;
-                }
-                if (WifiData[i] == '~') { // Safe resume
-                    THEKERNEL->set_feed_hold(false);
-                    continue;
-                }
-            }
-            // Convert carriage return to newline
-            if (WifiData[i] == '\r') {
-                WifiData[i] = '\n';
-            }
-            // Add data to buffer
-            this->buffer.push_back(char(WifiData[i]));
-        }
-        // If less data received than maximum, exit loop
-        if (received < WIFI_DATA_MAX_SIZE) {
-            return;
-        }
+        received = M8266WIFI_SPI_RecvData_ex(WifiData, WIFI_DATA_MAX_SIZE, WIFI_DATA_TIMEOUT_MS, &link_no, remote_ip, &remote_port, &status);
+
+		// Check if there is a callback registered for this link
+        auto it = data_callbacks.find(link_no);
+        if (it != data_callbacks.end()) {
+            // Call the registered callback function
+            it->second(remote_ip, remote_port, WifiData, received);
+        } else {
+			if (link_no == udp_link_no) {
+				// Ignore UDP data
+				return;
+			}
+
+			if (link_no == tcp_link_no) {
+				// Data received from the primary TCP connection
+				for (int i = 0; i < received; i++) {
+					// Handle special control characters
+					if (WifiData[i] == '?') {
+						query_flag = true;
+						continue;
+					}
+					if (WifiData[i] == '*') {
+						diagnose_flag = true;
+						continue;
+					}
+					if (WifiData[i] == 'X' - 'A' + 1) { // Ctrl+X
+						halt_flag = true;
+						continue;
+					}
+					if (THEKERNEL->is_feed_hold_enabled()) {
+						if (WifiData[i] == '!') { // Safe pause
+							THEKERNEL->set_feed_hold(true);
+							continue;
+						}
+						if (WifiData[i] == '~') { // Safe resume
+							THEKERNEL->set_feed_hold(false);
+							continue;
+						}
+					}
+					// Convert carriage return to newline
+					if (WifiData[i] == '\r') {
+						WifiData[i] = '\n';
+					}
+					// Add data to buffer
+					this->buffer.push_back(char(WifiData[i]));
+				}
+			}
+		}
+
+		if (received < WIFI_DATA_MAX_SIZE) {
+			return;
+		}
     }
 }
 
@@ -812,4 +828,107 @@ u8 WifiProvider::M8266WIFI_Module_Init_Via_SPI()
 int WifiProvider::type()
 {
     return 1;
+}
+
+
+/* API */
+
+bool WifiProvider::setup_server(uint16_t local_port, uint8_t link_no, uint8_t max_clients)
+{
+    uint16_t status = 0;
+    const int connection_type = 2; // TCP Server
+    const int timeout = 3;
+
+    // Setup the connection
+    if (M8266WIFI_SPI_Setup_Connection(connection_type, local_port, "0.0.0.0", 0, link_no, timeout, &status) == 0) {
+        THEKERNEL->streams->printf("Setup_Connection ERROR on link %d, status: %d\n", link_no, status);
+        return false;
+    }
+
+    // Configure the maximum number of clients allowed for a TCP server
+    if (connection_type == 2) {
+        if (M8266WIFI_SPI_Config_Max_Clients_Allowed_To_A_Tcp_Server(link_no, max_clients, &status) == 0) {
+            THEKERNEL->streams->printf("Config_Max_Clients ERROR on link %d, status: %d\n", link_no, status);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void WifiProvider::register_data_callback(uint8_t link_no, std::function<void(uint8_t *, uint16_t, uint8_t*, uint16_t)> callback)
+{
+    data_callbacks[link_no] = callback;
+}
+
+// WifiProvider.cpp
+
+bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no, const uint8_t* data, uint16_t length)
+{
+    uint16_t status = 0;
+    char ip_str[16];
+
+    // Convert remote_ip (uint8_t[4]) to string
+
+	uint32_t remote_ip_word = remote_ip[0] << 24 | remote_ip[1] << 16 | remote_ip[2] << 8 | remote_ip[3];
+
+    int_to_ip(remote_ip_word, ip_str);
+
+    uint32_t sent_index = 0;
+    uint16_t sent = 0;
+    uint16_t to_send = 0;
+    uint8_t WifiData[WIFI_DATA_MAX_SIZE];
+
+    while (sent_index < length) {
+        to_send = std::min(static_cast<uint16_t>(length - sent_index), static_cast<uint16_t>(WIFI_DATA_MAX_SIZE));
+        memcpy(WifiData, data + sent_index, to_send);
+        sent = M8266WIFI_SPI_Send_Data_to_TcpClient(
+            WifiData,
+            to_send,
+            link_no,
+            ip_str,
+            remote_port,
+            &status
+        );
+        sent_index += sent;
+
+        if (sent != to_send) {
+            // Error or connection closed
+            THEKERNEL->streams->printf("Send data ERROR on link %d to %s:%d, status:%d\n", link_no, ip_str, remote_port, status);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool WifiProvider::close_connection(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no)
+{
+    uint16_t status = 0;
+    uint8_t client_num = 0;
+    ClientInfo RemoteClients[15]; // Adjust the size based on maximum expected clients
+
+    // Get the list of clients connected to the TCP server
+    if (M8266WIFI_SPI_List_Clients_On_A_TCP_Server(link_no, &client_num, RemoteClients, &status) == 0) {
+        THEKERNEL->streams->printf("Failed to list clients on link %d, status:%d\n", link_no, status);
+        return false;
+    }
+
+    // Iterate through the clients to find the matching one
+    for (uint8_t i = 0; i < client_num; ++i) {
+        ClientInfo& client = RemoteClients[i];
+
+        // Compare IP addresses and port
+        if (memcmp(client.remote_ip, remote_ip, 4) == 0 && client.remote_port == remote_port) {
+            // Found the matching client, disconnect it
+            if (M8266WIFI_SPI_Disconnect_TcpClient(link_no, &client, &status) == 0) {
+                THEKERNEL->streams->printf("Failed to disconnect client on link %d, status:%d\n", link_no, status);
+                return false;
+            }
+            return true; // Disconnected successfully
+        }
+    }
+
+    // Client not found
+    THEKERNEL->streams->printf("Client not found on link %d\n", link_no);
+    return false;
 }

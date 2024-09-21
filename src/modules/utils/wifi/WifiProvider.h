@@ -11,6 +11,8 @@
 using namespace std;
 #include <vector>
 #include <queue>
+#include <map>
+#include <functional>
 
 #include "Pin.h"
 #include "Module.h"
@@ -35,6 +37,11 @@ public:
     void on_idle(void* argument);
     void on_get_public_data(void* argument);
     void on_set_public_data(void* argument);
+
+    bool setup_server(uint16_t local_port, uint8_t link_no, uint8_t max_clients);
+    void register_data_callback(uint8_t link_no, std::function<void(uint8_t*, uint16_t, uint8_t*, uint16_t)> callback);
+    bool send_data(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no, const uint8_t* data, uint16_t length);
+    bool close_connection(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no);
 
     int gets(char** buf, int size = 0);
     int puts(const char*, int size = 0);
@@ -69,6 +76,8 @@ private:
     string test_buffer;
 
 	u8 WifiData[WIFI_DATA_MAX_SIZE];
+
+    std::map<u8, std::function<void(u8*, u16, u8*, u16)>> data_callbacks;
 
 	int tcp_port;
 	int udp_send_port;

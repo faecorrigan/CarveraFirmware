@@ -32,3 +32,9 @@ void Module::register_for_event(_EVENT_ENUM event_id){
     // You add things to Smoothie by making a new class that inherits the Module class. See http://smoothieware.org/moduleexample for a crude introduction
     THEKERNEL->register_for_event(event_id, this);
 }
+
+void Module::unregister_for_event(_EVENT_ENUM event_id){
+    // Events are the basic building blocks of Smoothie. They register for events, and then do stuff when those events are called.
+    // You add things to Smoothie by making a new class that inherits the Module class. See http://smoothieware.org/moduleexample for a crude introduction
+    THEKERNEL->unregister_for_event(event_id, this);
+}
