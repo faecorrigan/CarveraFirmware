@@ -58,26 +58,9 @@
 // disable MSD
 #define DISABLEMSD
 #define second_usb_serial_enable_checksum  CHECKSUM("second_usb_serial_enable")
-// #define disable_msd_checksum  CHECKSUM("msd_disable")
-// #define dfu_enable_checksum  CHECKSUM("dfu_enable")
 #define watchdog_timeout_checksum  CHECKSUM("watchdog_timeout")
 
-// USB Stuff
-//SDCard sd  __attribute__ ((section ("AHBSRAM0"))) (P0_18, P0_17, P0_15, P0_16);      // this selects SPI1 as the sdcard as it is on Smoothieboard
 SDFileSystem sd __attribute__ ((section ("AHBSRAM0"))) (P0_18, P0_17, P0_15, P0_16, 12000000);
-//SDCard sd(P0_18, P0_17, P0_15, P0_16);  // this selects SPI0 as the sdcard
-//SDCard sd(P0_18, P0_17, P0_15, P2_8);  // this selects SPI0 as the sdcard witrh a different sd select
-
-// USB u __attribute__ ((section ("AHBSRAM0")));
-// USBSerial usbserial __attribute__ ((section ("AHBSRAM0"))) (&u);
-
-/*
-#ifndef DISABLEMSD
-USBMSD msc __attribute__ ((section ("AHBSRAM0"))) (&u, &sd);
-#else
-USBMSD *msc= NULL;
-#endif
-*/
 
 SDFAT mounter __attribute__ ((section ("AHBSRAM0"))) ("sd", &sd);
 
@@ -96,23 +79,6 @@ void init() {
         leds[i]= 0;
     }
 
-    // open 12V
-    // GPIO v12 = GPIO(P0_11);
-    /*
-    GPIO v12 = GPIO(P0_9);
-    v12.output();
-    v12 = 1;
-
-    // GPIO v24 = GPIO(P1_29);
-    GPIO v24 = GPIO(P0_0);
-    v24.output();
-    v24 = 1;
-
-    GPIO vCharge = GPIO(P0_23);
-    vCharge.output();
-    vCharge = 1;
-    */
-
     Kernel* kernel = new Kernel();
 
     // kernel->streams->printf("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
@@ -124,25 +90,6 @@ void init() {
     #ifdef NONETWORK
         kernel->streams->printf("NETWORK is disabled\r\n");
     #endif
-
-#ifdef DISABLEMSD
-	// msc = NULL;
-	// kernel->streams->printf("MSD is disabled\r\n");
-
-	/*
-    // attempt to be able to disable msd in config
-    if(sdok && !kernel->config->value( disable_msd_checksum )->by_default(true)->as_bool()){
-        // HACK to zero the memory USBMSD uses as it and its objects seem to not initialize properly in the ctor
-        size_t n= sizeof(USBMSD);
-        void *v = AHB0.alloc(n);
-        memset(v, 0, n); // clear the allocated memory
-        msc= new(v) USBMSD(&u, &sd); // allocate object using zeroed memory
-    }else{
-        msc = NULL;
-        kernel->streams->printf("MSD is disabled\r\n");
-    }*/
-
-#endif
 
     // Create and add main modules
     kernel->add_module( new(AHB0) Player() );
@@ -188,10 +135,6 @@ void init() {
     SpindleMaker *sm = new(AHB0) SpindleMaker();
     sm->load_spindle();
     delete sm;
-    //kernel->add_module( new(AHB0) Spindle() );
-    #endif
-    #ifndef NO_UTILS_PANEL
-    // kernel->add_module( new(AHB0) Panel() );
     #endif
     #ifndef NO_TOOLS_ZPROBE
     kernel->add_module( new(AHB0) ZProbe() );
@@ -202,9 +145,6 @@ void init() {
     #ifndef NO_TOOLS_ROTARYDELTACALIBRATION
     kernel->add_module( new(AHB0) RotaryDeltaCalibration() );
     #endif
-//    #ifndef NONETWORK
-//    kernel->add_module( new Network() );
-//    #endif
     #ifndef NO_TOOLS_TEMPERATURESWITCH
     // Must be loaded after TemperatureControl
     kernel->add_module( new(AHB0) TemperatureSwitch() );
@@ -212,31 +152,7 @@ void init() {
     #ifndef NO_TOOLS_DRILLINGCYCLES
     kernel->add_module( new(AHB0) Drillingcycles() );
     #endif
-    // Create and initialize USB stuff
-    // u.init();
 
-/*
-#ifdef DISABLEMSD
-    if(sdok && msc != NULL){
-        kernel->add_module( msc );
-    }
-#else
-    if (!kernel->config->value( disable_msd_checksum )->by_default(false)->as_bool()) {
-        kernel->add_module( &msc );
-    }
-#endif
-*/
-
-    /* disable USB module
-    kernel->add_module( &usbserial );
-    if( kernel->config->value( second_usb_serial_enable_checksum )->by_default(false)->as_bool() ){
-        kernel->add_module( new(AHB0) USBSerial(&u) );
-    }
-    */
-
-    // if( kernel->config->value( dfu_enable_checksum )->by_default(false)->as_bool() ){
-    //     kernel->add_module( new(AHB0) DFU(&u));
-    // }
 
     // 10 second watchdog timeout (or config as seconds)
     float t= kernel->config->value( watchdog_timeout_checksum )->by_default(10.0F)->as_number();
@@ -247,11 +163,6 @@ void init() {
     }else{
         kernel->streams->printf("WARNING Watchdog is disabled\n");
     }
-
-    // kernel->add_module( &u );
-
-    // memory before cache is cleared
-    //SimpleShell::print_mem(kernel->streams);
 
     // clear up the config cache to save some memory
     kernel->config->config_cache_clear();
