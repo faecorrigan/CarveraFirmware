@@ -69,6 +69,8 @@ private:
     void on_pin_rise();
     void receive_wifi_data();
 
+    void halt();
+
     mbed::InterruptIn *wifi_interrupt_pin; // Interrupt pin for measuring speed
     float probe_slow_rate;
 
@@ -95,9 +97,6 @@ private:
     	u8  tcp_link_no;
     	u8  udp_link_no;
     	bool wifi_init_ok:1;
-    	volatile bool halt_flag:1;
-    	volatile bool query_flag:1;
-    	volatile bool diagnose_flag:1;
     	volatile bool has_data_flag:1;
     };
 

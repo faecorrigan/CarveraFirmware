@@ -98,10 +98,6 @@ void WifiProvider::on_module_loaded()
     // Add this stream to the kernel's stream pool for broadcasting
     THEKERNEL->streams->append_stream(this);
 
-    query_flag = false;
-    diagnose_flag = false;
-    halt_flag = false;
-
     // Register for events
     this->register_for_event(ON_IDLE);
     this->register_for_event(ON_GCODE_RECEIVED);
@@ -143,15 +139,15 @@ void WifiProvider::receive_wifi_data()
 				for (int i = 0; i < received; i++) {
 					// Handle special control characters
 					if (rxData[i] == '?') {
-						query_flag = true;
+                        puts(THEKERNEL->get_query_string().c_str());
 						continue;
 					}
 					if (rxData[i] == '*') {
-						diagnose_flag = true;
+                        puts(THEKERNEL->get_diagnose_string().c_str(), 0);
 						continue;
 					}
 					if (rxData[i] == 'X' - 'A' + 1) { // Ctrl+X
-						halt_flag = true;
+						halt();
 						continue;
 					}
 					if (THEKERNEL->is_feed_hold_enabled()) {
@@ -268,27 +264,15 @@ void WifiProvider::on_idle(void* argument)
         has_data_flag = false;
         receive_wifi_data();
     }
+}
 
-    // Handle special flags
-    if (query_flag) {
-        query_flag = false;
-        puts(THEKERNEL->get_query_string().c_str());
-    }
-
-    if (diagnose_flag) {
-        diagnose_flag = false;
-        puts(THEKERNEL->get_diagnose_string().c_str(), 0);
-    }
-
-    if (halt_flag) {
-        halt_flag = false;
-        THEKERNEL->call_event(ON_HALT, nullptr);
-        THEKERNEL->set_halt_reason(MANUAL);
-        if (THEKERNEL->is_grbl_mode()) {
-            puts("ALARM: Abort during cycle\r\n");
-        } else {
-            puts("HALTED, M999 or $X to exit HALT state\r\n");
-        }
+void WifiProvider::halt(void) {
+    THEKERNEL->call_event(ON_HALT, nullptr);
+    THEKERNEL->set_halt_reason(MANUAL);
+    if (THEKERNEL->is_grbl_mode()) {
+        puts("ALARM: Abort during cycle\r\n");
+    } else {
+        puts("HALTED, M999 or $X to exit HALT state\r\n");
     }
 }
 
