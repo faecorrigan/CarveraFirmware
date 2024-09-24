@@ -105,6 +105,11 @@ void MainButton::on_module_loaded()
     this->main_button_LED_B.set(0);
 
     THEKERNEL->slow_ticker->attach( this->poll_frequency, this, &MainButton::button_tick );
+
+	mbed::InterruptIn *e_stop_interrupt_in = this->e_stop.interrupt_pin();
+
+	e_stop_interrupt_in->rise(this, &MainButton::e_stop_irq);
+	e_stop_interrupt_in->fall(this, &MainButton::e_stop_irq);
 }
 
 void MainButton::switch_power_12(int state)
@@ -145,6 +150,15 @@ void MainButton::on_second_tick(void *)
 	}
 }
 
+void MainButton::e_stop_irq() {
+	uint8_t state = THEKERNEL->get_state();
+
+	if (state != ALARM) {
+		THEKERNEL->call_event(ON_HALT, nullptr);
+		THEKERNEL->set_halt_reason(E_STOP);
+	}
+}
+
 void MainButton::on_idle(void *argument)
 {
 	bool cover_open_stop = false;
@@ -152,10 +166,7 @@ void MainButton::on_idle(void *argument)
     if (e_stop_pressed || button_state == BUTTON_LED_UPDATE || button_state == BUTTON_SHORT_PRESSED || button_state == BUTTON_LONG_PRESSED) {
     	// get current status
     	uint8_t state = THEKERNEL->get_state();
-    	if (e_stop_pressed && state != ALARM) {
-    	    THEKERNEL->call_event(ON_HALT, nullptr);
-    	    THEKERNEL->set_halt_reason(E_STOP);
-    	}
+
 		if (this->stop_on_cover_open && !THEKERNEL->is_halted()) {
             void *return_value;
 			bool cover_endstop_state;

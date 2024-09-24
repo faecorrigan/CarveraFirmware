@@ -2,6 +2,7 @@
 #define MAINBUTTON_H
 
 #include "libs/Pin.h"
+#include "mbed.h"
 
 class MainButton : public Module {
     public:
@@ -56,6 +57,7 @@ class MainButton : public Module {
         bool sd_ok;
         bool using_12v;
 
+        void e_stop_irq();
         void switch_power_12(int state);
         void switch_power_24(int state);
 };
