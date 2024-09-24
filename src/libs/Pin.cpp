@@ -203,8 +203,8 @@ mbed::InterruptIn* Pin::interrupt_pin()
         PinName pinname = port_pin((PortName)port_number, pin);
         return new mbed::InterruptIn(pinname);
 
-    }else{
-        this->valid= false;
+    } else {
+        this->valid = false;
         return nullptr;
     }
 }
