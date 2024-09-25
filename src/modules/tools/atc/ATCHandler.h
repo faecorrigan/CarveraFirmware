@@ -101,7 +101,7 @@ private:
     bool playing_file;
     bool g28_triggered;
 
-    uint16_t probe_laser_last;
+    uint16_t probe_laser_countdown;
 
     using atc_homing_info_t = struct {
         Pin pin;

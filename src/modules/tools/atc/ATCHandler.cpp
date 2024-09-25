@@ -98,7 +98,7 @@ ATCHandler::ATCHandler()
     last_pos[0] = 0.0;
     last_pos[1] = 0.0;
     last_pos[2] = 0.0;
-    probe_laser_last = 9999;
+    probe_laser_countdown = 0;
     playing_file = false;
     tool_number = 6;
     g28_triggered = false;
@@ -428,7 +428,6 @@ void ATCHandler::on_module_loaded()
     this->ref_tool_mz = THEKERNEL->eeprom_data->REFMZ;
     this->cur_tool_mz = THEKERNEL->eeprom_data->TOOLMZ;
     this->tool_offset = THEKERNEL->eeprom_data->TLO;
-
 }
 
 void ATCHandler::on_config_reload(void *argument)
@@ -549,8 +548,8 @@ void ATCHandler::on_second_tick(void *argument) {
 // Called every second in an ISR
 uint32_t ATCHandler::countdown_probe_laser(uint32_t dummy)
 {
-	if (this->probe_laser_last < 120) {
-		this->probe_laser_last ++;
+	if (this->probe_laser_countdown > 0) {
+		this->probe_laser_countdown--;
 		PublicData::set_value(atc_handler_checksum, set_wp_laser_checksum, nullptr);
 	}
     return 0;
@@ -956,10 +955,10 @@ void ATCHandler::on_gcode_received(void *argument)
 			// control probe laser
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
 				// open probe laser
-				this->probe_laser_last = 0;
+				this->probe_laser_countdown = 120;
 			} else if (gcode->subcode == 2) {
 				// close probe laser
-				this->probe_laser_last = 9999;
+				this->probe_laser_countdown = 0;
 			}
 		} else if (gcode->m == 495) {
 			if (gcode->subcode == 3) {
