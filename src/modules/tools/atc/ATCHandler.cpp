@@ -416,13 +416,12 @@ void ATCHandler::on_module_loaded()
     this->register_for_event(ON_SET_PUBLIC_DATA);
     this->register_for_event(ON_MAIN_LOOP);
     this->register_for_event(ON_HALT);
+    this->register_for_event(ON_SECOND_TICK);
 
     this->on_config_reload(this);
 
     THEKERNEL->slow_ticker->attach(1000, this, &ATCHandler::read_endstop);
     THEKERNEL->slow_ticker->attach(1000, this, &ATCHandler::read_detector);
-
-    THEKERNEL->slow_ticker->attach(1, this, &ATCHandler::countdown_probe_laser);
 
     // load data from eeprom
     this->active_tool = THEKERNEL->eeprom_data->TOOL;
@@ -541,6 +540,10 @@ uint32_t ATCHandler::read_detector(uint32_t dummy)
     }
 
     return 0;
+}
+
+void ATCHandler::on_second_tick(void *argument) {
+	this->countdown_probe_laser(0);
 }
 
 // Called every second in an ISR
