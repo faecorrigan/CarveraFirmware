@@ -24,7 +24,7 @@
 #include "modules/utils/configurator/Configurator.h"
 #include "modules/utils/player/Player.h"
 #include "modules/utils/mainbutton/MainButton.h"
-#include "modules/communication/SerialConsole2.h"
+#include "modules/communication/WirelessProbe.h"
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -96,8 +96,7 @@ void init() {
 
     // ATC Handler
     kernel->add_module( new(AHB0) ATCHandler() );
-    kernel->add_module( new(AHB0) SerialConsole2() );
-
+    kernel->add_module( new(AHB0) WirelessProbe() );
     kernel->add_module( new(AHB0) MainButton() );
     // Wifi Provider
     kernel->add_module( new(AHB0) WifiProvider() );

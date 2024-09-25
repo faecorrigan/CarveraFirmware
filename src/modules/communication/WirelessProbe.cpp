@@ -14,7 +14,7 @@ using std::string;
 #include "Config.h"
 #include "ConfigValue.h"
 #include "libs/nuts_bolts.h"
-#include "SerialConsole2.h"
+#include "WirelessProbe.h"
 #include "libs/RingBuffer.h"
 #include "libs/SerialMessage.h"
 #include "PublicDataRequest.h"
@@ -34,18 +34,18 @@ using std::string;
 // Wireless probe serial reading module
 // Treats every received line as a command and passes it ( via event call ) to the command dispatcher.
 // The command dispatcher will then ask other modules if they can do something with it
-SerialConsole2::SerialConsole2() {
+WirelessProbe::WirelessProbe() {
     this->wp_voltage = 0.0;
 }
 
 // Called when the module has just been loaded
-void SerialConsole2::on_module_loaded() {
+void WirelessProbe::on_module_loaded() {
 
 	this->serial = new mbed::Serial( USBTX, USBRX );
     this->serial->baud(THEKERNEL->config->value(uart_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
 
     // We want to be called every time a new char is received
-    this->serial->attach(this, &SerialConsole2::on_serial_char_received, mbed::Serial::RxIrq);
+    this->serial->attach(this, &WirelessProbe::on_serial_char_received, mbed::Serial::RxIrq);
 
     this->min_voltage = THEKERNEL->config->value(wp_checksum, min_voltage_checksum)->by_default(3.6F)->as_number();
     this->max_voltage = THEKERNEL->config->value(wp_checksum, max_voltage_checksum)->by_default(4.1F)->as_number();
@@ -59,7 +59,7 @@ void SerialConsole2::on_module_loaded() {
 
 
 // Called on Serial::RxIrq interrupt, meaning we have received a char
-void SerialConsole2::on_serial_char_received() {
+void WirelessProbe::on_serial_char_received() {
     while (this->serial->readable()){
         char received = this->serial->getc();
         // convert CR to NL (for host OSs that don't send NL)
@@ -69,7 +69,7 @@ void SerialConsole2::on_serial_char_received() {
 }
 
 // Actual event calling must happen in the main loop because if it happens in the interrupt we will loose data
-void SerialConsole2::on_main_loop(void * argument) {
+void WirelessProbe::on_main_loop(void * argument) {
     if ( this->has_char('\n') ) {
         string received;
         received.reserve(20);
@@ -119,7 +119,7 @@ void SerialConsole2::on_main_loop(void * argument) {
     }
 }
 
-int SerialConsole2::puts(const char* s)
+int WirelessProbe::puts(const char* s)
 {
     //return fwrite(s, strlen(s), 1, (FILE*)(*this->serial));
     size_t n= strlen(s);
@@ -129,25 +129,25 @@ int SerialConsole2::puts(const char* s)
     return n;
 }
 
-int SerialConsole2::gets(char** buf)
+int WirelessProbe::gets(char** buf)
 {
 	getc_result = this->_getc();
 	*buf = &getc_result;
 	return 1;
 }
 
-int SerialConsole2::_putc(int c)
+int WirelessProbe::_putc(int c)
 {
     return this->serial->putc(c);
 }
 
-int SerialConsole2::_getc()
+int WirelessProbe::_getc()
 {
     return this->serial->getc();
 }
 
 // Does the queue have a given char ?
-bool SerialConsole2::has_char(char letter){
+bool WirelessProbe::has_char(char letter){
     int index = this->buffer.tail;
     while( index != this->buffer.head ){
         if( this->buffer.buffer[index] == letter ){
@@ -158,7 +158,7 @@ bool SerialConsole2::has_char(char letter){
     return false;
 }
 
-void SerialConsole2::on_get_public_data(void *argument) {
+void WirelessProbe::on_get_public_data(void *argument) {
     PublicDataRequest* pdr = static_cast<PublicDataRequest*>(argument);
 
     if(!pdr->starts_with(atc_handler_checksum)) return;
@@ -175,7 +175,7 @@ void SerialConsole2::on_get_public_data(void *argument) {
 
 }
 
-void SerialConsole2::on_set_public_data(void *argument) {
+void WirelessProbe::on_set_public_data(void *argument) {
     PublicDataRequest* pdr = static_cast<PublicDataRequest*>(argument);
 
     if(!pdr->starts_with(atc_handler_checksum)) return;
@@ -186,7 +186,7 @@ void SerialConsole2::on_set_public_data(void *argument) {
     }
 }
 
-void SerialConsole2::on_gcode_received(void *argument)
+void WirelessProbe::on_gcode_received(void *argument)
 {
     Gcode *gcode = static_cast<Gcode*>(argument);
 
