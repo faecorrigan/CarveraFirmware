@@ -8,7 +8,6 @@
 #include "ZProbe.h"
 
 #include "Kernel.h"
-#include "BaseSolution.h"
 #include "Config.h"
 #include "Robot.h"
 #include "StepperMotor.h"
@@ -17,17 +16,12 @@
 #include "Conveyor.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "SlowTicker.h"
-#include "Planner.h"
 #include "SerialMessage.h"
 #include "PublicDataRequest.h"
-#include "EndstopsPublicAccess.h"
 #include "ZProbePublicAccess.h"
-#include "PublicData.h"
 #include "LevelingStrategy.h"
-#include "StepTicker.h"
 #include "utils.h"
-#include "us_ticker_api.h"
+#include "mbed.h"
 
 // strategies we know about
 #include "DeltaCalibrationStrategy.h"
@@ -38,7 +32,6 @@
 #define enable_checksum          CHECKSUM("enable")
 #define probe_pin_checksum       CHECKSUM("probe_pin")
 #define calibrate_pin_checksum   CHECKSUM("calibrate_pin")
-#define debounce_ms_checksum     CHECKSUM("debounce_ms")
 #define slow_feedrate_checksum   CHECKSUM("slow_feedrate")
 #define fast_feedrate_checksum   CHECKSUM("fast_feedrate")
 #define return_feedrate_checksum CHECKSUM("return_feedrate")
@@ -77,16 +70,20 @@ void ZProbe::on_module_loaded()
 
     // we read the probe in this timer
     probing = false;
-    THEKERNEL->slow_ticker->attach(1000, this, &ZProbe::read_probe);
-    THEKERNEL->slow_ticker->attach(1000, this, &ZProbe::read_calibrate);
     this->probe_trigger_time = 0;
+
+    mbed::InterruptIn *probe_in_irq = this->probe_pin.interrupt_pin();
+    probe_in_irq->rise(this, &ZProbe::probe_pin_irq_rise);
+    probe_in_irq->fall(this, &ZProbe::probe_pin_irq_fall);
+
+    mbed::InterruptIn *calibrate_pin_interrupt = this->calibrate_pin.interrupt_pin();
+    calibrate_pin_interrupt->rise(this, &ZProbe::calibrate_pin_irq);
 }
 
 void ZProbe::config_load()
 {
-    this->pin.from_string( THEKERNEL->config->value(zprobe_checksum, probe_pin_checksum)->by_default("2.6v" )->as_string())->as_input();
+    this->probe_pin.from_string( THEKERNEL->config->value(zprobe_checksum, probe_pin_checksum)->by_default("2.6v" )->as_string())->as_input();
     this->calibrate_pin.from_string( THEKERNEL->config->value(zprobe_checksum, calibrate_pin_checksum)->by_default("0.5^" )->as_string())->as_input();
-    this->debounce_ms    = THEKERNEL->config->value(zprobe_checksum, debounce_ms_checksum)->by_default(0  )->as_number();
 
     // get strategies to load
     vector<uint16_t> modules;
@@ -155,61 +152,40 @@ void ZProbe::config_load()
 
 }
 
-uint32_t ZProbe::read_probe(uint32_t dummy)
-{
-    if (!probing || probe_detected) return 0;
+void ZProbe::probe_pin_irq_rise() {
+    this->probe_pin_irq(true);
+}
+
+void ZProbe::probe_pin_irq_fall() {
+    this->probe_pin_irq(false);
+}
+
+void ZProbe::probe_pin_irq(bool status) {
+    if (!probing || probe_detected) return;
 
     // we check all axis as it maybe a G38.2 X10 for instance, not just a probe in Z
     if(STEPPER[X_AXIS]->is_moving() || STEPPER[Y_AXIS]->is_moving() || STEPPER[Z_AXIS]->is_moving()) {
-        // if it is moving then we check the probe, and debounce it
-        if (this->pin.get() != invert_probe) {
-            if (debounce < debounce_ms) {
-                debounce ++;
-            } else {
-                // we signal the motors to stop, which will preempt any moves on that axis
-                // we do all motors as it may be a delta
-                for (auto &a : THEROBOT->actuators) a->stop_moving();
-                probe_detected = true;
-                debounce = 0;
-            }
-
-        } else {
-            // The endstop was not hit yet
-            debounce = 0;
+        if (status != invert_probe) {
+            for (auto &a : THEROBOT->actuators) a->stop_moving();
+            probe_detected = true;
         }
     }
-
-    return 0;
 }
 
-uint32_t ZProbe::read_calibrate(uint32_t dummy)
-{
-    if (!calibrating || calibrate_detected) return 0;
+void ZProbe::calibrate_pin_irq() {
+    if (!calibrating || calibrate_detected) return;
 
     // just check z Axis move
     if (STEPPER[Z_AXIS]->is_moving()) {
-    	if (this->pin.get()) {
+    	if (this->probe_pin.get()) {
     		probe_detected = true;
     	}
-        // if it is moving then we check the probe, and debounce it
-        if (this->calibrate_pin.get()) {
-            if (cali_debounce < debounce_ms) {
-                cali_debounce++;
-            } else {
-                // we signal the motors to stop, which will preempt any moves on that axis
-                // we do all motors as it may be a delta
-                for (auto &a : THEROBOT->actuators) a->stop_moving();
-                calibrate_detected = true;
-                cali_debounce = 0;
-            }
 
-        } else {
-            // The endstop was not hit yet
-            cali_debounce = 0;
-        }
+        // we signal the motors to stop, which will preempt any moves on that axis
+        // we do all motors as it may be a delta
+        for (auto &a : THEROBOT->actuators) a->stop_moving();
+        calibrate_detected = true;
     }
-
-    return 0;
 }
 
 // single probe in Z with custom feedrate
@@ -218,7 +194,7 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
 {
     if(dwell_before_probing > .0001F) safe_delay_ms(dwell_before_probing*1000);
 
-    if(this->pin.get()) {
+    if(this->probe_pin.get()) {
     	THEKERNEL->streams->printf("Error: Probe already triggered so aborts\r\n");
         // probe already triggered so abort
         return false;
@@ -227,8 +203,6 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
 
     probing = true;
     probe_detected = false;
-    debounce = 0;
-    cali_debounce = 0;
 
     // save current actuator position so we can report how far we moved
     float z_start_pos= THEROBOT->actuators[Z_AXIS]->get_current_position();
@@ -299,7 +273,7 @@ void ZProbe::on_gcode_received(void *argument)
 
         invert_probe = false;
         // make sure the probe is defined and not already triggered before moving motors
-        if(!this->pin.connected()) {
+        if(!this->probe_pin.connected()) {
             gcode->stream->printf("ZProbe pin not configured.\n");
             return;
         }
@@ -307,13 +281,12 @@ void ZProbe::on_gcode_received(void *argument)
         // first wait for all moves to finish
         THEKERNEL->conveyor->wait_for_idle();
 
-        if(this->pin.get()) {
+        if(this->probe_pin.get()) {
             gcode->stream->printf("ZProbe triggered before move, aborting command.\n");
             return;
         }
 
         if( gcode->g == 30 ) { // simple Z probe
-
             bool set_z= (gcode->has_letter('Z') && !is_rdelta);
             bool probe_result;
             bool reverse= (gcode->has_letter('R') && gcode->get_value('R') != 0); // specify to probe in reverse direction
@@ -374,7 +347,7 @@ void ZProbe::on_gcode_received(void *argument)
         }
 
         // make sure the probe is defined and not already triggered before moving motors
-        if(!this->pin.connected()) {
+        if(!this->probe_pin.connected()) {
             gcode->stream->printf("Error :ZProbe not connected.\n");
             return;
         }
@@ -400,7 +373,7 @@ void ZProbe::on_gcode_received(void *argument)
         int c;
         switch (gcode->m) {
             case 119:
-                c = this->pin.get();
+                c = this->probe_pin.get();
                 gcode->stream->printf(" Probe: %d", c);
                 gcode->add_nl = true;
                 break;
@@ -411,11 +384,6 @@ void ZProbe::on_gcode_received(void *argument)
                 if (gcode->has_letter('R')) this->return_feedrate = gcode->get_value('R');
                 if (gcode->has_letter('Z')) this->max_z = gcode->get_value('Z');
                 if (gcode->has_letter('H')) this->probe_height = gcode->get_value('H');
-                if (gcode->has_letter('I')) { // NOTE this is temporary and toggles the invertion status of the pin
-                    invert_override= (gcode->get_value('I') != 0);
-                    pin.set_inverting(pin.is_inverting() != invert_override); // XOR so inverted pin is not inverted and vice versa
-                    gcode->stream->printf("// Invert override set: %d\n", pin.is_inverting());
-                }
                 if (gcode->has_letter('D')) this->dwell_before_probing = gcode->get_value('D');
                 break;
 
@@ -463,7 +431,7 @@ void ZProbe::probe_XYZ(Gcode *gcode)
     // first wait for all moves to finish
     THEKERNEL->conveyor->wait_for_idle();
 
-    if(this->pin.get() != invert_probe) {
+    if(this->probe_pin.get() != invert_probe) {
         gcode->stream->printf("Error:ZProbe triggered before move, aborting command.\n");
         THEKERNEL->call_event(ON_HALT, nullptr);
         THEKERNEL->set_halt_reason(PROBE_FAIL);
@@ -473,8 +441,6 @@ void ZProbe::probe_XYZ(Gcode *gcode)
     // enable the probe checking in the timer
     probing = true;
     probe_detected = false;
-    debounce = 0;
-    cali_debounce = 0;
 
     // do a delta move which will stop as soon as the probe is triggered, or the distance is reached
     float delta[3]= {x, y, z};
@@ -542,8 +508,6 @@ void ZProbe::calibrate_Z(Gcode *gcode)
     calibrating = true;
     probe_detected = false;
     calibrate_detected = false;
-    debounce = 0;
-    cali_debounce = 0;
 
     // do a delta move which will stop as soon as the probe is triggered, or the distance is reached
     float delta[3]= {0, 0, z};
@@ -618,8 +582,6 @@ void ZProbe::coordinated_move(float x, float y, float z, float feedrate, bool re
         snprintf(&cmd[n], CMDLEN-n, " F%1.1f", feedrate * 60); // feed rate is converted to mm/min
     }
 
-    //THEKERNEL->streams->printf("DEBUG: move: %s: %u\n", cmd, strlen(cmd));
-
     // send as a command line as may have multiple G codes in it
     THEROBOT->push_state();
     struct SerialMessage message;
@@ -648,7 +610,7 @@ void ZProbe::on_get_public_data(void* argument)
     if (pdr->second_element_is(get_zprobe_pin_states_checksum)) {
         char *data = static_cast<char *>(pdr->get_data_ptr());
         // cover endstop
-        data[0] = (char)this->pin.get();
+        data[0] = (char)this->probe_pin.get();
         data[1] = (char)this->calibrate_pin.get();
         pdr->set_taken();
     } else if (pdr->second_element_is(get_zprobe_time_checksum)) {

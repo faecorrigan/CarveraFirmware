@@ -39,7 +39,7 @@ public:
     void coordinated_move(float x, float y, float z, float feedrate, bool relative=false);
     void home();
 
-    bool getProbeStatus() { return this->pin.get(); }
+    bool getProbeStatus() { return this->probe_pin.get(); }
     float getSlowFeedrate() const { return slow_feedrate; }
     float getFastFeedrate() const { return fast_feedrate; }
     float getProbeHeight() const { return probe_height; }
@@ -49,9 +49,11 @@ private:
     void config_load();
     void probe_XYZ(Gcode *gc);
     void calibrate_Z(Gcode *gc);
-    uint32_t read_probe(uint32_t dummy);
-    uint32_t read_calibrate(uint32_t dummy);
     void on_get_public_data(void* argument);
+    void probe_pin_irq_rise();
+    void probe_pin_irq_fall();
+    void probe_pin_irq(bool);
+    void calibrate_pin_irq();
 
     float slow_feedrate;
     float fast_feedrate;
@@ -60,11 +62,9 @@ private:
     float max_z;
     float dwell_before_probing;
 
-    Pin pin;
+    Pin probe_pin;
     Pin calibrate_pin;
     std::vector<LevelingStrategy*> strategies;
-    uint16_t debounce_ms;
-	volatile uint16_t debounce, cali_debounce;
 
     uint32_t probe_trigger_time;
 
