@@ -1296,8 +1296,6 @@ void Player::upload_command( string parameters, StreamOutput *stream )
     }
 	
 	// stop TIMER0 and TIMER1 for save time
-	NVIC_DisableIRQ(TIMER0_IRQn);
-	NVIC_DisableIRQ(TIMER1_IRQn);
     for (;;) {
         for (retry = 0; retry < MAXRETRANS; ++retry) {  // approx 3 seconds allowed to make connection
             if (trychar)
@@ -1405,10 +1403,6 @@ void Player::upload_command( string parameters, StreamOutput *stream )
 		}
     }
 upload_error:
-	// renable TIME0 and TIME1
-	NVIC_EnableIRQ(TIMER0_IRQn);     // Enable interrupt handler
-	NVIC_EnableIRQ(TIMER1_IRQn);     // Enable interrupt handler
-
 	if (fd != NULL) {
 		fclose(fd);
 		fd = NULL;
@@ -1449,9 +1443,6 @@ upload_success:
 			goto upload_error;
     }
 
-	// renable TIME0 and TIME1
-	NVIC_EnableIRQ(TIMER0_IRQn);     // Enable interrupt handler
-	NVIC_EnableIRQ(TIMER1_IRQn);     // Enable interrupt handler
     if (stream->type() == 0) {
     	set_serial_rx_irq(true);
     }
