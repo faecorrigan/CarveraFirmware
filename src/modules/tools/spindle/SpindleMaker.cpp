@@ -15,7 +15,7 @@
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 
 #define spindle_checksum                   CHECKSUM("spindle")
 #define enable_checksum                    CHECKSUM("enable")
@@ -27,7 +27,7 @@ void SpindleMaker::load_spindle(){
 
     // If the spindle module is disabled load no Spindle 
     if( !THEKERNEL->config->value( spindle_checksum, enable_checksum  )->by_default(true)->as_bool() ) {
-        THEKERNEL->streams->printf("NOTE: Spindle Module is disabled\n");
+        printk("NOTE: Spindle Module is disabled\n");
         return;    
     }
     
@@ -47,11 +47,11 @@ void SpindleMaker::load_spindle(){
             spindle = new HuanyangSpindleControl();
         } else {
             delete spindle;
-            THEKERNEL->streams->printf("ERROR: No valid spindle VFD type defined\n");
+            printk("ERROR: No valid spindle VFD type defined\n");
         }
     } else {
         delete spindle;
-        THEKERNEL->streams->printf("ERROR: No valid spindle type defined\n");
+        printk("ERROR: No valid spindle type defined\n");
     }
 
     // Add the spindle if we successfully initialized one

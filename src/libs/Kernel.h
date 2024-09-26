@@ -108,6 +108,9 @@ class Kernel {
         static Kernel* instance; // the Singleton instance of Kernel usable anywhere
         const char* config_override_filename(){ return "/sd/config-override"; }
 
+        void printk(const char* format, ...) __attribute__ ((format(printf, 2, 3)));
+        void vprintk(const char* format, va_list args);
+
         void add_module(Module* module);
         void register_for_event(_EVENT_ENUM id_event, Module *module);
         void call_event(_EVENT_ENUM id_event, void * argument= nullptr);

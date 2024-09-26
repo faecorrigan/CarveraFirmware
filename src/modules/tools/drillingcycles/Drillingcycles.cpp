@@ -15,8 +15,9 @@
 #include "Conveyor.h"
 #include "SlowTicker.h"
 #include "StepperMotor.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "nuts_bolts.h"
+#include "StreamOutput.h"
 
 #include <math.h> /* fmod */
 
@@ -118,7 +119,7 @@ int Drillingcycles::send_gcode(const char* format, ...)
     int n = vsnprintf(line, sizeof(line), format, args);
     va_end(args);
     // debug, print the gcode sended
-    //THEKERNEL->streams->printf(">>> %s\r\n", line);
+    //printk(">>> %s\r\n", line);
     // make gcode object and send it (right way)
     Gcode gc(line, &(StreamOutput::NullStream));
     THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc);

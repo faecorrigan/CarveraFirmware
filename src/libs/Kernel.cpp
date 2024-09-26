@@ -208,6 +208,19 @@ Kernel::Kernel()
     this->configurator = new(AHB0) Configurator();
 }
 
+void Kernel::printk(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    vprintk(format, args);
+    va_end(args);
+}
+
+void Kernel::vprintk(const char* format, va_list args) {
+    if (this->streams != nullptr) {
+        this->streams->vprintf(format, args);
+    }
+}
+
 // get current state
 uint8_t Kernel::get_state()
 {
@@ -645,9 +658,9 @@ void Kernel::write_eeprom_data()
 		}
 	}
 	if (result != 0) {
-		this->streams->printf("ALARM: EEPROM data write error:%d\n",pagenum);
+		printk("ALARM: EEPROM data write error:%d\n", pagenum);
 	} else {
-//		this->streams->printf("EEPROM data write finished.\n");
+//		printk("EEPROM data write finished.\n");
 	}
 }
 
@@ -683,9 +696,9 @@ void Kernel::erase_eeprom_data()
 		}
 	}
 	if (result != 0) {
-		this->streams->printf("ALARM: EEPROM data erase error.\n");
+		printk("ALARM: EEPROM data erase error.\n");
 	} else {
-		this->streams->printf("EEPROM data erase finished.\n");
+		printk("EEPROM data erase finished.\n");
 	}
 }
 int Kernel::iic_page_write(unsigned char u8PageNum, unsigned char u8len, unsigned char *pu8Array)

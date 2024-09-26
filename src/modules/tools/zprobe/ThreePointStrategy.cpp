@@ -55,7 +55,7 @@
 #include "Kernel.h"
 #include "Config.h"
 #include "Robot.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Gcode.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -65,6 +65,7 @@
 #include "ZProbe.h"
 #include "Plane3D.h"
 #include "nuts_bolts.h"
+#include "StreamOutput.h"
 
 #include <string>
 #include <algorithm>

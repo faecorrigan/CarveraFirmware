@@ -4,7 +4,7 @@
 #include "ActuatorCoordinates.h"
 #include "ConfigValue.h"
 #include "libs/Kernel.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 
 #include "libs/nuts_bolts.h"
 

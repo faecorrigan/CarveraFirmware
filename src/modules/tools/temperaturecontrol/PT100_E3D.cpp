@@ -12,7 +12,7 @@
 #include "checksumm.h"
 #include "Adc.h"
 #include "ConfigValue.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 
 #define e3d_amplifier_pin_checksum  CHECKSUM("e3d_amplifier_pin")
 
@@ -45,7 +45,7 @@ void PT100_E3D::get_raw()
 {
     int adc_value= new_pt100_reading();
     float t = adc_value_to_temperature(new_pt100_reading());
-    THEKERNEL->streams->printf("PT100_E3D: adc= %d, temp= %f\n", adc_value, t);
+    printk("PT100_E3D: adc= %d, temp= %f\n", adc_value, t);
     // reset the min/max
     min_temp = max_temp = t;
 }

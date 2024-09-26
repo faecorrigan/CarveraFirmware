@@ -13,8 +13,9 @@
 #include "libs/utils.h"
 #include "SerialConsole.h"
 #include "libs/SerialMessage.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "libs/StreamOutput.h"
+#include "StreamOutputPool.h"
 #include "Gcode.h"
 #include "checksumm.h"
 #include "Config.h"
@@ -115,7 +116,7 @@ void Player::on_halt(void* argument)
 		THEKERNEL->set_waiting(false);
 		THEKERNEL->set_suspending(false);
 		THEROBOT->pop_state();
-		THEKERNEL->streams->printf("Suspend cleared\n");
+		printk("Suspend cleared\n");
 	}
 }
 
@@ -260,7 +261,7 @@ void Player::on_gcode_received(void *argument)
             this->goto_line = 0;
 
         } else if (gcode->m == 118) { // print remainder of string to console
-            THEKERNEL->streams->printf("%s \n", gcode->get_command() + 4);
+            printk("%s \n", gcode->get_command() + 4);
 
         } else if (gcode->m == 600) { // suspend print, Not entirely Marlin compliant, M600.1 will leave the heaters on
             this->suspend_command((gcode->subcode == 1)?"h":"", gcode->stream);
@@ -344,7 +345,7 @@ void Player::play_command( string parameters, StreamOutput *stream )
 //	if (!tool_ok) {
 //		THEKERNEL->call_event(ON_HALT, nullptr);
 //		THEKERNEL->set_halt_reason(MANUAL);
-//		THEKERNEL->streams->printf("ERROR: No tool or probe tool!\n");
+//		printk("ERROR: No tool or probe tool!\n");
 //		return;
 //	}
 
@@ -526,7 +527,7 @@ void Player::abort_command( string parameters, StreamOutput *stream )
     THEKERNEL->conveyor->wait_for_idle();
 
     if(THEKERNEL->is_halted()) {
-        THEKERNEL->streams->printf("Aborted by halt\n");
+        printk("Aborted by halt\n");
         THEKERNEL->set_waiting(false);
         return;
     }
@@ -584,7 +585,7 @@ void Player::on_main_loop(void *argument)
 
         // check if there are bufferd command
         while (!this->buffered_queue.empty()) {
-        	THEKERNEL->streams->printf("%s\r\n", this->buffered_queue.front().c_str());
+        	printk("%s\r\n", this->buffered_queue.front().c_str());
 			struct SerialMessage message;
 			message.message = this->buffered_queue.front();
 			message.stream = THEKERNEL->streams;
@@ -659,7 +660,7 @@ void Player::on_main_loop(void *argument)
 							THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
 							// fputs(clustered_gcode.c_str(), this->temp_file_handler);
 							// fputs("\n", this->temp_file_handler);
-							// THEKERNEL->streams->printf("1-[Line: %d] %s\n", message.line, clustered_gcode.c_str());
+							// printk("1-[Line: %d] %s\n", message.line, clustered_gcode.c_str());
 							return;
 						}
 						continue;
@@ -684,7 +685,7 @@ void Player::on_main_loop(void *argument)
     						THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
     						// fputs(clustered_gcode.c_str(), this->temp_file_handler);
     						// fputs("\n", this->temp_file_handler);
-    						// THEKERNEL->streams->printf("2-[Line: %d] %s\n", message.line, clustered_gcode.c_str());
+    						// printk("2-[Line: %d] %s\n", message.line, clustered_gcode.c_str());
                 		}
                         sum_x_value = 0.0;
                         sum_y_value = 0.0;
@@ -708,7 +709,7 @@ void Player::on_main_loop(void *argument)
                 // this->current_stream->printf("Run: %s", buf);
                 THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
                 // fputs(buf, this->temp_file_handler);
-                // THEKERNEL->streams->printf("0-[Line: %d] %s\n", message.line, buf);
+                // printk("0-[Line: %d] %s\n", message.line, buf);
                 played_lines += 1;
                 played_cnt += len;
                 return; // we feed one line per main loop
@@ -827,7 +828,7 @@ void Player::on_set_public_data(void *argument)
     	if (this->playing_file) pdr->set_taken();
     } else if (pdr->second_element_is(restart_job_checksum)) {
     	if (!this->last_filename.empty()) {
-    		THEKERNEL->streams->printf("Job restarted: %s.\r\n", this->last_filename.c_str());
+    		printk("Job restarted: %s.\r\n", this->last_filename.c_str());
         	this->play_command(this->last_filename, &(StreamOutput::NullStream));
     	}
     }
@@ -866,7 +867,7 @@ void Player::suspend_command(string parameters, StreamOutput *stream )
     THEKERNEL->conveyor->wait_for_idle();
 
     if(THEKERNEL->is_halted()) {
-        THEKERNEL->streams->printf("Suspend aborted by halt\n");
+        printk("Suspend aborted by halt\n");
         THEKERNEL->set_waiting(false);
         return;
     }
@@ -894,7 +895,7 @@ void Player::suspend_command(string parameters, StreamOutput *stream )
         THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     }
 
-    THEKERNEL->streams->printf("Suspended, resume to continue playing\n");
+    printk("Suspended, resume to continue playing\n");
 }
 
 /**
@@ -914,7 +915,7 @@ void Player::resume_command(string parameters, StreamOutput *stream )
     stream->printf("Resuming playing...\n");
 
     if(THEKERNEL->is_halted()) {
-        THEKERNEL->streams->printf("Resume aborted by kill\n");
+        printk("Resume aborted by kill\n");
         THEROBOT->pop_state();
         THEKERNEL->set_suspending(false);
         return;
@@ -955,7 +956,7 @@ void Player::resume_command(string parameters, StreamOutput *stream )
     THEROBOT->pop_state();
 
     if(THEKERNEL->is_halted()) {
-        THEKERNEL->streams->printf("Resume aborted by kill\n");
+        printk("Resume aborted by kill\n");
         THEKERNEL->set_suspending(false);
         return;
     }

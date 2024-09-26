@@ -15,7 +15,7 @@
 #include "libs/utils.h"
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "Conveyor.h"
 #include "DirHandle.h"
 #include "mri.h"
@@ -705,7 +705,7 @@ void SimpleShell::cat_command( string parameters, StreamOutput *stream )
 void SimpleShell::echo_command( string parameters, StreamOutput *stream )
 {
     //send to all streams
-    THEKERNEL->streams->printf("echo: %s\r\n", parameters.c_str());
+    printk("echo: %s\r\n", parameters.c_str());
 }
 
 // loads the specified config-override file

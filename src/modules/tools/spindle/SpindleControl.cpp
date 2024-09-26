@@ -10,7 +10,7 @@
 #include "Gcode.h"
 #include "Conveyor.h"
 #include "SpindleControl.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "libs/PublicData.h"
 #include "SwitchPublicAccess.h"
 #include "ATCHandlerPublicAccess.h"
@@ -54,7 +54,7 @@ void SpindleControl::on_gcode_received(void *argument)
             	if (!tool_ok) {
         			THEKERNEL->call_event(ON_HALT, nullptr);
         			THEKERNEL->set_halt_reason(MANUAL);
-        			THEKERNEL->streams->printf("ERROR: No tool or probe tool!\n");
+        			printk("ERROR: No tool or probe tool!\n");
         			return;
             	}
 

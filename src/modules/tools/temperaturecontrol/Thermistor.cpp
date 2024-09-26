@@ -14,6 +14,7 @@
 #include "ConfigValue.h"
 #include "libs/Median.h"
 #include "utils.h"
+#include "Logging.h"
 #include "StreamOutputPool.h"
 
 // a const list of predefined thermistors
@@ -144,7 +145,7 @@ void Thermistor::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
         std::vector<float> trl= parse_number_list(rtc.c_str());
         if(trl.size() != 6) {
             // punt we need 6 numbers, three pairs
-            THEKERNEL->streams->printf("Error in config need 6 numbers for Steinhart-Hart\n");
+            printk("Error in config need 6 numbers for Steinhart-Hart\n");
             this->bad_config= true;
             return;
         }
@@ -160,7 +161,7 @@ void Thermistor::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
         std::vector<float> v= parse_number_list(coef.c_str());
         if(v.size() != 3) {
             // punt we need 6 numbers, three pairs
-            THEKERNEL->streams->printf("Error in config need 3 Steinhart-Hart coefficients\n");
+            printk("Error in config need 3 Steinhart-Hart coefficients\n");
             this->bad_config= true;
             return;
         }
@@ -175,7 +176,7 @@ void Thermistor::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
         calc_jk();
 
     }else if(!found) {
-        THEKERNEL->streams->printf("Error in config need rt_curve, coefficients, beta or a valid predefined thermistor defined\n");
+        printk("Error in config need rt_curve, coefficients, beta or a valid predefined thermistor defined\n");
         this->bad_config= true;
         return;
     }
@@ -216,7 +217,7 @@ std::tuple<float,float,float> Thermistor::calculate_steinhart_hart_coefficients(
     float a = y1 - (b + powf(l1,2) * c) * l1;
 
     if(c < 0) {
-        THEKERNEL->streams->printf("WARNING: negative coefficient in calculate_steinhart_hart_coefficients. Something may be wrong with the measurements\n");
+        printk("WARNING: negative coefficient in calculate_steinhart_hart_coefficients. Something may be wrong with the measurements\n");
         c = -c;
     }
     return std::make_tuple(a, b, c);
@@ -229,7 +230,7 @@ void Thermistor::calc_jk()
         j = (1.0F / beta);
         k = (1.0F / (t0 + 273.15F));
     }else{
-        THEKERNEL->streams->printf("WARNING: beta cannot be 0\n");
+        printk("WARNING: beta cannot be 0\n");
         this->bad_config= true;
     }
 }
@@ -247,7 +248,7 @@ float Thermistor::get_temperature()
 void Thermistor::get_raw()
 {
     if(this->bad_config) {
-       THEKERNEL->streams->printf("WARNING: The config is bad for this temperature sensor\n");
+       printk("WARNING: The config is bad for this temperature sensor\n");
     }
 
     int adc_value= new_thermistor_reading();
@@ -257,23 +258,23 @@ void Thermistor::get_raw()
     float r = r2 / (((float)max_adc_value / adc_value) - 1.0F);
     if (r1 > 0.0F) r = (r1 * r) / (r1 - r);
 
-    THEKERNEL->streams->printf("adc= %d, resistance= %f\n", adc_value, r);
+    printk("adc= %d, resistance= %f\n", adc_value, r);
 
     float t;
     if(this->use_steinhart_hart) {
-        THEKERNEL->streams->printf("S/H c1= %1.18f, c2= %1.18f, c3= %1.18f\n", c1, c2, c3);
+        printk("S/H c1= %1.18f, c2= %1.18f, c3= %1.18f\n", c1, c2, c3);
         float l = logf(r);
         t= (1.0F / (this->c1 + this->c2 * l + this->c3 * powf(l,3))) - 273.15F;
-        THEKERNEL->streams->printf("S/H temp= %f, min= %f, max= %f, delta= %f\n", t, min_temp, max_temp, max_temp-min_temp);
+        printk("S/H temp= %f, min= %f, max= %f, delta= %f\n", t, min_temp, max_temp, max_temp-min_temp);
     }else{
         t= (1.0F / (k + (j * logf(r / r0)))) - 273.15F;
-        THEKERNEL->streams->printf("beta temp= %f, min= %f, max= %f, delta= %f\n", t, min_temp, max_temp, max_temp-min_temp);
+        printk("beta temp= %f, min= %f, max= %f, delta= %f\n", t, min_temp, max_temp, max_temp-min_temp);
     }
 
     // if using a predefined thermistor show its name and which table it is from
     if(thermistor_number != 0) {
         string name= (thermistor_number&0x80) ? predefined_thermistors_beta[(thermistor_number&0x7F)-1].name :  predefined_thermistors[thermistor_number-1].name;
-        THEKERNEL->streams->printf("Using predefined thermistor %d in %s table: %s\n", thermistor_number&0x7F, (thermistor_number&0x80)?"Beta":"S/H", name.c_str());
+        printk("Using predefined thermistor %d in %s table: %s\n", thermistor_number&0x7F, (thermistor_number&0x80)?"Beta":"S/H", name.c_str());
     }
 
     // reset the min/max

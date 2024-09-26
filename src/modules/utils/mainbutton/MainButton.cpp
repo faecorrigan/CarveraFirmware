@@ -8,7 +8,7 @@
 #include "libs/StreamOutput.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "us_ticker_api.h"
 #include "EndstopsPublicAccess.h"
 #include "PlayerPublicAccess.h"
@@ -288,7 +288,7 @@ void MainButton::on_idle(void *argument)
     				} else {
     					// unlock
     		            THEKERNEL->call_event(ON_HALT, (void *)1); // clears on_halt
-    		            THEKERNEL->streams->printf("UnKill button pressed, Halt cleared\r\n");
+    		            printk("UnKill button pressed, Halt cleared\r\n");
     				}
     				break;
     			case SLEEP:

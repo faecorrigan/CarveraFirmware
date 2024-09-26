@@ -4,26 +4,38 @@ NullStreamOutput StreamOutput::NullStream;
 
 int StreamOutput::printf(const char *format, ...)
 {
-    char b[64];
-    char *buffer;
-    // Make the message
     va_list args;
     va_start(args, format);
+    
+    // Call vprintf, which already handles the buffer allocation and formatting
+    int result = vprintf(format, args);
+    
+    va_end(args);
+    return result;
+}
 
-    int size = vsnprintf(b, 64, format, args) + 1; // we add one to take into account space for the terminating \0
+int StreamOutput::vprintf(const char *format, va_list args)
+{
+    char b[64];
+    char *buffer;
+    
+    // Determine the required buffer size
+    int size = vsnprintf(b, sizeof(b), format, args) + 1; // +1 for the terminating \0
 
-    if (size < 64) {
+    if (size <= static_cast<int>(sizeof(b))) {
         buffer = b;
     } else {
         buffer = new char[size];
         vsnprintf(buffer, size, format, args);
     }
-    va_end(args);
 
+    // Output the formatted string
     puts(buffer, strlen(buffer));
 
-    if (buffer != b)
+    // Clean up if dynamic memory was used
+    if (buffer != b) {
         delete[] buffer;
+    }
 
     return size - 1;
 }

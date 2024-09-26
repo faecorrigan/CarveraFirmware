@@ -1,5 +1,5 @@
 #include "ConfigValue.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 
 #include "libs/Kernel.h"
 #include "libs/utils.h"
@@ -7,7 +7,7 @@
 #include "Pwm.h"
 
 
-#define printErrorandExit(...) THEKERNEL->streams->printf(__VA_ARGS__); // exit(1);
+#define printErrorandExit(...) printk(__VA_ARGS__); // exit(1);
 
 #include <vector>
 #include <stdio.h>

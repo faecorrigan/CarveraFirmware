@@ -5,7 +5,7 @@
 #include "checksumm.h"
 #include "utils.h"
 #include "libs/Kernel.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "libs/StreamOutput.h"
 #include <string>
 #include <cstring>
@@ -28,7 +28,7 @@ void WebServer::on_module_loaded()
 {
     // Check if WifiProvider instance is available
     if (!wifi_provider) {
-        THEKERNEL->streams->printf("WebServer: WifiProvider is null!\n");
+        printk("WebServer: WifiProvider is null!\n");
         return;
     }
 
@@ -38,7 +38,7 @@ void WebServer::on_module_loaded()
     // Set up the webserver TCP connection using WifiProvider
     if (!wifi_provider->setup_server(this->webserver_port, webserver_link_no, 15))
     {
-        THEKERNEL->streams->printf("WebServer: Failed to set up connection on port %d\n", webserver_port);
+        printk("WebServer: Failed to set up connection on port %d\n", webserver_port);
         return;
     }
 

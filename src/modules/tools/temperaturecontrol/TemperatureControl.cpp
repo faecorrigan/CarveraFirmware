@@ -16,7 +16,7 @@
 
 #include "PublicData.h"
 #include "ToolManagerPublicAccess.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Config.h"
 #include "checksumm.h"
 #include "Gcode.h"
@@ -25,6 +25,7 @@
 #include "PID_Autotuner.h"
 #include "SerialMessage.h"
 #include "utils.h"
+#include "StreamOutput.h"
 
 // Temp sensor implementations:
 #include "Thermistor.h"
@@ -128,7 +129,7 @@ void TemperatureControl::on_main_loop(void *argument)
 	if(THEKERNEL->is_halted()) return;
     if (this->temp_violated) {
         this->temp_violated = false;
-        THEKERNEL->streams->printf("ERROR: Spindle overheated, max - %f°C, current - %f°C !\n", max_temp, get_temperature());
+        printk("ERROR: Spindle overheated, max - %f°C, current - %f°C !\n", max_temp, get_temperature());
         THEKERNEL->call_event(ON_HALT, nullptr);
         THEKERNEL->set_halt_reason(SPINDLE_OVERHEATED);
     }
@@ -353,7 +354,7 @@ void TemperatureControl::on_gcode_received(void *argument)
                     // wait for temp to be reached, no more gcodes will be fetched until this is complete
                     if( gcode->m == this->set_and_wait_m_code) {
                         if(isinf(get_temperature()) && isinf(sensor->get_temperature())) {
-                            THEKERNEL->streams->printf("Temperature reading is unreliable on %s HALT asserted - reset or M999 required\n", designator.c_str());
+                            printk("Temperature reading is unreliable on %s HALT asserted - reset or M999 required\n", designator.c_str());
                             THEKERNEL->call_event(ON_HALT, nullptr);
                             return;
                         }
@@ -363,7 +364,7 @@ void TemperatureControl::on_gcode_received(void *argument)
                             THEKERNEL->call_event(ON_IDLE, this);
                             // check if ON_HALT was called (usually by kill button)
                             if(THEKERNEL->is_halted() || this->target_temperature == UNDEFINED) {
-                                THEKERNEL->streams->printf("Wait on temperature aborted by kill\n");
+                                printk("Wait on temperature aborted by kill\n");
                                 break;
                             }
                         }
@@ -547,14 +548,14 @@ void TemperatureControl::on_second_tick(void *argument)
 	    if(THEKERNEL->is_halted()) return;
 	    float temperature = sensor->get_temperature();
 		if (isinf(temperature) || temperature < min_temp || temperature > max_temp) {
-	        THEKERNEL->streams->printf("ERROR: Spindle overheated, max - %1.1f, current - %1.1f\n", max_temp, temperature);
+	        printk("ERROR: Spindle overheated, max - %1.1f, current - %1.1f\n", max_temp, temperature);
 	        THEKERNEL->call_event(ON_HALT, nullptr);
 	        THEKERNEL->set_halt_reason(SPINDLE_OVERHEATED);
 		}
 	} else {
 	    // If waiting for a temperature to be reach, display it to keep host programs up to date on the progress
 	    if (waiting)
-	        THEKERNEL->streams->printf("%s:%3.1f /%3.1f @%d\n", designator.c_str(), get_temperature(), ((target_temperature <= 0) ? 0.0 : target_temperature), o);
+	        printk("%s:%3.1f /%3.1f @%d\n", designator.c_str(), get_temperature(), ((target_temperature <= 0) ? 0.0 : target_temperature), o);
 
 	    // Check whether or not there is a temperature runaway issue, if so stop everything and report it
 	    if(THEKERNEL->is_halted()) return;
@@ -591,7 +592,7 @@ void TemperatureControl::on_second_tick(void *argument)
 	                    uint16_t t= (runaway_state == HEATING_UP) ? this->runaway_heating_timeout : this->runaway_cooling_timeout;
 	                    // we are still heating up see if we have hit the max time allowed
 	                    if(t > 0 && ++this->runaway_timer > t){
-	                        THEKERNEL->streams->printf("ERROR: Temperature took too long to be reached on %s, HALT asserted, TURN POWER OFF IMMEDIATELY - reset or M999 required\n", designator.c_str());
+	                        printk("ERROR: Temperature took too long to be reached on %s, HALT asserted, TURN POWER OFF IMMEDIATELY - reset or M999 required\n", designator.c_str());
 	                        THEKERNEL->call_event(ON_HALT, nullptr);
 	                        this->runaway_state = NOT_HEATING;
 	                        this->runaway_timer = 0;
@@ -607,7 +608,7 @@ void TemperatureControl::on_second_tick(void *argument)
 	                    // If the temperature is outside the acceptable range for 8 seconds, this allows for some noise spikes without halting
 	                    if(fabsf(delta) > this->runaway_range){
 	                        if(this->runaway_timer++ >= 1) { // this being 8 seconds
-	                            THEKERNEL->streams->printf("ERROR: Temperature runaway on %s (delta temp %f), HALT asserted, TURN POWER OFF IMMEDIATELY - reset or M999 required\n", designator.c_str(), delta);
+	                            printk("ERROR: Temperature runaway on %s (delta temp %f), HALT asserted, TURN POWER OFF IMMEDIATELY - reset or M999 required\n", designator.c_str(), delta);
 	                            THEKERNEL->call_event(ON_HALT, nullptr);
 	                            this->runaway_state = NOT_HEATING;
 	                            this->runaway_timer= 0;

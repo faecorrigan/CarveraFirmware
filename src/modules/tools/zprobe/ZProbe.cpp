@@ -11,7 +11,7 @@
 #include "Config.h"
 #include "Robot.h"
 #include "StepperMotor.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Gcode.h"
 #include "Conveyor.h"
 #include "checksumm.h"
@@ -22,6 +22,7 @@
 #include "LevelingStrategy.h"
 #include "utils.h"
 #include "mbed.h"
+#include "StreamOutput.h"
 
 // strategies we know about
 #include "DeltaCalibrationStrategy.h"
@@ -195,7 +196,7 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
     if(dwell_before_probing > .0001F) safe_delay_ms(dwell_before_probing*1000);
 
     if(this->probe_pin.get()) {
-    	THEKERNEL->streams->printf("Error: Probe already triggered so aborts\r\n");
+    	printk("Error: Probe already triggered so aborts\r\n");
         // probe already triggered so abort
         return false;
     }

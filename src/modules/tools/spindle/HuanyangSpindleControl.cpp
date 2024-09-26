@@ -69,7 +69,7 @@
 */
 
 #include "libs/Kernel.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "BufferedSoftSerial.h"
 #include "ModbusSpindleControl.h"
 #include "HuanyangSpindleControl.h"
@@ -192,5 +192,5 @@ void HuanyangSpindleControl::report_speed()
     unsigned int rpm = hz / 100 * 60;
 
     // report the current RPM value
-    THEKERNEL->streams->printf("Current RPM: %d\n", rpm);
+    printk("Current RPM: %d\n", rpm);
 }

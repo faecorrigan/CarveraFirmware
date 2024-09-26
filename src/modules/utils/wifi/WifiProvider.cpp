@@ -13,22 +13,19 @@
 #include "libs/Module.h"
 #include "libs/Kernel.h"
 #include "SlowTicker.h"
-#include "Tool.h"
 #include "PublicDataRequest.h"
 #include "Config.h"
-#include "StepperMotor.h"
-#include "Robot.h"
 #include "ConfigValue.h"
-#include "Conveyor.h"
 #include "checksumm.h"
 #include "PublicData.h"
 #include "Gcode.h"
-#include "modules/robot/Conveyor.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "libs/StreamOutput.h"
 #include "SwitchPublicAccess.h"
 #include "WifiPublicAccess.h"
 #include "libs/utils.h"
+#include "Logging.h"
+#include "StreamOutputPool.h"
 
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
@@ -89,7 +86,7 @@ void WifiProvider::on_module_loaded()
         wifi_interrupt_pin->rise(this, &WifiProvider::on_pin_rise);
         NVIC_SetPriority(EINT3_IRQn, 16);
     } else {
-        THEKERNEL->streams->printf("Error: WiFi interrupt pin must be on P0 or P2.\n");
+        printk("Error: WiFi interrupt pin must be on P0 or P2.\n");
         delete this;
         return;
     }
@@ -240,7 +237,7 @@ void WifiProvider::on_second_tick(void*)
         if (connection_fail_count > 10) {
             // Disconnect WiFi
             if (M8266WIFI_SPI_STA_DisConnect_Ap(&status)) {
-                THEKERNEL->streams->printf("STA connection timeout, disconnected!\n");
+                printk("STA connection timeout, disconnected!\n");
             }
             connection_fail_count = 0;
         }
@@ -395,11 +392,11 @@ void WifiProvider::on_gcode_received(void* argument)
             } else if (gcode->subcode == 3) {
                 // Connect to AP
                 u8 connection_state;
-                THEKERNEL->streams->printf("M8266WIFI_SPI_Query_Connection...\n");
+                printk("M8266WIFI_SPI_Query_Connection...\n");
                 if (M8266WIFI_SPI_Query_Connection(tcp_link_no, NULL, &connection_state, NULL, NULL, NULL, NULL) == 0) {
-                    THEKERNEL->streams->printf("M8266WIFI_SPI_Query_Connection ERROR!\n");
+                    printk("M8266WIFI_SPI_Query_Connection ERROR!\n");
                 } else {
-                    THEKERNEL->streams->printf("connection_state : %d\n", connection_state);
+                    printk("connection_state : %d\n", connection_state);
                 }
             } else if (gcode->subcode == 4) {
                 // Test data reception
@@ -435,14 +432,14 @@ void WifiProvider::on_gcode_received(void* argument)
                 default: param_type = STA_PARAM_TYPE_SSID;
             }
             if (M8266WIFI_SPI_Query_STA_Param(param_type, (u8*)param, &param_len, &status) == 0) {
-                THEKERNEL->streams->printf("Query WiFi STA parameters ERROR!\n");
+                printk("Query WiFi STA parameters ERROR!\n");
             } else {
                 if (param_type == STA_PARAM_TYPE_CHANNEL) {
-                    THEKERNEL->streams->printf("STA param[%d]: %d\n", gcode->subcode, *param);
+                    printk("STA param[%d]: %d\n", gcode->subcode, *param);
                 } else if (param_type == STA_PARAM_TYPE_MAC) {
-                    THEKERNEL->streams->printf("STA param[%d]: %d\n", gcode->subcode, param_len);
+                    printk("STA param[%d]: %d\n", gcode->subcode, param_len);
                 } else {
-                    THEKERNEL->streams->printf("STA param[%d]: %s\n", gcode->subcode, param);
+                    printk("STA param[%d]: %s\n", gcode->subcode, param);
                 }
             }
         } else if (gcode->m == 483) {
@@ -464,12 +461,12 @@ void WifiProvider::on_gcode_received(void* argument)
                 default: param_type = AP_PARAM_TYPE_SSID;
             }
             if (M8266WIFI_SPI_Query_AP_Param(param_type, (u8*)param, &param_len, &status) == 0) {
-                THEKERNEL->streams->printf("Query WiFi AP parameters ERROR!\n");
+                printk("Query WiFi AP parameters ERROR!\n");
             } else {
                 if (param_type == AP_PARAM_TYPE_CHANNEL || param_type == AP_PARAM_TYPE_AUTHMODE || param_type == AP_PARAM_TYPE_PHY_MODE) {
-                    THEKERNEL->streams->printf("AP param[%d]: %d\n", gcode->subcode, *param);
+                    printk("AP param[%d]: %d\n", gcode->subcode, *param);
                 } else {
-                    THEKERNEL->streams->printf("AP param[%d]: %s\n", gcode->subcode, param);
+                    printk("AP param[%d]: %s\n", gcode->subcode, param);
                 }
             }
         } else if (gcode->m == 489) {
@@ -483,11 +480,11 @@ void WifiProvider::set_wifi_op_mode(u8 op_mode)
 {
     u16 status = 0;
     if (M8266WIFI_SPI_Set_Opmode(op_mode, 1, &status) == 0) {
-        THEKERNEL->streams->printf("M8266WIFI_SPI_Set_Opmode, ERROR, status: %d!\n", status);
+        printk("M8266WIFI_SPI_Set_Opmode, ERROR, status: %d!\n", status);
     } else if (op_mode == 1) {
-        THEKERNEL->streams->printf("WiFi Access Point Disabled...\n");
+        printk("WiFi Access Point Disabled...\n");
     } else if (op_mode == 3) {
-        THEKERNEL->streams->printf("WiFi Access Point Enabled...\n");
+        printk("WiFi Access Point Enabled...\n");
     }
 }
 
@@ -626,18 +623,18 @@ void WifiProvider::on_set_public_data(void* argument)
         u16 status = 0;
         u8 ap_channel = *static_cast<u8*>(pdr->get_data_ptr());
         if (M8266WIFI_SPI_Config_AP_Param(AP_PARAM_TYPE_CHANNEL, &ap_channel, 1, 1, &status) == 0) {
-            THEKERNEL->streams->printf("WiFi set AP Channel ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+            printk("WiFi set AP Channel ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
         } else {
-            THEKERNEL->streams->printf("WiFi AP Channel changed to %d\n", ap_channel);
+            printk("WiFi AP Channel changed to %d\n", ap_channel);
         }
     } else if (pdr->second_element_is(ap_set_ssid_checksum)) {
         // Set AP SSID
         u16 status = 0;
         char* ssid = static_cast<char*>(pdr->get_data_ptr());
         if (M8266WIFI_SPI_Config_AP_Param(AP_PARAM_TYPE_SSID, (u8*)ssid, strlen(ssid), 1, &status) == 0) {
-            THEKERNEL->streams->printf("WiFi set AP SSID ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+            printk("WiFi set AP SSID ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
         } else {
-            THEKERNEL->streams->printf("WiFi AP SSID changed to %s\n", ssid);
+            printk("WiFi AP SSID changed to %s\n", ssid);
         }
     } else if (pdr->second_element_is(ap_set_password_checksum)) {
         // Set AP password
@@ -645,15 +642,15 @@ void WifiProvider::on_set_public_data(void* argument)
         u8 op_mode;
         // Ensure module is in AP mode
         if (M8266WIFI_SPI_Get_Opmode(&op_mode, &status) == 0) {
-            THEKERNEL->streams->printf("WiFi get OP mode ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+            printk("WiFi get OP mode ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
         } else {
             if (op_mode != 3) {
-                THEKERNEL->streams->printf("WiFi cannot set password when not in AP mode!\n");
+                printk("WiFi cannot set password when not in AP mode!\n");
             } else {
                 char* password = static_cast<char*>(pdr->get_data_ptr());
                 u8 authmode = strlen(password) == 0 ? 0 : 4;
                 if (M8266WIFI_SPI_Config_AP_Param(AP_PARAM_TYPE_PASSWORD, (u8*)password, strlen(password), 1, &status) > 0) {
-                    THEKERNEL->streams->printf("WiFi AP Password changed to %s\n", password);
+                    printk("WiFi AP Password changed to %s\n", password);
                 }
                 if (M8266WIFI_SPI_Config_AP_Param(AP_PARAM_TYPE_AUTHMODE, &authmode, 1, 1, &status) == 0) {
                     // Do nothing
@@ -678,11 +675,11 @@ void WifiProvider::query_wifi_status()
     u32 esp8266_id;
     u8 flash_size;
     char fw_ver[24] = "";
-    THEKERNEL->streams->printf("M8266WIFI_SPI_Get_Module_Info...\n");
+    printk("M8266WIFI_SPI_Get_Module_Info...\n");
     if (M8266WIFI_SPI_Get_Module_Info(&esp8266_id, &flash_size, fw_ver, &status) == 0) {
-        THEKERNEL->streams->printf("M8266WIFI_SPI_Get_Module_Info ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+        printk("M8266WIFI_SPI_Get_Module_Info ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
     } else {
-        THEKERNEL->streams->printf("esp8266_id:%ld, flash_size:%d, fw_ver:%s!\n", esp8266_id, flash_size, fw_ver);
+        printk("esp8266_id:%ld, flash_size:%d, fw_ver:%s!\n", esp8266_id, flash_size, fw_ver);
     }
 }
 
@@ -702,30 +699,30 @@ void WifiProvider::init_wifi_module(bool reset)
     // Initialize module via SPI
     M8266HostIf_Init();
     if (M8266WIFI_Module_Init_Via_SPI() == 0) {
-        THEKERNEL->streams->printf("M8266WIFI_Module_Init_Via_SPI, ERROR!\n");
+        printk("M8266WIFI_Module_Init_Via_SPI, ERROR!\n");
     }
 
     // Set up TCP and UDP connections
     snprintf(address, sizeof(address), "192.168.4.10");
     if (M8266WIFI_SPI_Setup_Connection(2, this->tcp_port, address, 0, tcp_link_no, 3, &status) == 0) {
-        THEKERNEL->streams->printf("M8266WIFI_SPI_Setup_Connection ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+        printk("M8266WIFI_SPI_Setup_Connection ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
     }
     snprintf(address, sizeof(address), "192.168.4.255");
     if (M8266WIFI_SPI_Setup_Connection(0, this->udp_recv_port, address, 0, udp_link_no, 3, &status) == 0) {
-        THEKERNEL->streams->printf("M8266WIFI_SPI_Setup_Connection ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+        printk("M8266WIFI_SPI_Setup_Connection ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
     }
 
     // Set TCP server auto-disconnect timeout
     if (M8266WIFI_SPI_Set_TcpServer_Auto_Discon_Timeout(tcp_link_no, tcp_timeout_s, &status) == 0) {
-        THEKERNEL->streams->printf("M8266WIFI_SPI_Set_TcpServer_Auto_Discon_Timeout ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+        printk("M8266WIFI_SPI_Set_TcpServer_Auto_Discon_Timeout ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
     }
 
     // Load current AP IP and Netmask
     if (M8266WIFI_SPI_Query_AP_Param(AP_PARAM_TYPE_IP_ADDR, (u8*)this->ap_address, &param_len, &status) == 0) {
-        THEKERNEL->streams->printf("Get AP_PARAM_TYPE_IP_ADDR ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+        printk("Get AP_PARAM_TYPE_IP_ADDR ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
     }
     if (M8266WIFI_SPI_Query_AP_Param(AP_PARAM_TYPE_NETMASK_ADDR, (u8*)this->ap_netmask, &param_len, &status) == 0) {
-        THEKERNEL->streams->printf("Get AP_PARAM_TYPE_NETMASK_ADDR ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+        printk("Get AP_PARAM_TYPE_NETMASK_ADDR ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
     }
 
     if (reset) {
@@ -795,14 +792,14 @@ u8 WifiProvider::M8266WIFI_Module_Init_Via_SPI()
 
     // Step 3: Select SPI interface
     if (M8266HostIf_SPI_Select((uint32_t)M8266WIFI_INTERFACE_SPI, spi_clk, &status) == 0) {
-        THEKERNEL->streams->printf("M8266HostIf_SPI_Select ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+        printk("M8266HostIf_SPI_Select ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
         return 0;
     }
 
     // Step 4: Communication test
     u8 byte;
     if (M8266WIFI_SPI_Interface_Communication_OK(&byte) == 0) {
-        THEKERNEL->streams->printf("Communication test ERROR!\n");
+        printk("Communication test ERROR!\n");
         return 0;
     }
 
@@ -810,13 +807,13 @@ u8 WifiProvider::M8266WIFI_Module_Init_Via_SPI()
 	int j = M8266WIFI_SPI_Interface_Communication_Stress_Test(i);
 	if( (j < i) && (i - j > 5)) 		//  if SPI Communication stress test failed (Chinese: SPI底层通信压力测试失败，表明你的主机板或接线支持不了当前这么高的SPI频率设置)
 	{
-		THEKERNEL->streams->printf("Wifi Module Stress test ERROR!\n");
+		printk("Wifi Module Stress test ERROR!\n");
 		return 0;
 	}
 
     // Step 5: Configure module
     if (M8266WIFI_SPI_Set_Tx_Max_Power(68, &status) == 0) {
-        THEKERNEL->streams->printf("M8266WIFI_SPI_Set_Tx_Max_Power ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
+        printk("M8266WIFI_SPI_Set_Tx_Max_Power ERROR, status:%d, high: %d, low: %d!\n", status, int(status >> 8), int(status & 0xff));
         return 0;
     }
 
@@ -839,14 +836,14 @@ bool WifiProvider::setup_server(uint16_t local_port, uint8_t link_no, uint8_t ma
 
     // Setup the connection
     if (M8266WIFI_SPI_Setup_Connection(connection_type, local_port, const_cast<char*>("0.0.0.0"), 0, link_no, timeout, &status) == 0) {
-        THEKERNEL->streams->printf("Setup_Connection ERROR on link %d, status: %d\n", link_no, status);
+        printk("Setup_Connection ERROR on link %d, status: %d\n", link_no, status);
         return false;
     }
 
     // Configure the maximum number of clients allowed for a TCP server
     if (connection_type == 2) {
         if (M8266WIFI_SPI_Config_Max_Clients_Allowed_To_A_Tcp_Server(link_no, max_clients, &status) == 0) {
-            THEKERNEL->streams->printf("Config_Max_Clients ERROR on link %d, status: %d\n", link_no, status);
+            printk("Config_Max_Clients ERROR on link %d, status: %d\n", link_no, status);
             return false;
         }
     }
@@ -867,7 +864,7 @@ bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uin
     // Convert remote_ip (uint8_t[4]) to string format
     snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u", remote_ip[0], remote_ip[1], remote_ip[2], remote_ip[3]);
 
-    THEKERNEL->streams->printf("WifiProvider::send_data: Starting to send data to %s:%d on link %d, Total length: %d\n", ip_str, remote_port, link_no, length);
+    printk("WifiProvider::send_data: Starting to send data to %s:%d on link %d, Total length: %d\n", ip_str, remote_port, link_no, length);
 
     uint32_t sent_index = 0;
     uint16_t sent = 0;
@@ -878,7 +875,7 @@ bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uin
         to_send = std::min(static_cast<uint16_t>(length - sent_index), static_cast<uint16_t>(WIFI_DATA_MAX_SIZE));
 
         // Debug statement before sending
-        THEKERNEL->streams->printf("WifiProvider::send_data: Attempting to send %d bytes to %s:%d on link %d, sent_index: %d, status before sending: %d\n", 
+        printk("WifiProvider::send_data: Attempting to send %d bytes to %s:%d on link %d, sent_index: %d, status before sending: %d\n", 
                                     to_send, ip_str, remote_port, link_no, sent_index, status);
 
         memcpy(txData, data + sent_index, to_send);
@@ -896,15 +893,15 @@ bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uin
 
         if (sent != to_send) {
             // Error or connection closed
-            THEKERNEL->streams->printf("WifiProvider::send_data: ERROR on link %d to %s:%d, sent %d of %d bytes, status: %d\n", link_no, ip_str, remote_port, sent, to_send, status);
+            printk("WifiProvider::send_data: ERROR on link %d to %s:%d, sent %d of %d bytes, status: %d\n", link_no, ip_str, remote_port, sent, to_send, status);
             return false;
         }
 
         // Debug statement after successful send
-        THEKERNEL->streams->printf("WifiProvider::send_data: Successfully sent %d bytes to %s:%d on link %d, Total sent: %d/%d\n", sent, ip_str, remote_port, link_no, sent_index, length);
+        printk("WifiProvider::send_data: Successfully sent %d bytes to %s:%d on link %d, Total sent: %d/%d\n", sent, ip_str, remote_port, link_no, sent_index, length);
     }
 
-    THEKERNEL->streams->printf("WifiProvider::send_data: Completed sending all data to %s:%d on link %d\n", ip_str, remote_port, link_no);
+    printk("WifiProvider::send_data: Completed sending all data to %s:%d on link %d\n", ip_str, remote_port, link_no);
     return true;
 }
 
@@ -916,7 +913,7 @@ bool WifiProvider::close_connection(const uint8_t* remote_ip, uint16_t remote_po
 
     // Get the list of clients connected to the TCP server
     if (M8266WIFI_SPI_List_Clients_On_A_TCP_Server(link_no, &client_num, RemoteClients, &status) == 0) {
-        THEKERNEL->streams->printf("Failed to list clients on link %d, status:%d\n", link_no, status);
+        printk("Failed to list clients on link %d, status:%d\n", link_no, status);
         return false;
     }
 
@@ -928,7 +925,7 @@ bool WifiProvider::close_connection(const uint8_t* remote_ip, uint16_t remote_po
         if (memcmp(client.remote_ip, remote_ip, 4) == 0 && client.remote_port == remote_port) {
             // Found the matching client, disconnect it
             if (M8266WIFI_SPI_Disconnect_TcpClient(link_no, &client, &status) == 0) {
-                THEKERNEL->streams->printf("Failed to disconnect client on link %d, status:%d\n", link_no, status);
+                printk("Failed to disconnect client on link %d, status:%d\n", link_no, status);
                 return false;
             }
             return true; // Disconnected successfully
@@ -936,6 +933,6 @@ bool WifiProvider::close_connection(const uint8_t* remote_ip, uint16_t remote_po
     }
 
     // Client not found
-    THEKERNEL->streams->printf("Client not found on link %d\n", link_no);
+    printk("Client not found on link %d\n", link_no);
     return false;
 }

@@ -2,7 +2,7 @@
 #include "Kernel.h"
 #include "Config.h"
 #include "Robot.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Gcode.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -13,6 +13,7 @@
 #include "ZProbe.h"
 #include "BaseSolution.h"
 #include "StepperMotor.h"
+#include "StreamOutput.h"
 
 #include <cmath>
 #include <tuple>

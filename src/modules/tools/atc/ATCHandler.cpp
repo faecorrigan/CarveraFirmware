@@ -22,10 +22,11 @@
 #include "PublicData.h"
 #include "Gcode.h"
 #include "modules/robot/Conveyor.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "libs/StreamOutput.h"
 #include "SwitchPublicAccess.h"
 #include "libs/utils.h"
+#include "StreamOutputPool.h"
 
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
@@ -563,7 +564,7 @@ bool ATCHandler::laser_detect() {
     bool switch_state = true;
     bool ok = PublicData::set_value(switch_checksum, detector_switch_checksum, state_checksum, &switch_state);
     if (!ok) {
-        THEKERNEL->streams->printf("ERROR: Failed switch on detector switch.\r\n");
+        printk("ERROR: Failed switch on detector switch.\r\n");
         return false;
     }
 
@@ -597,7 +598,7 @@ bool ATCHandler::laser_detect() {
 	switch_state = false;
     ok = PublicData::set_value(switch_checksum, detector_switch_checksum, state_checksum, &switch_state);
     if (!ok) {
-        THEKERNEL->streams->printf("ERROR: Failed switch off detector switch.\r\n");
+        printk("ERROR: Failed switch off detector switch.\r\n");
         return false;
     }
 
@@ -625,7 +626,7 @@ bool ATCHandler::probe_detect() {
 
 void ATCHandler::home_clamp()
 {
-	THEKERNEL->streams->printf("Homing atc...\n");
+	printk("Homing atc...\n");
     // First wait for the queue to be empty
     THECONVEYOR->wait_for_idle();
 
@@ -648,7 +649,7 @@ void ATCHandler::home_clamp()
     if (!atc_home_info.triggered) {
         THEKERNEL->call_event(ON_HALT, nullptr);
         THEKERNEL->set_halt_reason(ATC_HOME_FAIL);
-        THEKERNEL->streams->printf("ERROR: Homing atc failed - check the atc max travel settings\n");
+        printk("ERROR: Homing atc failed - check the atc max travel settings\n");
         return;
     } else {
     	THEROBOT->reset_position_from_current_actuator_position();
@@ -663,14 +664,14 @@ void ATCHandler::home_clamp()
 	if(THEKERNEL->is_halted()) return;
 
 	atc_home_info.clamp_status = CLAMPED;
-	THEKERNEL->streams->printf("ATC homed!\r\n");
+	printk("ATC homed!\r\n");
 
 }
 
 void ATCHandler::clamp_tool()
 {
 	if (atc_home_info.clamp_status == CLAMPED) {
-		THEKERNEL->streams->printf("Already clamped!\n");
+		printk("Already clamped!\n");
 		return;
 	}
 	if (atc_home_info.clamp_status == UNHOMED) {
@@ -691,13 +692,13 @@ void ATCHandler::clamp_tool()
 
 	// change clamp status
 	atc_home_info.clamp_status = CLAMPED;
-	THEKERNEL->streams->printf("ATC clamped!\r\n");
+	printk("ATC clamped!\r\n");
 }
 
 void ATCHandler::loose_tool()
 {
 	if (atc_home_info.clamp_status == LOOSED) {
-		THEKERNEL->streams->printf("Already loosed!\n");
+		printk("Already loosed!\n");
 		return;
 	}
 	if (atc_home_info.clamp_status == UNHOMED) {
@@ -717,7 +718,7 @@ void ATCHandler::loose_tool()
 
 	// change clamp status
 	atc_home_info.clamp_status = LOOSED;
-	THEKERNEL->streams->printf("ATC loosed!\r\n");
+	printk("ATC loosed!\r\n");
 }
 
 void ATCHandler::set_tool_offset()
@@ -761,7 +762,7 @@ void ATCHandler::on_gcode_received(void *argument)
     	    if (PublicData::get_value(pwm_spindle_control_checksum, get_spindle_status_checksum, &ss)) {
     	    	if (ss.state) {
     	    		// Stop
-    	    		THEKERNEL->streams->printf("Error: can not do ATC while spindle is running.\n");
+    	    		printk("Error: can not do ATC while spindle is running.\n");
 			        THEKERNEL->set_halt_reason(ATC_HOME_FAIL);
 			        THEKERNEL->call_event(ON_HALT, nullptr);
 			        return;
@@ -776,7 +777,7 @@ void ATCHandler::on_gcode_received(void *argument)
             } else {
             	if (new_tool != active_tool) {
             		if (new_tool > -1 && THEKERNEL->get_laser_mode()) {
-            			THEKERNEL->streams->printf("ALARM: Can not do ATC in laser mode!\n");
+            			printk("ALARM: Can not do ATC in laser mode!\n");
             			return;
             		}
                     // push old state
@@ -834,7 +835,7 @@ void ATCHandler::on_gcode_received(void *argument)
 				if (gcode->has_letter('H')) {
 		    		tolerance = gcode->get_value('H');
 					if (tolerance < 0.02) {
-						THEKERNEL->streams->printf("ERROR: Tool Break Check - tolerance set too small\n");
+						printk("ERROR: Tool Break Check - tolerance set too small\n");
 						THEKERNEL->call_event(ON_HALT, nullptr);
         				THEKERNEL->set_halt_reason(CALIBRATE_FAIL);
 						return;
@@ -872,7 +873,7 @@ void ATCHandler::on_gcode_received(void *argument)
 				if (gcode->has_letter('H')) {
 		    		tolerance = gcode->get_value('H');
 					if (tolerance < 0.02) {
-						THEKERNEL->streams->printf("ERROR: Tool Break Check - tolerance set too small\n");
+						printk("ERROR: Tool Break Check - tolerance set too small\n");
 						THEKERNEL->call_event(ON_HALT, nullptr);
         				THEKERNEL->set_halt_reason(CALIBRATE_FAIL);
 						return;
@@ -882,16 +883,16 @@ void ATCHandler::on_gcode_received(void *argument)
 				if (gcode->has_letter('P')) {
 		    		tlo = gcode->get_value('P');
 					if (tlo == 0) {
-						THEKERNEL->streams->printf("No previous TLO included, aborting\n");
+						printk("No previous TLO included, aborting\n");
 						return;
 					}
 
 				}
 				float new_tlo = THEKERNEL->eeprom_data->TLO;
-				THEKERNEL->streams->printf("Old: %.3f , new: %.3f\n",tlo,new_tlo);
+				printk("Old: %.3f , new: %.3f\n",tlo,new_tlo);
 				//test for breakage
 				if (fabs(tlo - new_tlo) > tolerance) {
-					THEKERNEL->streams->printf("ERROR: Tool Break Check - check tool for breakage\n");
+					printk("ERROR: Tool Break Check - check tool for breakage\n");
 					THEKERNEL->call_event(ON_HALT, nullptr);
 					THEKERNEL->set_halt_reason(CALIBRATE_FAIL);
 					return;
@@ -913,21 +914,21 @@ void ATCHandler::on_gcode_received(void *argument)
 				if (!laser_detect()) {
 			        THEKERNEL->call_event(ON_HALT, nullptr);
 			        THEKERNEL->set_halt_reason(ATC_NO_TOOL);
-			        THEKERNEL->streams->printf("ERROR: Tool confliction occured, please check tool rack!\n");
+			        printk("ERROR: Tool confliction occured, please check tool rack!\n");
 				}
 			} else if (gcode->subcode == 2) {
 				// check false
 				if (laser_detect()) {
 			        THEKERNEL->call_event(ON_HALT, nullptr);
 			        THEKERNEL->set_halt_reason(ATC_HAS_TOOL);
-			        THEKERNEL->streams->printf("ERROR: Tool confliction occured, please check tool rack!\n");
+			        printk("ERROR: Tool confliction occured, please check tool rack!\n");
 				}
 			} else if (gcode->subcode == 3) {
 				// check if the probe was triggered
 				if (!probe_detect()) {
 			        THEKERNEL->call_event(ON_HALT, nullptr);
 			        THEKERNEL->set_halt_reason(PROBE_INVALID);
-			        THEKERNEL->streams->printf("ERROR: Wireless probe dead or not set, please charge or set first!\n");
+			        printk("ERROR: Wireless probe dead or not set, please charge or set first!\n");
 				}
 			}
 		} else if (gcode->m == 493) {
@@ -947,7 +948,7 @@ void ATCHandler::on_gcode_received(void *argument)
 				} else {
 					THEKERNEL->call_event(ON_HALT, nullptr);
 					THEKERNEL->set_halt_reason(ATC_NO_TOOL);
-					THEKERNEL->streams->printf("ERROR: No tool was set!\n");
+					printk("ERROR: No tool was set!\n");
 
 				}
 			}
@@ -980,7 +981,7 @@ void ATCHandler::on_gcode_received(void *argument)
 				// Do Margin, ZProbe, Auto Leveling based on parameters, change probe tool if needed
 				if (gcode->has_letter('X') && gcode->has_letter('Y')) {
 	        		if (THEKERNEL->get_laser_mode()) {
-	        			THEKERNEL->streams->printf("ALARM: Can not do Automatic work in laser mode!\n");
+	        			printk("ALARM: Can not do Automatic work in laser mode!\n");
 	        			return;
 	        		}
 
@@ -1091,22 +1092,22 @@ void ATCHandler::on_gcode_received(void *argument)
 			THEKERNEL->set_atc_state(gcode->subcode);
 		} else if (gcode->m == 498) {
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
-				THEKERNEL->streams->printf("EEPRROM Data: TOOL:%d\n", THEKERNEL->eeprom_data->TOOL);
-				THEKERNEL->streams->printf("EEPRROM Data: TLO:%1.3f\n", THEKERNEL->eeprom_data->TLO);
-				THEKERNEL->streams->printf("EEPRROM Data: TOOLMZ:%1.3f\n", THEKERNEL->eeprom_data->TOOLMZ);
-				THEKERNEL->streams->printf("EEPRROM Data: REFMZ:%1.3f\n", THEKERNEL->eeprom_data->REFMZ);
-				THEKERNEL->streams->printf("EEPRROM Data: G54: %1.3f, %1.3f, %1.3f\n", THEKERNEL->eeprom_data->G54[0], THEKERNEL->eeprom_data->G54[1], THEKERNEL->eeprom_data->G54[2]);
+				printk("EEPRROM Data: TOOL:%d\n", THEKERNEL->eeprom_data->TOOL);
+				printk("EEPRROM Data: TLO:%1.3f\n", THEKERNEL->eeprom_data->TLO);
+				printk("EEPRROM Data: TOOLMZ:%1.3f\n", THEKERNEL->eeprom_data->TOOLMZ);
+				printk("EEPRROM Data: REFMZ:%1.3f\n", THEKERNEL->eeprom_data->REFMZ);
+				printk("EEPRROM Data: G54: %1.3f, %1.3f, %1.3f\n", THEKERNEL->eeprom_data->G54[0], THEKERNEL->eeprom_data->G54[1], THEKERNEL->eeprom_data->G54[2]);
 			} else if (gcode->subcode == 2) {
 				// Show EEPROM DATA
 				THEKERNEL->erase_eeprom_data();
 			}
 		} else if ( gcode->m == 499 ) {
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
-				THEKERNEL->streams->printf("tool:%d ref:%1.3f cur:%1.3f offset:%1.3f\n", active_tool, ref_tool_mz, cur_tool_mz, tool_offset);
+				printk("tool:%d ref:%1.3f cur:%1.3f offset:%1.3f\n", active_tool, ref_tool_mz, cur_tool_mz, tool_offset);
 			} else if (gcode->subcode == 2) {
-				THEKERNEL->streams->printf("probe -- mx:%1.1f my:%1.1f mz:%1.1f\n", probe_mx_mm, probe_my_mm, probe_mz_mm);
+				printk("probe -- mx:%1.1f my:%1.1f mz:%1.1f\n", probe_mx_mm, probe_my_mm, probe_mz_mm);
 				for (int i = 0; i <=  tool_number; i ++) {
-					THEKERNEL->streams->printf("tool%d -- mx:%1.1f my:%1.1f mz:%1.1f\n", atc_tools[i].num, atc_tools[i].mx_mm, atc_tools[i].my_mm, atc_tools[i].mz_mm);
+					printk("tool%d -- mx:%1.1f my:%1.1f mz:%1.1f\n", atc_tools[i].num, atc_tools[i].mx_mm, atc_tools[i].my_mm, atc_tools[i].mz_mm);
 				}
 			}
 		}
@@ -1119,7 +1120,7 @@ void ATCHandler::on_main_loop(void *argument)
 {
     if (this->atc_status != NONE) {
         if (THEKERNEL->is_halted()) {
-            THEKERNEL->streams->printf("Kernel is halted!....\r\n");
+            printk("Kernel is halted!....\r\n");
             return;
         }
 
@@ -1142,14 +1143,14 @@ void ATCHandler::on_main_loop(void *argument)
 				THEROBOT->pop_state();
 
 				// if we were printing from an M command from pronterface we need to send this back
-				THEKERNEL->streams->printf("Abort from ATC\n");
+				printk("Abort from ATC\n");
 
 				return;
             }
         }
 
         while (!this->script_queue.empty()) {
-        	THEKERNEL->streams->printf("%s\r\n", this->script_queue.front().c_str());
+        	printk("%s\r\n", this->script_queue.front().c_str());
 			struct SerialMessage message;
 			message.message = this->script_queue.front();
 			message.stream = THEKERNEL->streams;
@@ -1179,9 +1180,9 @@ void ATCHandler::on_main_loop(void *argument)
         THEROBOT->pop_state();
 
 		// if we were printing from an M command from pronterface we need to send this back
-		THEKERNEL->streams->printf("Done ATC\r\n");
+		printk("Done ATC\r\n");
     } else if (g28_triggered) {
-		THEKERNEL->streams->printf("G28 means goto clearance position on CARVERA\n");
+		printk("G28 means goto clearance position on CARVERA\n");
 		THEROBOT->push_state();
 		// goto z clearance
 		rapid_move(true, NAN, NAN, this->clearance_z);

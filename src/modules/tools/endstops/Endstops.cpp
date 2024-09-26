@@ -25,7 +25,7 @@
 #include "libs/StreamOutput.h"
 #include "PublicDataRequest.h"
 #include "EndstopsPublicAccess.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "StepTicker.h"
 #include "BaseSolution.h"
 #include "SerialMessage.h"
@@ -301,7 +301,7 @@ bool Endstops::load_config()
         // check we are not going above the number of defined actuators/axis
         if(i >= THEROBOT->get_number_registered_motors()) {
             // too many axis we only have configured n_motors
-            THEKERNEL->streams->printf("ERROR: endstop %d is greater than number of defined motors. Endstops disabled\n", i);
+            printk("ERROR: endstop %d is greater than number of defined motors. Endstops disabled\n", i);
             delete pin_info;
             return false;
         }
@@ -493,9 +493,9 @@ void Endstops::on_idle(void *argument)
             if(debounced_get(&i->pin)) {
                 // endstop triggered
                 if(!THEKERNEL->is_grbl_mode()) {
-                    THEKERNEL->streams->printf("Limit switch %c%c was hit - reset or M999 required\n", STEPPER[i->axis_index]->which_direction() ? '-' : '+', i->axis);
+                    printk("Limit switch %c%c was hit - reset or M999 required\n", STEPPER[i->axis_index]->which_direction() ? '-' : '+', i->axis);
                 }else{
-                    THEKERNEL->streams->printf("ALARM: Hard limit %c%c\n", STEPPER[i->axis_index]->which_direction() ? '-' : '+', i->axis);
+                    printk("ALARM: Hard limit %c%c\n", STEPPER[i->axis_index]->which_direction() ? '-' : '+', i->axis);
                 }
                 this->status = LIMIT_TRIGGERED;
                 i->debounce = 0;
@@ -512,9 +512,9 @@ void Endstops::on_idle(void *argument)
 		if(debounced_get(&i->pin)) {
 			// endstop triggered
 			if(!THEKERNEL->is_grbl_mode()) {
-				THEKERNEL->streams->printf("%c motor alarm triggered - reset required\n", i->axis);
+				printk("%c motor alarm triggered - reset required\n", i->axis);
 			}else{
-				THEKERNEL->streams->printf("ALARM: %c motor alarm triggered -  reset required\n", i->axis);
+				printk("ALARM: %c motor alarm triggered -  reset required\n", i->axis);
 			}
 			i->debounce= 0;
 			// disables heaters and motors, ignores incoming Gcode and flushes block queue
@@ -864,7 +864,7 @@ void Endstops::process_home_command(Gcode* gcode)
     }
 
     if(haxis.none()) {
-        THEKERNEL->streams->printf("WARNING: Nothing to home\n");
+        printk("WARNING: Nothing to home\n");
         return;
     }
 
@@ -907,9 +907,9 @@ void Endstops::process_home_command(Gcode* gcode)
     // check if on_halt (eg kill or fail)
     if(THEKERNEL->is_halted()) {
         if(!THEKERNEL->is_grbl_mode()) {
-            THEKERNEL->streams->printf("ERROR: Homing cycle failed - check the max_travel settings\n");
+            printk("ERROR: Homing cycle failed - check the max_travel settings\n");
         }else{
-            THEKERNEL->streams->printf("ALARM: Homing fail\n");
+            printk("ALARM: Homing fail\n");
         }
         // clear all the homed flags
         for (auto &p : homing_axis) p.homed= false;

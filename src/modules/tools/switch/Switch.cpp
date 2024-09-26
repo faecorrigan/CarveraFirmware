@@ -20,7 +20,7 @@
 #include "checksumm.h"
 #include "ConfigValue.h"
 #include "StreamOutput.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "utils.h"
 
 #include "PwmOut.h"
@@ -170,7 +170,7 @@ void Switch::on_config_reload(void *argument)
             }
             delete pin;
             if(this->pwm_pin == nullptr) {
-                THEKERNEL->streams->printf("Selected Switch output pin is not PWM capable - disabled");
+                printk("Selected Switch output pin is not PWM capable - disabled");
                 this->output_type= NONE;
             }
 
@@ -211,7 +211,7 @@ void Switch::on_config_reload(void *argument)
 	                this->digital_pin= nullptr;
 				}
 				if (this->pwm_pin == nullptr) {
-	                THEKERNEL->streams->printf("Selected Switch output pin is not PWM capable - disabled");
+	                printk("Selected Switch output pin is not PWM capable - disabled");
 				}
                 this->output_type = NONE;
 			}

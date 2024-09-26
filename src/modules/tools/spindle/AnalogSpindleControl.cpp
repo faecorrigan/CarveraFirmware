@@ -12,7 +12,7 @@
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "PwmOut.h"
 
 #define spindle_checksum                    CHECKSUM("spindle")
@@ -41,7 +41,7 @@ void AnalogSpindleControl::on_module_loaded()
     // If we got no hardware PWM pin, delete this module
     if (pwm_pin == NULL)
     {
-        THEKERNEL->streams->printf("Error: Spindle PWM pin must be P2.0-2.5 or other PWM pin\n");
+        printk("Error: Spindle PWM pin must be P2.0-2.5 or other PWM pin\n");
         delete this;
         return;
     }
@@ -105,7 +105,7 @@ void AnalogSpindleControl::report_speed()
 {
     // report the current PWM value, calculate the current RPM value and report it as well
     float current_pwm = pwm_pin->read();
-    THEKERNEL->streams->printf("Current RPM: %.0f Analog value: %5.3f Target RPM: %d\n",
+    printk("Current RPM: %.0f Analog value: %5.3f Target RPM: %d\n",
                                max_rpm * current_pwm, current_pwm, target_rpm);
 
 }

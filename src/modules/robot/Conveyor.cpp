@@ -17,7 +17,7 @@
 #include "mri.h"
 #include "checksumm.h"
 #include "Config.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "ConfigValue.h"
 #include "StepTicker.h"
 #include "Robot.h"
@@ -255,7 +255,7 @@ void Conveyor::flush_queue()
 void Conveyor::dump_queue()
 {
     for (unsigned int index = queue.tail_i, i = 0; true; index = queue.next(index), i++ ) {
-        THEKERNEL->streams->printf("block %03d > ", i);
+        printk("block %03d > ", i);
         queue.item_ref(index)->debug();
 
         if (index == queue.head_i)

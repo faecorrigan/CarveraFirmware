@@ -15,10 +15,11 @@ using std::string;
 #include "libs/RingBuffer.h"
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "ATCHandlerPublicAccess.h"
 #include "PublicDataRequest.h"
 #include "PublicData.h"
+#include "StreamOutputPool.h"
 
 
 // Serial reading module

@@ -12,7 +12,7 @@
 #include "libs/Module.h"
 #include "libs/Kernel.h"
 #include "StepperMotor.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Block.h"
 #include "Conveyor.h"
 

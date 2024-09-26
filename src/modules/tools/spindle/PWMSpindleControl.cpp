@@ -11,13 +11,14 @@
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "SlowTicker.h"
 #include "Conveyor.h"
 #include "system_LPC17xx.h"
 #include "PublicDataRequest.h"
 #include "SpindlePublicAccess.h"
 #include "utils.h"
+#include "StreamOutputPool.h"
 
 #include "libs/Pin.h"
 #include "Gcode.h"
@@ -95,7 +96,7 @@ void PWMSpindleControl::on_module_loaded()
     
     if (pwm_pin == NULL)
     {
-        THEKERNEL->streams->printf("Error: Spindle PWM pin must be P2.0-2.5 or other PWM pin\n");
+        printk("Error: Spindle PWM pin must be P2.0-2.5 or other PWM pin\n");
         delete this;
         return;
     }
@@ -117,7 +118,7 @@ void PWMSpindleControl::on_module_loaded()
             feedback_pin->rise(this, &PWMSpindleControl::on_pin_rise);
             NVIC_SetPriority(EINT3_IRQn, 16);
         } else {
-            THEKERNEL->streams->printf("Error: Spindle feedback pin has to be on P0 or P2.\n");
+            printk("Error: Spindle feedback pin has to be on P0 or P2.\n");
             delete this;
             return;
         }
@@ -237,7 +238,7 @@ void PWMSpindleControl::set_speed(int rpm) {
 
 
 void PWMSpindleControl::report_speed() {
-    THEKERNEL->streams->printf("State: %s, Current RPM: %5.0f  Target RPM: %5.0f  PWM value: %5.3f\n",
+    printk("State: %s, Current RPM: %5.0f  Target RPM: %5.0f  PWM value: %5.3f\n",
     			spindle_on ? "on" : "off", current_rpm, target_rpm, current_pwm_value);
 }
 
@@ -258,7 +259,7 @@ void PWMSpindleControl::set_d_term(float d) {
 
 
 void PWMSpindleControl::report_settings() {
-    THEKERNEL->streams->printf("P: %0.6f I: %0.6f D: %0.6f\n",
+    printk("P: %0.6f I: %0.6f D: %0.6f\n",
                                control_P_term, control_I_term, control_D_term);
 }
 
@@ -328,7 +329,7 @@ void PWMSpindleControl::on_idle(void *argument)
 	if(THEKERNEL->is_halted()) return;
 	// check spindle alarm
     if (this->get_alarm()) {
-		THEKERNEL->streams->printf("ALARM: Spindle alarm triggered -  power off/on required\n");
+		printk("ALARM: Spindle alarm triggered -  power off/on required\n");
 		THEKERNEL->call_event(ON_HALT, nullptr);
 		THEKERNEL->set_halt_reason(SPINDLE_ALARM);
 		return;
@@ -336,7 +337,7 @@ void PWMSpindleControl::on_idle(void *argument)
     // check spindle stall
     /*
     if (this->get_stall()) {
-		THEKERNEL->streams->printf("ALARM: Spindle stall triggered -  reset required\n");
+		printk("ALARM: Spindle stall triggered -  reset required\n");
 		THEKERNEL->call_event(ON_HALT, nullptr);
 		THEKERNEL->set_halt_reason(SPINDLE_STALL);
     }*/

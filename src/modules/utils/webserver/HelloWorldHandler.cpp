@@ -42,23 +42,23 @@ bool HelloWorldHandler::process_request(const Endpoint& endpoint,
                                         const std::string& uri,
                                         const std::map<std::string, std::string>& headers,
                                         const std::string& body) {
-    THEKERNEL->streams->printf("process_request: Processing request for endpoint %s, Method: %s, URI: %s, Body length: %i\n",
+    printk("process_request: Processing request for endpoint %s, Method: %s, URI: %s, Body length: %i\n",
                                endpoint.to_c_string(), method.c_str(), uri.c_str(), static_cast<int>(body.size()));
 
     // Debugging headers
-    THEKERNEL->streams->printf("process_request: Headers received:\n");
+    printk("process_request: Headers received:\n");
     for (const auto& header : headers) {
-        THEKERNEL->streams->printf("  %s: %s\n", header.first.c_str(), header.second.c_str());
+        printk("  %s: %s\n", header.first.c_str(), header.second.c_str());
     }
 
     std::string response_body;
 
     if (!body.empty()) {
         response_body = "Hello " + body + "!";
-        THEKERNEL->streams->printf("process_request: Non-empty body received, constructing response: %s\n", response_body.c_str());
+        printk("process_request: Non-empty body received, constructing response: %s\n", response_body.c_str());
     } else {
         response_body = "Hello world!";
-        THEKERNEL->streams->printf("process_request: Empty body, response set to: %s\n", response_body.c_str());
+        printk("process_request: Empty body, response set to: %s\n", response_body.c_str());
     }
 
     // Prepare the HTTP response
@@ -71,14 +71,14 @@ bool HelloWorldHandler::process_request(const Endpoint& endpoint,
     response.headers["Connection"] = "close";
     response.body = response_body;
 
-    THEKERNEL->streams->printf("process_request: Prepared HTTP response, Body length: %i\n", static_cast<int>(response_body.size()));
+    printk("process_request: Prepared HTTP response, Body length: %i\n", static_cast<int>(response_body.size()));
 
     // Send the response
     send_http_response(endpoint, response);
-    THEKERNEL->streams->printf("process_request: Response sent successfully to endpoint %s\n", endpoint.to_c_string());
+    printk("process_request: Response sent successfully to endpoint %s\n", endpoint.to_c_string());
 
     // Indicate that the connection should be closed
-    THEKERNEL->streams->printf("process_request: Finished processing request for endpoint %s, connection will be closed\n", endpoint.to_c_string());
+    printk("process_request: Finished processing request for endpoint %s, connection will be closed\n", endpoint.to_c_string());
     return false;
 }
 

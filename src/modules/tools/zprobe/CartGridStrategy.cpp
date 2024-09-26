@@ -89,7 +89,7 @@
 #include "Kernel.h"
 #include "Config.h"
 #include "Robot.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Gcode.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -100,6 +100,7 @@
 #include "nuts_bolts.h"
 #include "utils.h"
 #include "platform_memory.h"
+#include "StreamOutputPool.h"
 
 #include <string>
 #include <algorithm>
@@ -170,7 +171,7 @@ bool CartGridStrategy::handleConfig()
     this->x_size = THEKERNEL->config->value(leveling_strategy_checksum, cart_grid_leveling_strategy_checksum, x_size_checksum)->by_default(0.0F)->as_number();
     this->y_size = THEKERNEL->config->value(leveling_strategy_checksum, cart_grid_leveling_strategy_checksum, y_size_checksum)->by_default(0.0F)->as_number();
     if (this->x_size == 0.0F || this->y_size == 0.0F) {
-        THEKERNEL->streams->printf("Error: Invalid config, x_size and y_size must be defined\n");
+        printk("Error: Invalid config, x_size and y_size must be defined\n");
         return false;
     }
 
@@ -218,7 +219,7 @@ bool CartGridStrategy::handleConfig()
     grid = (float *)AHB0.alloc(configured_grid_x_size * configured_grid_y_size * sizeof(float));
 
     if(grid == nullptr) {
-        THEKERNEL->streams->printf("Error: Not enough memory\n");
+        printk("Error: Not enough memory\n");
         return false;
     }
 
@@ -770,24 +771,24 @@ void CartGridStrategy::doCompensation(float *target, bool inverse, bool debug)
 
 //#if 0
     if (debug) {
-    	THEKERNEL->streams->printf("//DEBUG: x_size: %f, y_size:%f\n", this->x_size, this->y_size);
-    	THEKERNEL->streams->printf("//DEBUG: x_start: %f, y_start:%f\n", this->x_start, this->y_start);
-        THEKERNEL->streams->printf("//DEBUG: TARGET: %f, %f, %f\n", target[0], target[1], target[2]);
-        THEKERNEL->streams->printf("//DEBUG: grid_x= %f\n", grid_x);
-        THEKERNEL->streams->printf("//DEBUG: grid_y= %f\n", grid_y);
-        THEKERNEL->streams->printf("//DEBUG: floor_x= %d\n", floor_x);
-        THEKERNEL->streams->printf("//DEBUG: floor_y= %d\n", floor_y);
-        THEKERNEL->streams->printf("//DEBUG: ratio_x= %f\n", ratio_x);
-        THEKERNEL->streams->printf("//DEBUG: ratio_y= %f\n", ratio_y);
-        THEKERNEL->streams->printf("//DEBUG: z1= %f\n", z1);
-        THEKERNEL->streams->printf("//DEBUG: z2= %f\n", z2);
-        THEKERNEL->streams->printf("//DEBUG: z3= %f\n", z3);
-        THEKERNEL->streams->printf("//DEBUG: z4= %f\n", z4);
-        THEKERNEL->streams->printf("//DEBUG: left= %f\n", left);
-        THEKERNEL->streams->printf("//DEBUG: right= %f\n", right);
-        THEKERNEL->streams->printf("//DEBUG: offset= %f\n", offset);
-        THEKERNEL->streams->printf("//DEBUG: scale= %f\n", scale);
-        THEKERNEL->streams->printf("//DEBUG: adjustment= %f\n", offset*scale);
+    	printk("//DEBUG: x_size: %f, y_size:%f\n", this->x_size, this->y_size);
+    	printk("//DEBUG: x_start: %f, y_start:%f\n", this->x_start, this->y_start);
+        printk("//DEBUG: TARGET: %f, %f, %f\n", target[0], target[1], target[2]);
+        printk("//DEBUG: grid_x= %f\n", grid_x);
+        printk("//DEBUG: grid_y= %f\n", grid_y);
+        printk("//DEBUG: floor_x= %d\n", floor_x);
+        printk("//DEBUG: floor_y= %d\n", floor_y);
+        printk("//DEBUG: ratio_x= %f\n", ratio_x);
+        printk("//DEBUG: ratio_y= %f\n", ratio_y);
+        printk("//DEBUG: z1= %f\n", z1);
+        printk("//DEBUG: z2= %f\n", z2);
+        printk("//DEBUG: z3= %f\n", z3);
+        printk("//DEBUG: z4= %f\n", z4);
+        printk("//DEBUG: left= %f\n", left);
+        printk("//DEBUG: right= %f\n", right);
+        printk("//DEBUG: offset= %f\n", offset);
+        printk("//DEBUG: scale= %f\n", scale);
+        printk("//DEBUG: adjustment= %f\n", offset*scale);
     }
 //#endif
 }

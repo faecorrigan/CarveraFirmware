@@ -14,7 +14,7 @@
 #include "modules/robot/Conveyor.h"
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "libs/FileStream.h"
 #include "libs/AppendFileStream.h"
 #include "Config.h"
@@ -274,7 +274,7 @@ try_again:
 							// disables heaters and motors, ignores further incoming Gcode and clears block queue
 							THEKERNEL->call_event(ON_HALT, nullptr);
 							THEKERNEL->set_halt_reason(MANUAL);
-							THEKERNEL->streams->printf("ok Emergency Stop Requested - reset or M999 required to exit HALT state\r\n");
+							printk("ok Emergency Stop Requested - reset or M999 required to exit HALT state\r\n");
 							delete gcode;
 							return;
 

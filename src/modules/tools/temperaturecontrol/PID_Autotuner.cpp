@@ -4,7 +4,7 @@
 #include "Gcode.h"
 #include "TemperatureControl.h"
 #include "StreamOutput.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "TemperatureControlPublicAccess.h"
 #include "PublicDataRequest.h"
 #include "PublicData.h"
@@ -160,7 +160,7 @@ void PID_Autotuner::on_idle(void *)
 
     if(peakCount >= requested_cycles) {
         // NOTE we output to kernel::streams becuase it is out-of-band data and original stream may be closed
-        THEKERNEL->streams->printf("// WARNING: Autopid did not resolve within %d cycles, these results are probably innacurate\n", requested_cycles);
+        printk("// WARNING: Autopid did not resolve within %d cycles, these results are probably innacurate\n", requested_cycles);
         finishUp();
         return;
     }
@@ -184,7 +184,7 @@ void PID_Autotuner::on_idle(void *)
     }
 
     if ((tickCnt % 1000) == 0) {
-        THEKERNEL->streams->printf("// Autopid Status - %5.1f/%5.1f @%d %d/%d\n",  refVal, target_temperature, output, peakCount, requested_cycles);
+        printk("// Autopid Status - %5.1f/%5.1f @%d %d/%d\n",  refVal, target_temperature, output, peakCount, requested_cycles);
     }
 
     if(!firstPeak){
@@ -236,7 +236,7 @@ void PID_Autotuner::on_idle(void *)
     if (justchanged && peakCount >= 4) {
         // we've transitioned. check if we can autotune based on the last peaks
         float avgSeparation = (fabsf(peaks[peakCount - 1] - peaks[peakCount - 2]) + fabsf(peaks[peakCount - 2] - peaks[peakCount - 3])) / 2;
-        THEKERNEL->streams->printf("// Cycle %d: max: %g, min: %g, avg separation: %g\n", peakCount, absMax, absMin, avgSeparation);
+        printk("// Cycle %d: max: %g, min: %g, avg separation: %g\n", peakCount, absMax, absMin, avgSeparation);
         if (peakCount > 3 && avgSeparation < (0.05 * (absMax - absMin))) {
             DEBUG_PRINTF("Stabilized\n");
             finishUp();
@@ -257,19 +257,19 @@ void PID_Autotuner::finishUp()
     //we can generate tuning parameters!
     float Ku = 4 * (2 * oStep) / ((absMax - absMin) * 3.14159);
     float Pu = (float)(peak1 - peak2) / 1000;
-    THEKERNEL->streams->printf("\tKu: %g, Pu: %g\n", Ku, Pu);
+    printk("\tKu: %g, Pu: %g\n", Ku, Pu);
 
     float kp = 0.6 * Ku;
     float ki = 1.2 * Ku / Pu;
     float kd = Ku * Pu * 0.075;
 
-    THEKERNEL->streams->printf("\tTrying:\n\tKp: %5.1f\n\tKi: %5.3f\n\tKd: %5.0f\n", kp, ki, kd);
+    printk("\tTrying:\n\tKp: %5.1f\n\tKi: %5.3f\n\tKd: %5.0f\n", kp, ki, kd);
 
     temp_control->setPIDp(kp);
     temp_control->setPIDi(ki);
     temp_control->setPIDd(kd);
 
-    THEKERNEL->streams->printf("PID Autotune Complete! The settings above have been loaded into memory, but not written to your config file.\n");
+    printk("PID Autotune Complete! The settings above have been loaded into memory, but not written to your config file.\n");
 
 
     // and clean up

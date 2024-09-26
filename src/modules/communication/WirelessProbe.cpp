@@ -19,7 +19,7 @@ using std::string;
 #include "libs/SerialMessage.h"
 #include "PublicDataRequest.h"
 #include "PublicData.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "libs/StreamOutput.h"
 #include "SwitchPublicAccess.h"
 #include "ATCHandlerPublicAccess.h"
@@ -77,7 +77,7 @@ void WirelessProbe::on_main_loop(void * argument) {
            char c;
            this->buffer.pop_front(c);
            if ( c == '\n' ) {
-        	   // THEKERNEL->streams->printf("WP received: [%s]\n", received.c_str());
+        	   // printk("WP received: [%s]\n", received.c_str());
         	   if (received[0] == 'V') {
             	   // get wireless probe voltage
             	   Gcode gc(received, &StreamOutput::NullStream);
@@ -89,7 +89,7 @@ void WirelessProbe::on_main_loop(void * argument) {
                            bool ok = PublicData::get_value(switch_checksum, probecharger_checksum, 0, &pad);
                            if (!ok || !pad.state) {
                         	   if (!THEKERNEL->is_uploading())
-                        		   THEKERNEL->streams->printf("WP voltage: [%1.2fV], start charging\n", this->wp_voltage);
+                        		   printk("WP voltage: [%1.2fV], start charging\n", this->wp_voltage);
                     		   bool b = true;
                     		   PublicData::set_value( switch_checksum, probecharger_checksum, state_checksum, &b );
                            }
@@ -98,7 +98,7 @@ void WirelessProbe::on_main_loop(void * argument) {
                            bool ok = PublicData::get_value(switch_checksum, probecharger_checksum, 0, &pad);
                            if (!ok || pad.state) {
                         	   if (!THEKERNEL->is_uploading())
-                        		   THEKERNEL->streams->printf("WP voltage: [%1.2fV], end charging\n", this->wp_voltage);
+                        		   printk("WP voltage: [%1.2fV], end charging\n", this->wp_voltage);
                     		   bool b = false;
                     		   PublicData::set_value( switch_checksum, probecharger_checksum, state_checksum, &b );
                            }
@@ -107,9 +107,9 @@ void WirelessProbe::on_main_loop(void * argument) {
         	   } else if (received[0] == 'A' && received.length() > 2) {
         		   // get wireless probe address
         		   uint16_t probe_addr = ((uint16_t)received[2] << 8) | received[1];
-        		   THEKERNEL->streams->printf("WP power: [%1.2fv], addr: [%0d]\n", this->wp_voltage, probe_addr);
+        		   printk("WP power: [%1.2fv], addr: [%0d]\n", this->wp_voltage, probe_addr);
         	   } else if (received[0] == 'P' && received.length() > 1) {
-        		   THEKERNEL->streams->printf("WP PAIR %s!\n", received[1] ? "SUCCESS" : "TIMEOUT");
+        		   printk("WP PAIR %s!\n", received[1] ? "SUCCESS" : "TIMEOUT");
         	   }
                return;
             } else {
@@ -194,26 +194,26 @@ void WirelessProbe::on_gcode_received(void *argument)
     	if (gcode->m == 470) {
     		if (gcode->has_letter('S')) {
         		uint16_t new_addr = gcode->get_value('S');
-        		THEKERNEL->streams->printf("Change WP address to: [%d]\n", new_addr);
+        		printk("Change WP address to: [%d]\n", new_addr);
         		this->_putc('S');
                 this->_putc(new_addr & 0xff);
                 this->_putc(new_addr >> 8);
                 this->_putc('#');
     		}
     	} else if (gcode->m == 471) {
-    		THEKERNEL->streams->printf("Set WP into pairing mode...\n");
+    		printk("Set WP into pairing mode...\n");
     		this->_putc('P');
     	} else if (gcode->m == 472) {
-    		THEKERNEL->streams->printf("Open WP Laser...\n");
+    		printk("Open WP Laser...\n");
     		this->_putc('L');
     	} else if (gcode->m == 881) {
     		if (gcode->has_letter('S')) {
         		uint16_t channel = gcode->get_value('S');
-        		THEKERNEL->streams->printf("Set 2.4G Channel to: [%d] and start trans...\n", channel);
+        		printk("Set 2.4G Channel to: [%d] and start trans...\n", channel);
         		this->_putc(channel);
     		}
     	} else if (gcode->m == 882) {
-    		THEKERNEL->streams->printf("Stop 2.4G transmission...\n");
+    		printk("Stop 2.4G transmission...\n");
     		this->_putc(27);
     	}
     }

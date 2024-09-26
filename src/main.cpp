@@ -32,6 +32,7 @@
 #include "StepTicker.h"
 #include "SlowTicker.h"
 #include "Robot.h"
+#include "StreamOutputPool.h"
 
 // #include "libs/ChaNFSSD/SDFileSystem.h"
 #include "libs/nuts_bolts.h"
@@ -45,7 +46,7 @@
 // #include "libs/USBDevice/USBSerial/USBSerial.h"
 // #include "libs/USBDevice/DFU.h"
 #include "libs/SDFAT.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "ToolManager.h"
 
 #include "libs/Watchdog.h"
@@ -82,14 +83,14 @@ void init() {
 
     Kernel* kernel = new Kernel();
 
-    // kernel->streams->printf("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
+    printk("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
     SimpleShell::version_command("", kernel->streams);
 
     bool sdok = (sd.disk_initialize() == 0);
-    if(!sdok) kernel->streams->printf("SDCard failed to initialize\r\n");
+    if(!sdok) printk("SDCard failed to initialize\r\n");
 
     #ifdef NONETWORK
-        kernel->streams->printf("NETWORK is disabled\r\n");
+        printk("NETWORK is disabled\r\n");
     #endif
 
     // Create and add main modules
@@ -161,9 +162,9 @@ void init() {
     if(t > 0.1F) {
         // NOTE setting WDT_RESET with the current bootloader would leave it in DFU mode which would be suboptimal
         kernel->add_module( new(AHB0) Watchdog(t * 1000000, WDT_RESET )); // WDT_RESET));
-        kernel->streams->printf("Watchdog enabled for %1.3f seconds\n", t);
+        printk("Watchdog enabled for %1.3f seconds\n", t);
     }else{
-        kernel->streams->printf("WARNING Watchdog is disabled\n");
+        printk("WARNING Watchdog is disabled\n");
     }
 
     // clear up the config cache to save some memory
@@ -181,14 +182,14 @@ void init() {
         FILE *fp= fopen(kernel->config_override_filename(), "r");
         if(fp != NULL) {
             char buf[132];
-            kernel->streams->printf("Loading config override file: %s...\n", kernel->config_override_filename());
+            printk("Loading config override file: %s...\n", kernel->config_override_filename());
             while(fgets(buf, sizeof buf, fp) != NULL) {
-                kernel->streams->printf("  %s", buf);
+                printk("  %s", buf);
                 if(buf[0] == ';') continue; // skip the comments
                 struct SerialMessage message= {&(StreamOutput::NullStream), buf, 0};
                 kernel->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
             }
-            kernel->streams->printf("config override file executed\n");
+            printk("config override file executed\n");
             fclose(fp);
         }
     }

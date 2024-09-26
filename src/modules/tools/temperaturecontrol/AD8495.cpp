@@ -14,7 +14,7 @@
 #include "ConfigValue.h"
 #include "libs/Median.h"
 #include "utils.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 
 #include <fastmath.h>
 
@@ -64,7 +64,7 @@ void AD8495::get_raw()
 
     t = t - this->AD8495_offset;
 	
-    THEKERNEL->streams->printf("adc= %d, max_adc= %lu, temp= %f, offset = %f\n", adc_value,max_adc_value,t, this->AD8495_offset);
+    printk("adc= %d, max_adc= %lu, temp= %f, offset = %f\n", adc_value,max_adc_value,t, this->AD8495_offset);
 
     // reset the min/max
     min_temp= max_temp= t;

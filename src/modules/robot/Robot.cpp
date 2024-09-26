@@ -29,7 +29,7 @@
 #include "utils.h"
 #include "ConfigValue.h"
 #include "libs/StreamOutput.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "GcodeDispatch.h"
 #include "ActuatorCoordinates.h"
 #include "EndstopsPublicAccess.h"
@@ -107,7 +107,7 @@
 
 #define PI 3.14159265358979323846F // force to be float, do not use M_PI
 
-//#define DEBUG_PRINTF THEKERNEL->streams->printf
+//#define DEBUG_PRINTF printk
 #define DEBUG_PRINTF(...)
 
 // The Robot converts GCodes into actual movements, and then adds them to the Planner, which passes them to the Conveyor so they can be added to the queue
@@ -268,7 +268,7 @@ void Robot::load_config()
 
         if(!pins[0].connected() || !pins[1].connected()) { // step and dir must be defined, but enable is optional
             if(a <= Z_AXIS) {
-                THEKERNEL->streams->printf("FATAL: motor %c is not defined in config\n", 'X'+a);
+                printk("FATAL: motor %c is not defined in config\n", 'X'+a);
                 n_motors= a; // we only have this number of motors
                 return;
             }
@@ -280,7 +280,7 @@ void Robot::load_config()
         uint8_t n= register_motor(sm);
         if(n != a) {
             // this is a fatal error
-            THEKERNEL->streams->printf("FATAL: motor %d does not match index %d\n", n, a);
+            printk("FATAL: motor %d does not match index %d\n", n, a);
             return;
         }
 
@@ -333,7 +333,7 @@ uint8_t Robot::register_motor(StepperMotor *motor)
     THEKERNEL->step_ticker->register_motor(motor);
     if(n_motors >= k_max_actuators) {
         // this is a fatal error
-        THEKERNEL->streams->printf("FATAL: too many motors, increase k_max_actuators\n");
+        printk("FATAL: too many motors, increase k_max_actuators\n");
         __debugbreak();
     }
     actuators.push_back(motor);
@@ -490,7 +490,7 @@ void Robot::check_max_actuator_speeds()
         float step_freq = actuators[i]->get_max_rate() * actuators[i]->get_steps_per_mm();
         if (step_freq > THEKERNEL->base_stepping_frequency) {
             actuators[i]->set_max_rate(floorf(THEKERNEL->base_stepping_frequency / actuators[i]->get_steps_per_mm()));
-            THEKERNEL->streams->printf("WARNING: actuator %d rate exceeds base_stepping_frequency * ..._steps_per_mm: %f, setting to %f\n", i, step_freq, actuators[i]->get_max_rate());
+            printk("WARNING: actuator %d rate exceeds base_stepping_frequency * ..._steps_per_mm: %f, setting to %f\n", i, step_freq, actuators[i]->get_max_rate());
         }
     }
 }
@@ -1039,7 +1039,7 @@ void Robot::on_gcode_received(void *argument)
     if( motion_mode != NONE) {
         is_g123= motion_mode != SEEK;
         process_move(gcode, motion_mode);
-        // THEKERNEL->streams->printf("GCode: [%s], mode:[%d]\n", gcode->get_command(), motion_mode);
+        // printk("GCode: [%s], mode:[%d]\n", gcode->get_command(), motion_mode);
     } else {
         is_g123= false;
     }
@@ -1312,7 +1312,7 @@ void Robot::reset_position_from_current_actuator_position()
         // NOTE actuator::current_position is curently NOT the same as actuator::machine_position after an abrupt abort
         actuator_pos[i] = actuators[i]->get_current_position();
 //		if (fabsf(actuator_pos[i] - machine_position[i]) > 0.01F)  {
-//			THEKERNEL->streams->printf("Reset %c position from %1.3f to %1.3f\n", 'X' + i, machine_position[i], actuator_pos[i]);
+//			printk("Reset %c position from %1.3f to %1.3f\n", 'X' + i, machine_position[i], actuator_pos[i]);
 //		}
 
     }
@@ -1320,7 +1320,7 @@ void Robot::reset_position_from_current_actuator_position()
     // discover machine position from where actuators actually are
     arm_solution->actuator_to_cartesian(actuator_pos, compensated_machine_position);
     memcpy(machine_position, compensated_machine_position, sizeof machine_position);
-//    THEKERNEL->streams->printf("[%1.3f,%1.3f,%1.3f][%1.3f,%1.3f,%1.3f][%1.3f,%1.3f,%1.3f]\n",
+//    printk("[%1.3f,%1.3f,%1.3f][%1.3f,%1.3f,%1.3f][%1.3f,%1.3f,%1.3f]\n",
 //    		actuator_pos[0], actuator_pos[1], actuator_pos[2], machine_position[0], machine_position[1], machine_position[2], compensated_machine_position[0], compensated_machine_position[1], compensated_machine_position[2]);
 
 
@@ -1336,7 +1336,7 @@ void Robot::reset_position_from_current_actuator_position()
     }
 
 
-//    THEKERNEL->streams->printf("[%1.3f,%1.3f,%1.3f][%1.3f,%1.3f,%1.3f][%1.3f,%1.3f,%1.3f]\n",
+//    printk("[%1.3f,%1.3f,%1.3f][%1.3f,%1.3f,%1.3f][%1.3f,%1.3f,%1.3f]\n",
 //    		actuator_pos[0], actuator_pos[1], actuator_pos[2], machine_position[0], machine_position[1], machine_position[2], compensated_machine_position[0], compensated_machine_position[1], compensated_machine_position[2]);
 
     // Handle extruders and/or ABC axis
@@ -1376,12 +1376,12 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
             if( (!isnan(soft_endstop_min[i]) && transformed_target[i] < soft_endstop_min[i]) || (!isnan(soft_endstop_max[i]) && transformed_target[i] > soft_endstop_max[i]) ) {
                 if(soft_endstop_halt) {
                     if(THEKERNEL->is_grbl_mode()) {
-                        THEKERNEL->streams->printf("error:");
+                        printk("error:");
                     }else{
-                        THEKERNEL->streams->printf("Error: ");
+                        printk("Error: ");
                     }
 
-                    THEKERNEL->streams->printf("Soft Endstop %c was exceeded - reset or $X or M999 required\n", i+'X');
+                    printk("Soft Endstop %c was exceeded - reset or $X or M999 required\n", i+'X');
                     THEKERNEL->call_event(ON_HALT, nullptr);
                     THEKERNEL->set_halt_reason(SOFT_LIMIT);
                     return false;
@@ -1393,11 +1393,11 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
                 } else {
                     // ignore it
                     if(THEKERNEL->is_grbl_mode()) {
-                        THEKERNEL->streams->printf("error:");
+                        printk("error:");
                     }else{
-                        THEKERNEL->streams->printf("Error: ");
+                        printk("Error: ");
                     }
-                    THEKERNEL->streams->printf("Soft Endstop %c was exceeded - entire move ignored\n", i+'X');
+                    printk("Soft Endstop %c was exceeded - entire move ignored\n", i+'X');
                     return false;
                 }
             }
@@ -1450,7 +1450,7 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
                 if (axis_speed > max_speeds[i]) {
                 	//float last_rate_mm_s = rate_mm_s;
                     rate_mm_s *= ( max_speeds[i] / axis_speed );
-                    // THEKERNEL->streams->printf("Reduce Speed of %d from %1.2f to %1.2f\n", i, last_rate_mm_s, rate_mm_s);
+                    // printk("Reduce Speed of %d from %1.2f to %1.2f\n", i, last_rate_mm_s, rate_mm_s);
                 }
             }
         }
@@ -1458,7 +1458,7 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
         if(this->max_speed > 0 && rate_mm_s > this->max_speed) {
         	// float last_rate_mm_s = rate_mm_s;
             rate_mm_s = this->max_speed;
-            // THEKERNEL->streams->printf("Reduce Total Speed from %1.2f to %1.2f\n", last_rate_mm_s, rate_mm_s);
+            // printk("Reduce Total Speed from %1.2f to %1.2f\n", last_rate_mm_s, rate_mm_s);
         }
     }
 
@@ -1513,7 +1513,7 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
 		float actuator_rate = d / isecs;
 
 		if (actuator == A_AXIS) {
-		    // THEKERNEL->streams->printf("d: %f, rate: %f, distance: %f, aux_move: %d, acc: %f, isecs: %f, line: %d\n", d, actuator_rate, distance, auxilliary_move, acceleration, isecs, line);
+		    // printk("d: %f, rate: %f, distance: %f, aux_move: %d, acc: %f, isecs: %f, line: %d\n", d, actuator_rate, distance, auxilliary_move, acceleration, isecs, line);
 		    float a_perimeter = PI * 2 + 30;
 			// A Axis moved, calculate real A Axis speed based on Y and Z wcs
 	        wcs_t curr_mpos = wcs_t(target[X_AXIS], target[Y_AXIS], target[Z_AXIS]);
@@ -1536,7 +1536,7 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
 				}
 				float ma = actuators[actuator]->get_acceleration(); // in mm / sec² or degree / sec² for A axis
 				if (!isnan(ma)) acceleration = ma;
-				// THEKERNEL->streams->printf("only A: %1.4f, %1.4f, %1.4f, %1.4f\r\n", abs_y_wcs, abs_z_wcs, rate_mm_s, a_perimeter);
+				// printk("only A: %1.4f, %1.4f, %1.4f, %1.4f\r\n", abs_y_wcs, abs_z_wcs, rate_mm_s, a_perimeter);
 				continue;
 			} else {
 				// A axis move along with other axis, speed down if necessary
@@ -1546,10 +1546,10 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
 					actuator_rate *= (rate_mm_s / mm_per_sec);
 					rate_mm_s *= (rate_mm_s / mm_per_sec);
 					isecs = d / rate_mm_s;
-					// THEKERNEL->streams->printf("Speed down to : %1.4f, %1.4f, %1.4f\n", isecs, rate_mm_s, actuator_rate);
+					// printk("Speed down to : %1.4f, %1.4f, %1.4f\n", isecs, rate_mm_s, actuator_rate);
 				}
 				// if (rate_mm_s < 1)  rate_mm_s = 1;
-				// THEKERNEL->streams->printf("Not only A: %1.4f, %1.4f, %1.4f, %1.4f, %1.4f\r\n", abs_y_wcs, abs_z_wcs, actuator_rate, rate_mm_s, a_perimeter);
+				// printk("Not only A: %1.4f, %1.4f, %1.4f, %1.4f, %1.4f\r\n", abs_y_wcs, abs_z_wcs, actuator_rate, rate_mm_s, a_perimeter);
 			}
 		}
 
@@ -1560,7 +1560,7 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
 				isecs = d / rate_mm_s;
 			}
 			DEBUG_PRINTF("new rate: %f - %d\n", rate_mm_s, actuator);
-            // THEKERNEL->streams->printf("Reduce actuator Speed %d, from %1.2f to %1.2f\n", actuator, actuator_rate, rate_mm_s);
+            // printk("Reduce actuator Speed %d, from %1.2f to %1.2f\n", actuator, actuator_rate, rate_mm_s);
 		}
 
 		DEBUG_PRINTF("act: %d, d: %f, distance: %f, actrate: %f, rate: %f, secs: %f, acc: %f\n", actuator, d, distance, actuator_rate, rate_mm_s, 1/isecs, acceleration);
@@ -1577,7 +1577,7 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
 					acceleration *= (ma / ca);
 				}
 				DEBUG_PRINTF("new acceleration: %f\n", acceleration);
-				// THEKERNEL->streams->printf("Reduce acceleration from %1.2f to %1.2f, %f\n", ca, acceleration, rate_mm_s);
+				// printk("Reduce acceleration from %1.2f to %1.2f, %f\n", ca, acceleration, rate_mm_s);
 			}
 		}
 	}
@@ -1939,7 +1939,7 @@ void Robot::setLaserOffset()
 {
 	if (THEKERNEL->get_laser_mode()) {
 		g92_offset = wcs_t(laser_module_offset_x, laser_module_offset_y, laser_module_offset_z);
-		THEKERNEL->streams->printf("Laser offset set to: %1.3f, %1.3f, %1.3f\n", laser_module_offset_x, laser_module_offset_y, laser_module_offset_z);
+		printk("Laser offset set to: %1.3f, %1.3f, %1.3f\n", laser_module_offset_x, laser_module_offset_y, laser_module_offset_z);
 		// g92_offset = wcs_t(laser_module_offset_x, laser_module_offset_y, laser_module_offset_z + std::get<Z_AXIS>(tool_offset));
 	}
 }

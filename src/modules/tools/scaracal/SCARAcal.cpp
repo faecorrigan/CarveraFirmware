@@ -12,7 +12,7 @@
 #include "Config.h"
 #include "Robot.h"
 #include "StepperMotor.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Gcode.h"
 #include "Conveyor.h"
 #include "checksumm.h"
@@ -174,7 +174,7 @@ void SCARAcal::SCARA_ang_move(float theta, float psi, float z, float feedrate)
     // Assemble Gcode to add onto the queue
     snprintf(cmd, sizeof(cmd), "G0 X%1.3f Y%1.3f Z%1.3f F%1.1f", cartesian[0], cartesian[1], cartesian[2], feedrate * 60); // use specified feedrate (mm/sec)
 
-    //THEKERNEL->streams->printf("DEBUG: move: %s\n", cmd);
+    //printk("DEBUG: move: %s\n", cmd);
 
     Gcode gc(cmd, &(StreamOutput::NullStream));
     THEROBOT->on_gcode_received(&gc); // send to robot directly
