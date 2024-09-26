@@ -31,13 +31,13 @@ public:
  * @return true if the connection should remain open (for long-running connections),
  *         false if the connection should be closed after processing.
  */
-virtual bool handle_data(const Endpoint& endpoint, const char* data, size_t length) override {
-    printk("handle_data: Received data for endpoint %s, Length: %i\n", endpoint.to_c_string(), static_cast<int>(length));
+virtual bool handle_data(const Endpoint& endpoint, const std::string& data) override {
+    printk("handle_data: Received data for endpoint %s\n", endpoint.to_c_string());
 
     ConnectionState& state = connection_states_[endpoint];
 
     // Append incoming data to the buffer
-    state.buffer.append(data, length);
+    state.buffer.append(data);
     printk("handle_data: Appended data to buffer, Current buffer size: %i\n", static_cast<int>(state.buffer.size()));
 
     // If headers are not yet parsed, attempt to parse them

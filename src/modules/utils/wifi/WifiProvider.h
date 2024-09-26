@@ -38,11 +38,11 @@ public:
     void on_get_public_data(void* argument);
     void on_set_public_data(void* argument);
 
-    bool setup_server(uint16_t local_port, uint8_t link_no, uint8_t max_clients);
-    void register_data_callback(uint8_t link_no, std::function<void(uint8_t*, uint16_t, uint8_t*, uint16_t)> callback);
-    bool send_data(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no, const uint8_t* data, uint16_t length);
-    bool close_connection(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no);
-
+    uint8_t initializeTcpServer(uint16_t local_port, uint8_t max_clients);
+    void removeTcpServer(uint8_t link_no);
+    void registerTcpDataCallback(uint8_t link_no, std::function<void(uint8_t*, uint16_t, uint8_t*, uint16_t)> callback);
+    bool sendTcpDataToClient(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no, const uint8_t* data, uint16_t length);
+    bool closeTcpConnection(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no);
     int gets(char** buf, int size = 0);
     int puts(const char*, int size = 0);
     int _putc(int c);
@@ -70,6 +70,10 @@ private:
     void receive_wifi_data();
 
     void halt();
+
+    uint8_t getNextLinkNo();
+
+    uint8_t next_available_link_no;
 
     mbed::InterruptIn *wifi_interrupt_pin; // Interrupt pin for measuring speed
     float probe_slow_rate;

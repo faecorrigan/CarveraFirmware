@@ -3,6 +3,7 @@
 
 #include "libs/Module.h"
 #include "WifiProvider.h"
+#include "TcpServer.h"
 #include "HttpResponse.h"
 #include "Endpoint.h"
 #include <string>
@@ -27,6 +28,8 @@ public:
     std::string url_decode(const std::string& str);
 
 private:
+    TcpServer* tcpserver;
+
     // Connection state structure
     struct ConnectionState {
         std::string buffer;
@@ -37,8 +40,6 @@ private:
         HttpRequestHandler* handler = nullptr;
     };
 
-    uint8_t webserver_link_no;
-    uint16_t webserver_port;
     WifiProvider* wifi_provider;
 
     // Map of active connections (keyed by connection identifier)
@@ -49,7 +50,7 @@ private:
 
     // Helper method to parse the request line
     bool parse_request_line(ConnectionState& conn_state, const std::string& request_line);
-    void on_data_received(const Endpoint& endpoint, uint8_t* data, uint16_t length);
+    void on_data_received(const Endpoint& endpoint, const std::string& data);
 };
 
 #endif // WEBSERVER_H

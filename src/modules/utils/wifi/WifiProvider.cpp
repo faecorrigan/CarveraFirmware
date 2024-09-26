@@ -48,8 +48,9 @@
 
 WifiProvider::WifiProvider()
 {
-    tcp_link_no = 0;
-    udp_link_no = 1;
+    udp_link_no = 0;
+    tcp_link_no = 1;
+    next_available_link_no = 2;
     wifi_init_ok = false;
     has_data_flag = false;
     connection_fail_count = 0;
@@ -828,35 +829,40 @@ int WifiProvider::type()
 
 /* API */
 
-bool WifiProvider::setup_server(uint16_t local_port, uint8_t link_no, uint8_t max_clients)
+uint8_t WifiProvider::getNextLinkNo() {
+    return next_available_link_no++;
+}
+
+uint8_t WifiProvider::initializeTcpServer(uint16_t local_port, uint8_t max_clients)
 {
     uint16_t status = 0;
     const int connection_type = 2; // TCP Server
     const int timeout = 3;
+    uint8_t link_no = getNextLinkNo();
 
     // Setup the connection
     if (M8266WIFI_SPI_Setup_Connection(connection_type, local_port, const_cast<char*>("0.0.0.0"), 0, link_no, timeout, &status) == 0) {
         printk("Setup_Connection ERROR on link %d, status: %d\n", link_no, status);
-        return false;
+        return 0xFF;
     }
 
     // Configure the maximum number of clients allowed for a TCP server
     if (connection_type == 2) {
         if (M8266WIFI_SPI_Config_Max_Clients_Allowed_To_A_Tcp_Server(link_no, max_clients, &status) == 0) {
             printk("Config_Max_Clients ERROR on link %d, status: %d\n", link_no, status);
-            return false;
+            return 0xFF;
         }
     }
 
-    return true;
+    return link_no;
 }
 
-void WifiProvider::register_data_callback(uint8_t link_no, std::function<void(uint8_t *, uint16_t, uint8_t*, uint16_t)> callback)
+void WifiProvider::registerTcpDataCallback(uint8_t link_no, std::function<void(uint8_t *, uint16_t, uint8_t*, uint16_t)> callback)
 {
     data_callbacks[link_no] = callback;
 }
 
-bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no, const uint8_t* data, uint16_t length)
+bool WifiProvider::sendTcpDataToClient(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no, const uint8_t* data, uint16_t length)
 {
     uint16_t status = 0;
     char ip_str[16];
@@ -864,7 +870,7 @@ bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uin
     // Convert remote_ip (uint8_t[4]) to string format
     snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u", remote_ip[0], remote_ip[1], remote_ip[2], remote_ip[3]);
 
-    printk("WifiProvider::send_data: Starting to send data to %s:%d on link %d, Total length: %d\n", ip_str, remote_port, link_no, length);
+    printk("WifiProvider::sendTcpDataToClient: Starting to send data to %s:%d on link %d, Total length: %d\n", ip_str, remote_port, link_no, length);
 
     uint32_t sent_index = 0;
     uint16_t sent = 0;
@@ -875,7 +881,7 @@ bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uin
         to_send = std::min(static_cast<uint16_t>(length - sent_index), static_cast<uint16_t>(WIFI_DATA_MAX_SIZE));
 
         // Debug statement before sending
-        printk("WifiProvider::send_data: Attempting to send %d bytes to %s:%d on link %d, sent_index: %d, status before sending: %d\n", 
+        printk("WifiProvider::sendTcpDataToClient: Attempting to send %d bytes to %s:%d on link %d, sent_index: %d, status before sending: %d\n", 
                                     to_send, ip_str, remote_port, link_no, sent_index, status);
 
         memcpy(txData, data + sent_index, to_send);
@@ -893,19 +899,19 @@ bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uin
 
         if (sent != to_send) {
             // Error or connection closed
-            printk("WifiProvider::send_data: ERROR on link %d to %s:%d, sent %d of %d bytes, status: %d\n", link_no, ip_str, remote_port, sent, to_send, status);
+            printk("WifiProvider::sendTcpDataToClient: ERROR on link %d to %s:%d, sent %d of %d bytes, status: %d\n", link_no, ip_str, remote_port, sent, to_send, status);
             return false;
         }
 
         // Debug statement after successful send
-        printk("WifiProvider::send_data: Successfully sent %d bytes to %s:%d on link %d, Total sent: %d/%d\n", sent, ip_str, remote_port, link_no, sent_index, length);
+        printk("WifiProvider::sendTcpDataToClient: Successfully sent %d bytes to %s:%d on link %d, Total sent: %d/%d\n", sent, ip_str, remote_port, link_no, sent_index, length);
     }
 
-    printk("WifiProvider::send_data: Completed sending all data to %s:%d on link %d\n", ip_str, remote_port, link_no);
+    printk("WifiProvider::sendTcpDataToClient: Completed sending all data to %s:%d on link %d\n", ip_str, remote_port, link_no);
     return true;
 }
 
-bool WifiProvider::close_connection(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no)
+bool WifiProvider::closeTcpConnection(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no)
 {
     uint16_t status = 0;
     uint8_t client_num = 0;

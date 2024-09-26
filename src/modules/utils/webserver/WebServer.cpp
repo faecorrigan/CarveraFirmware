@@ -1,4 +1,5 @@
 #include "WebServer.h"
+#include "TcpServer.h"
 #include "HttpRequestHandler.h"
 #include "ConfigValue.h"
 #include "Config.h"
@@ -11,6 +12,7 @@
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
+
 #include "HelloWorldHandler.h"
 //#include "ConsoleStreamHandler.h"
 //#include "StatusStreamHandler.h"
@@ -21,7 +23,6 @@
 
 WebServer::WebServer(WifiProvider* wifi_provider) : wifi_provider(wifi_provider)
 {
-    webserver_link_no = 2; // Assign a unique link number for the webserver
 }
 
 void WebServer::on_module_loaded()
@@ -33,19 +34,13 @@ void WebServer::on_module_loaded()
     }
 
     // Load the webserver port from the configuration
-    this->webserver_port = THEKERNEL->config->value(webserver_checksum, webserver_port_checksum)->by_default(80)->as_int();
+    uint16_t webserver_port = THEKERNEL->config->value(webserver_checksum, webserver_port_checksum)->by_default(80)->as_int();
 
-    // Set up the webserver TCP connection using WifiProvider
-    if (!wifi_provider->setup_server(this->webserver_port, webserver_link_no, 15))
-    {
-        printk("WebServer: Failed to set up connection on port %d\n", webserver_port);
-        return;
-    }
+    tcpserver = new TcpServer(wifi_provider, webserver_port);
 
     // Register callback for data reception
-    wifi_provider->register_data_callback(webserver_link_no, [this](const u8* remote_ip, u16 remote_port, u8* data, u16 length) {
-        Endpoint endpoint(remote_ip, remote_port);
-        this->on_data_received(endpoint, data, length);
+    tcpserver->registerDataCallback([this](const Endpoint& endpoint, const std::string& data) {
+        this->on_data_received(endpoint, data);
     });
 
     HelloWorldHandler* hello_handler = new HelloWorldHandler(this);
@@ -58,13 +53,13 @@ void WebServer::on_module_loaded()
 //    register_handler(status_handler);
 }
 
-void WebServer::on_data_received(const Endpoint& endpoint, uint8_t* data, uint16_t length)
+void WebServer::on_data_received(const Endpoint& endpoint, const std::string& data)
 {
     // Get or create the connection state
     ConnectionState& conn_state = connections[endpoint];
 
     // Append received data to the buffer
-    conn_state.buffer.append(reinterpret_cast<char*>(data), length);
+    conn_state.buffer.append(data);
 
     // If request line is not yet parsed, attempt to parse it
     if (!conn_state.request_line_parsed) {
@@ -131,7 +126,7 @@ void WebServer::on_data_received(const Endpoint& endpoint, uint8_t* data, uint16
             return;
         }
 
-        bool keep_connection = conn_state.handler->handle_data(endpoint, conn_state.buffer.c_str(), conn_state.buffer.size());
+        bool keep_connection = conn_state.handler->handle_data(endpoint, conn_state.buffer);
 
         // Clear the buffer as it's been delegated
         conn_state.buffer.clear();
@@ -147,7 +142,7 @@ void WebServer::on_data_received(const Endpoint& endpoint, uint8_t* data, uint16
     } else {
         // Request line already parsed, delegate all incoming data to the handler
         if (conn_state.handler) {
-            bool keep_connection = conn_state.handler->handle_data(endpoint, reinterpret_cast<char*>(data), length);
+            bool keep_connection = conn_state.handler->handle_data(endpoint, data);
             if (!keep_connection) {
                 // Handler indicates to close the connection
                 connections.erase(endpoint);
@@ -189,13 +184,12 @@ bool WebServer::parse_request_line(ConnectionState& conn_state, const std::strin
 
 bool WebServer::send_data(const Endpoint& endpoint, const std::string& data)
 {
-    return wifi_provider->send_data(endpoint.ip, endpoint.port, webserver_link_no,
-                                    (const u8*)data.c_str(), data.length());
+    return tcpserver->sendData(endpoint, data);
 }
 
 bool WebServer::close_connection(const Endpoint& endpoint)
 {
-    return wifi_provider->close_connection(endpoint.ip, endpoint.port, webserver_link_no);
+    return tcpserver->closeConnection(endpoint);
 }
 
 bool WebServer::send_http_response(const Endpoint& endpoint, const HttpResponse& response)

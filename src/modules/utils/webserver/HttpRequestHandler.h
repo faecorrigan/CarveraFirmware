@@ -44,7 +44,7 @@ public:
      * @return true if the connection should remain open (for long-running connections),
      *         false if the connection should be closed after processing.
      */
-    virtual bool handle_data(const Endpoint& endpoint, const char* data, size_t length) = 0;
+    virtual bool handle_data(const Endpoint& endpoint, const std::string& data) = 0;
 
 protected:
     /**
