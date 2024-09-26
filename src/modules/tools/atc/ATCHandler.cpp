@@ -864,6 +864,7 @@ void ATCHandler::on_gcode_received(void *argument)
 			}else if (gcode->subcode == 2){
 				float tlo = 0;
 				float tolerance = 0.1;
+				THECONVEYOR->wait_for_idle();
 				if (gcode->has_letter('H')) {
 		    		tolerance = gcode->get_value('H');
 					if (tolerance < 0.02) {
@@ -970,7 +971,6 @@ void ATCHandler::on_gcode_received(void *argument)
 				atc_status = AUTOMATION;
 	            this->clear_script_queue();
 				this->fill_xyzprobe_scripts(tool_dia, probe_height);
-
 
 			} else {
 				// Do Margin, ZProbe, Auto Leveling based on parameters, change probe tool if needed
@@ -1315,3 +1315,6 @@ void ATCHandler::set_inner_playing(bool inner_playing)
 {
 	this->playing_file = PublicData::set_value( player_checksum, inner_playing_checksum, &inner_playing );
 }
+
+
+
