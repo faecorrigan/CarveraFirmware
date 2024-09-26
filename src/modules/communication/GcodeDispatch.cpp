@@ -320,13 +320,13 @@ try_again:
 							delete gcode;
 
 							if(str.empty()) {
-								SimpleShell::parse_command("help", "", new_message.stream);
+								THEKERNEL->simpleshell->parse_command("help", "", new_message.stream);
 
 							}else{
 								string args= lc(str);
 								string cmd = shift_parameter(args);
 								// find command and execute it
-								if(!SimpleShell::parse_command(cmd.c_str(), args, new_message.stream)) {
+								if(!THEKERNEL->simpleshell->parse_command(cmd.c_str(), args, new_message.stream)) {
 									new_message.stream->printf("Command not found: %s\n", cmd.c_str());
 								}
 							}
@@ -361,7 +361,7 @@ try_again:
 								if(arg.empty()) arg= "/sd/config-override";
 								else arg= "/sd/config-override." + arg;
 								//new_message.stream->printf("args: <%s>\n", arg.c_str());
-								SimpleShell::parse_command((gcode->m == 501) ? "load_command" : "save_command", arg, new_message.stream);
+								THEKERNEL->simpleshell->parse_command((gcode->m == 501) ? "load_command" : "save_command", arg, new_message.stream);
 							}
 							delete gcode;
 							new_message.stream->printf("ok\r\n");

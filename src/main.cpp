@@ -84,7 +84,7 @@ void init() {
     Kernel* kernel = new Kernel();
 
     printk("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
-    SimpleShell::version_command("", kernel->streams);
+    kernel->simpleshell->version_command("", kernel->streams);
 
     bool sdok = (sd.disk_initialize() == 0);
     if(!sdok) printk("SDCard failed to initialize\r\n");

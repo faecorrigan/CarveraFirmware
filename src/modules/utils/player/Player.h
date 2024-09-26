@@ -41,21 +41,9 @@ class Player : public Module {
         void resume_command( string parameters, StreamOutput* stream );
         void goto_command( string parameters, StreamOutput* stream );
         void buffer_command( string parameters, StreamOutput* stream );
-        void upload_command( string parameters, StreamOutput* stream );
-        void download_command( string parameters, StreamOutput* stream );
         void test_command(string parameters, StreamOutput* stream );
         string extract_options(string& args);
-
-        void set_serial_rx_irq(bool enable);
-        int inbyte(StreamOutput *stream, unsigned int timeout_ms);
-        int inbytes(StreamOutput *stream, char **buf, int size, unsigned int timeout_ms);
-        void flush_input(StreamOutput *stream);
-        void cancel_transfer(StreamOutput *stream);
-        unsigned int crc16_ccitt(unsigned char *data, unsigned int len);
-        int check_crc(int crc, unsigned char *data, unsigned int len);
 		
-		int decompress(string sfilename, string dfilename, uint32_t sfilesize, StreamOutput* stream);
-//		int compressfile(string sfilename, string dfilename, StreamOutput* stream);
         // 2024
         // bool check_cluster(const char *gcode_str, float *x_value, float *y_value, float *distance, float *slope, float *s_value);
 
@@ -66,8 +54,6 @@ class Player : public Module {
         string on_boot_gcode;
         StreamOutput* current_stream;
         StreamOutput* reply_stream;
-
-        char md5_str[64];
 
         std::queue<string> buffered_queue;
         void clear_buffered_queue();
