@@ -153,24 +153,24 @@ int SerialConsole::puts(const char* s, int size)
 {
     size_t n = size == 0 ? strlen(s) : size;
     for (size_t i = 0; i < n; ++i) {
-        this->_putc(s[i]);
+        this->putc(s[i]);
     }
     return n;
 }
 
 int SerialConsole::gets(char** buf, int size)
 {
-	getc_result = this->_getc();
+	getc_result = this->getc();
 	*buf = &getc_result;
 	return 1;
 }
 
-int SerialConsole::_putc(int c)
+int SerialConsole::putc(int c)
 {
     return this->serial->putc(c);
 }
 
-int SerialConsole::_getc()
+int SerialConsole::getc()
 {
     return this->serial->getc();
 }

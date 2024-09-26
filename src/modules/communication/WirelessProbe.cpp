@@ -124,24 +124,24 @@ int WirelessProbe::puts(const char* s)
     //return fwrite(s, strlen(s), 1, (FILE*)(*this->serial));
     size_t n= strlen(s);
     for (size_t i = 0; i < n; ++i) {
-        _putc(s[i]);
+        putc(s[i]);
     }
     return n;
 }
 
 int WirelessProbe::gets(char** buf)
 {
-	getc_result = this->_getc();
+	getc_result = this->getc();
 	*buf = &getc_result;
 	return 1;
 }
 
-int WirelessProbe::_putc(int c)
+int WirelessProbe::putc(int c)
 {
     return this->serial->putc(c);
 }
 
-int WirelessProbe::_getc()
+int WirelessProbe::getc()
 {
     return this->serial->getc();
 }
@@ -168,7 +168,7 @@ void WirelessProbe::on_get_public_data(void *argument) {
         *t = this->wp_voltage;
         pdr->set_taken();
     } else if(pdr->second_element_is(show_wp_state_checksum)) {
-    	this->_putc('Q');
+    	this->putc('Q');
         pdr->set_taken();
     }
 
@@ -181,7 +181,7 @@ void WirelessProbe::on_set_public_data(void *argument) {
     if(!pdr->starts_with(atc_handler_checksum)) return;
 
     if(pdr->second_element_is(set_wp_laser_checksum)) {
-    	this->_putc('L');
+    	this->putc('L');
         pdr->set_taken();
     }
 }
@@ -195,26 +195,26 @@ void WirelessProbe::on_gcode_received(void *argument)
     		if (gcode->has_letter('S')) {
         		uint16_t new_addr = gcode->get_value('S');
         		printk("Change WP address to: [%d]\n", new_addr);
-        		this->_putc('S');
-                this->_putc(new_addr & 0xff);
-                this->_putc(new_addr >> 8);
-                this->_putc('#');
+        		this->putc('S');
+                this->putc(new_addr & 0xff);
+                this->putc(new_addr >> 8);
+                this->putc('#');
     		}
     	} else if (gcode->m == 471) {
     		printk("Set WP into pairing mode...\n");
-    		this->_putc('P');
+    		this->putc('P');
     	} else if (gcode->m == 472) {
     		printk("Open WP Laser...\n");
-    		this->_putc('L');
+    		this->putc('L');
     	} else if (gcode->m == 881) {
     		if (gcode->has_letter('S')) {
         		uint16_t channel = gcode->get_value('S');
         		printk("Set 2.4G Channel to: [%d] and start trans...\n", channel);
-        		this->_putc(channel);
+        		this->putc(channel);
     		}
     	} else if (gcode->m == 882) {
     		printk("Stop 2.4G transmission...\n");
-    		this->_putc(27);
+    		this->putc(27);
     	}
     }
 }

@@ -45,8 +45,8 @@ public:
     bool closeTcpConnection(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no);
     int gets(char** buf, int size = 0);
     int puts(const char*, int size = 0);
-    int _putc(int c);
-    int _getc(void);
+    int putc(int c);
+    int getc(void);
     bool ready();
     bool has_char(char letter);
     int type(); // 0: serial, 1: wifi

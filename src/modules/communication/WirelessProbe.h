@@ -38,8 +38,8 @@ class WirelessProbe : public Module {
 
         bool has_char(char letter);
 
-        int _putc(int c);
-        int _getc(void);
+        int putc(int c);
+        int getc(void);
         int puts(const char*);
         int gets(char** buf);
         char getc_result;

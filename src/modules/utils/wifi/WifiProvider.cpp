@@ -331,7 +331,7 @@ int WifiProvider::puts(const char* s, int size)
     return sent_index;
 }
 
-int WifiProvider::_putc(int c)
+int WifiProvider::putc(int c)
 {
     u16 status = 0;
     u8 to_send = c;
@@ -342,7 +342,7 @@ int WifiProvider::_putc(int c)
     }
 }
 
-int WifiProvider::_getc()
+int WifiProvider::getc()
 {
     u16 status;
     u8 to_recv = 0, link_no;

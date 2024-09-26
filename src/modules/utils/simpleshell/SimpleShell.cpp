@@ -449,7 +449,7 @@ void SimpleShell::ls_command( string parameters, StreamOutput *stream )
         }
     } else {
         if(opts.find("-e", 0, 2) != string::npos) {
-            stream->_putc(CAN);
+            stream->putc(CAN);
         }
         stream->printf("Could not open directory %s\r\n", path.c_str());
     }
@@ -478,7 +478,7 @@ void SimpleShell::rm_command( string parameters, StreamOutput *stream )
     int s = remove(toRemove.c_str());
     if (s != 0) {
         if(send_eof) {
-            stream->_putc(CAN);
+            stream->putc(CAN);
         }
     	stream->printf("Could not delete %s \r\n", toRemove.c_str());
     } else {
@@ -487,7 +487,7 @@ void SimpleShell::rm_command( string parameters, StreamOutput *stream )
 /*
 		if (s != 0) {
 			if(send_eof) {
-				stream->_putc(CAN);
+				stream->putc(CAN);
 			}
 			stream->printf("Could not delete %s \r\n", str_md5.c_str());
 		} 
@@ -496,13 +496,13 @@ void SimpleShell::rm_command( string parameters, StreamOutput *stream )
 			s = remove(str_lz.c_str());
 			if (s != 0){
 				if(send_eof) {
-					stream->_putc(CAN);
+					stream->putc(CAN);
 				}
 				stream->printf("Could not delete %s \r\n", str_lz.c_str());
 			}
 			else {
 		        if(send_eof) {
-		            stream->_putc(EOT);
+		            stream->putc(EOT);
 	        	}
 			
 			}
@@ -510,7 +510,7 @@ void SimpleShell::rm_command( string parameters, StreamOutput *stream )
     	string str_lz = absolute_from_relative(lz_path);
 		s = remove(str_lz.c_str());
 		if(send_eof) {
-            stream->_putc(EOT);
+            stream->putc(EOT);
     	}
     }
 }
@@ -531,14 +531,14 @@ void SimpleShell::mv_command( string parameters, StreamOutput *stream )
     int s = rename(from.c_str(), to.c_str());
     if (s != 0)  {
     	if (send_eof) {
-    		stream->_putc(CAN);
+    		stream->putc(CAN);
     	}
     	stream->printf("Could not rename %s to %s\r\n", from.c_str(), to.c_str());
     } else  {
     	s = rename(md5_from.c_str(), md5_to.c_str());
 /*        if (s != 0)  {
         	if (send_eof) {
-        		stream->_putc(CAN);
+        		stream->putc(CAN);
         	}
         	stream->printf("Could not rename %s to %s\r\n", md5_from.c_str(), md5_to.c_str());
         }
@@ -546,20 +546,20 @@ void SimpleShell::mv_command( string parameters, StreamOutput *stream )
         	s = rename(lz_from.c_str(), lz_to.c_str());
         	if (s != 0)  {
 	        	if (send_eof) {
-	        		stream->_putc(CAN);
+	        		stream->putc(CAN);
 	        	}
 	        	stream->printf("Could not rename %s to %s\r\n", lz_from.c_str(), lz_to.c_str());
         	}
         	else {
         		if (send_eof) {
-				stream->_putc(EOT);
+				stream->putc(EOT);
 				}
 				stream->printf("renamed %s to %s\r\n", from.c_str(), to.c_str());
         	}
         }*/
         s = rename(lz_from.c_str(), lz_to.c_str());
         if (send_eof) {
-			stream->_putc(EOT);
+			stream->putc(EOT);
 		}
 		stream->printf("renamed %s to %s\r\n", from.c_str(), to.c_str());
     }
@@ -578,33 +578,33 @@ void SimpleShell::mkdir_command( string parameters, StreamOutput *stream )
     int result = mkdir(path.c_str(), 0);
     if (result != 0) {
     	if (send_eof) {
-    		stream->_putc(CAN); // ^Z terminates error
+    		stream->putc(CAN); // ^Z terminates error
     	}
     	stream->printf("could not create directory %s\r\n", path.c_str());
     } else {
     	result = mkdir(md5_path.c_str(), 0);
 /*        if (result != 0) {
         	if (send_eof) {
-        		stream->_putc(CAN); // ^Z terminates error
+        		stream->putc(CAN); // ^Z terminates error
         	}
         	stream->printf("could not create md5 directory %s\r\n", md5_path.c_str());
         } 
         else if (mkdir(lz_path.c_str(), 0) != 0) {
         	if (send_eof) {
-        		stream->_putc(CAN); // ^Z terminates error
+        		stream->putc(CAN); // ^Z terminates error
         	}
         	stream->printf("could not create lz directory %s\r\n", lz_path.c_str());
         }    
         else {
         	if (send_eof) {
-            	stream->_putc(EOT); // ^D terminates the upload
+            	stream->putc(EOT); // ^D terminates the upload
         	}
         	stream->printf("created directory %s\r\n", path.c_str());
         }
 */
 		mkdir(lz_path.c_str(), 0);
 		if (send_eof) {
-            	stream->_putc(EOT); // ^D terminates the upload
+            	stream->putc(EOT); // ^D terminates the upload
         	}
         stream->printf("created directory %s\r\n", path.c_str());
 		
@@ -935,12 +935,12 @@ void SimpleShell::wlan_command( string parameters, StreamOutput *stream)
             stream->printf("%s", str);
             free(str);
         	if (send_eof) {
-            	stream->_putc(EOT);
+            	stream->putc(EOT);
         	}
 
         } else {
         	if (send_eof) {
-        		stream->_putc(CAN);
+        		stream->putc(CAN);
         	} else {
                 stream->printf("No wlan detected\n");
         	}
@@ -964,7 +964,7 @@ void SimpleShell::wlan_command( string parameters, StreamOutput *stream)
         	if (t.has_error) {
                 stream->printf("Error: %s\n", t.error_info);
             	if (send_eof) {
-            		stream->_putc(CAN);
+            		stream->putc(CAN);
             	}
         	} else {
         		if (t.disconnect) {
@@ -973,13 +973,13 @@ void SimpleShell::wlan_command( string parameters, StreamOutput *stream)
             		stream->printf("Wifi connected, ip: %s\n", t.ip_address);
         		}
             	if (send_eof) {
-                	stream->_putc(EOT);
+                	stream->putc(EOT);
             	}
         	}
         } else {
             stream->printf("%s\n", "Parameter error when setting wlan!");
         	if (send_eof) {
-        		stream->_putc(CAN);
+        		stream->putc(CAN);
         	}
         }
     }
@@ -1851,7 +1851,7 @@ void SimpleShell::config_get_all_command( string parameters, StreamOutput *strea
     fclose(lp);
 
     if(send_eof) {
-        stream->_putc(EOT);
+        stream->putc(EOT);
     }
 }
 
@@ -1945,7 +1945,7 @@ void SimpleShell::upload_command( string parameters, StreamOutput *stream )
     THEKERNEL->set_uploading(true);
 
     if (!THECONVEYOR->is_idle()) {
-        stream->_putc(EOT);
+        stream->putc(EOT);
         if (stream->type() == 0) {
         	set_serial_rx_irq(true);
         }
@@ -1976,7 +1976,7 @@ void SimpleShell::upload_command( string parameters, StreamOutput *stream )
     }
 
     if (fd == NULL || (filename.find("firmware.bin") == string::npos && fd_md5 == NULL)) {
-        stream->_putc(EOT);
+        stream->putc(EOT);
     	sprintf(error_msg, "Error: failed to open file [%s]!\r\n", fd == NULL ? filename.substr(0, 30).c_str() : md5_filename.substr(0, 30).c_str() );
     	goto upload_error;
     }
@@ -1984,7 +1984,7 @@ void SimpleShell::upload_command( string parameters, StreamOutput *stream )
     for (;;) {
         for (retry = 0; retry < MAXRETRANS; ++retry) {  // approx 3 seconds allowed to make connection
             if (trychar)
-            	stream->_putc(trychar);
+            	stream->putc(trychar);
             if ((c = inbyte(stream, TIMEOUT_MS)) >= 0) {
             	retry = 0;
             	switch (c) {
@@ -1997,12 +1997,12 @@ void SimpleShell::upload_command( string parameters, StreamOutput *stream )
                     is_stx = 1;
                     goto start_recv;
                 case EOT:
-                    stream->_putc(ACK);
+                    stream->putc(ACK);
                     flush_input(stream);
                     goto upload_success; /* normal end */
                 case CAN:
                     if ((c = inbyte(stream, TIMEOUT_MS)) == CAN) {
-                        stream->_putc(ACK);
+                        stream->putc(ACK);
                         flush_input(stream);
                     	sprintf(error_msg, "Info: Upload canceled by remote!\r\n");
                         goto upload_error;
@@ -2063,7 +2063,7 @@ void SimpleShell::upload_command( string parameters, StreamOutput *stream )
     			fwrite(&xbuff[4 + is_stx], sizeof(char), 32, fd_md5);
         	}
             THEKERNEL->call_event(ON_IDLE);
-            stream->_putc(ACK);
+            stream->putc(ACK);
             md5_received = true;
             continue;
         } else if (xbuff[1] == (unsigned char)(~xbuff[2]) &&
@@ -2076,11 +2076,11 @@ void SimpleShell::upload_command( string parameters, StreamOutput *stream )
 			++ packetno;
 			retrans = MAXRETRANS + 1;
 			THEKERNEL->call_event(ON_IDLE);
-            stream->_putc(ACK);
+            stream->putc(ACK);
             continue;
         }
     reject:
-		stream->_putc(NAK);
+		stream->putc(NAK);
 		if (-- retrans <= 0) {
             cancel_transfer(stream);
         	sprintf(error_msg, "Error: too many retry error!\r\n");
@@ -2221,7 +2221,7 @@ void SimpleShell::download_command( string parameters, StreamOutput *stream )
 					goto start_trans;
 				case CAN:
 					if ((c = inbyte(stream, TIMEOUT_MS)) == CAN) {
-						stream->_putc(ACK);
+						stream->putc(ACK);
 						flush_input(stream);
 				    	sprintf(error_msg, "Info: canceled by remote!\r\n");
 				        goto download_error;
@@ -2250,7 +2250,7 @@ void SimpleShell::download_command( string parameters, StreamOutput *stream )
 				c = fread(&xbuff[4 + is_stx], sizeof(char), bufsz, fd);
 				if (c <= 0) {
 					for (retry = 0; retry < MAXRETRANS; ++retry) {
-						stream->_putc(EOT);
+						stream->putc(EOT);
 						if ((c = inbyte(stream, TIMEOUT_MS)) == ACK) break;
 					}
 					flush_input(stream);
@@ -2299,7 +2299,7 @@ void SimpleShell::download_command( string parameters, StreamOutput *stream )
 						goto start_trans;
 					case CAN:
 						if ((c = inbyte(stream, TIMEOUT_MS)) == CAN) {
-							stream->_putc(ACK);
+							stream->putc(ACK);
 							flush_input(stream);
 					    	sprintf(error_msg, "Info: canceled by remote!\r\n");
 					        goto download_error;
@@ -2579,7 +2579,7 @@ int SimpleShell::inbyte(StreamOutput *stream, unsigned int timeout_ms)
 	uint32_t tick_us = us_ticker_read();
     while (us_ticker_read() - tick_us < timeout_ms * 1000) {
         if (stream->ready())
-            return stream->_getc();
+            return stream->getc();
         safe_delay_us(100);
     }
     return -1;
@@ -2604,9 +2604,9 @@ void SimpleShell::flush_input(StreamOutput *stream)
 
 void SimpleShell::cancel_transfer(StreamOutput *stream)
 {
-	stream->_putc(CAN);
-	stream->_putc(CAN);
-	stream->_putc(CAN);
+	stream->putc(CAN);
+	stream->putc(CAN);
+	stream->putc(CAN);
 	flush_input(stream);
 }
 

@@ -25,8 +25,8 @@ class StreamOutput {
 
         virtual int printf(const char *format, ...) __attribute__ ((format(printf, 2, 3)));
         virtual int vprintf(const char*, va_list);
-        virtual int _putc(int c) { return 1; }
-        virtual int _getc(void) { return 0; }
+        virtual int putc(int c) { return 1; }
+        virtual int getc(void) { return 0; }
         virtual int gets(char** buf, int size = 0) { return 0; }
         virtual int puts(const char* buf, int size = 0) = 0;
         virtual bool ready() { return true; };
