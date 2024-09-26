@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Module.h"
+#include "XModem.h"
 
 #include <functional>
 #include <string>
@@ -83,17 +84,6 @@ private:
 
     void config_default_command(string parameters, StreamOutput *stream );
 
-    int decompress(string sfilename, string dfilename, uint32_t sfilesize, StreamOutput* stream);
-//		int compressfile(string sfilename, string dfilename, StreamOutput* stream);
-
-    void set_serial_rx_irq(bool enable);
-    int inbyte(StreamOutput *stream, unsigned int timeout_ms);
-    int inbytes(StreamOutput *stream, char **buf, int size, unsigned int timeout_ms);
-    void flush_input(StreamOutput *stream);
-    void cancel_transfer(StreamOutput *stream);
-    unsigned int crc16_ccitt(unsigned char *data, unsigned int len);
-    int check_crc(int crc, unsigned char *data, unsigned int len);
-
     typedef void (*PFUNC)(string parameters, StreamOutput *stream);
     typedef struct {
         const char* name;
@@ -102,6 +92,8 @@ private:
 
     static const ptentry_t commands_table[];
     static int reset_delay_secs;
+
+    XModem xmodem;
 
     char md5_str[64];
 };
