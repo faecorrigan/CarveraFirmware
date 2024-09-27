@@ -36,23 +36,23 @@ void Configurator::config_get_command( string parameters, StreamOutput *stream )
         source = "";
         uint16_t setting_checksums[3];
         get_checksums(setting_checksums, setting );
-        THEKERNEL->config->config_cache_load(); // need to load config cache first as it is unloaded after booting
-        ConfigValue *cv = THEKERNEL->config->value(setting_checksums);
+        THEKERNEL.config->config_cache_load(); // need to load config cache first as it is unloaded after booting
+        ConfigValue *cv = THEKERNEL.config->value(setting_checksums);
         if(cv != NULL && cv->found) {
             string value = cv->as_string();
             stream->printf( "cached: %s is set to %s\r\n", setting.c_str(), value.c_str() );
         } else {
             stream->printf( "cached: %s is not in config\r\n", setting.c_str());
         }
-        THEKERNEL->config->config_cache_clear();
+        THEKERNEL.config->config_cache_clear();
 
     } else { // output setting from specified source by parsing the config file
         uint16_t source_checksum = get_checksum( source );
         uint16_t setting_checksums[3];
         get_checksums(setting_checksums, setting );
-        for(unsigned int i = 0; i < THEKERNEL->config->config_sources.size(); i++) {
-            if( THEKERNEL->config->config_sources[i]->is_named(source_checksum) ) {
-                string value = THEKERNEL->config->config_sources[i]->read(setting_checksums);
+        for(unsigned int i = 0; i < THEKERNEL.config->config_sources.size(); i++) {
+            if( THEKERNEL.config->config_sources[i]->is_named(source_checksum) ) {
+                string value = THEKERNEL.config->config_sources[i]->read(setting_checksums);
                 if(value.empty()) {
                     stream->printf( "%s: %s is not in config\r\n", source.c_str(), setting.c_str() );
                 } else {
@@ -76,9 +76,9 @@ void Configurator::config_set_command( string parameters, StreamOutput *stream )
     }
 
     uint16_t source_checksum = get_checksum(source);
-    for(unsigned int i = 0; i < THEKERNEL->config->config_sources.size(); i++) {
-        if( THEKERNEL->config->config_sources[i]->is_named(source_checksum) ) {
-            if(THEKERNEL->config->config_sources[i]->write(setting, value)) {
+    for(unsigned int i = 0; i < THEKERNEL.config->config_sources.size(); i++) {
+        if( THEKERNEL.config->config_sources[i]->is_named(source_checksum) ) {
+            if(THEKERNEL.config->config_sources[i]->write(setting, value)) {
                 stream->printf( "%s: %s has been set to %s\r\n", source.c_str(), setting.c_str(), value.c_str() );
             } else {
                 stream->printf( "%s: %s not enough space to overwrite existing key/value\r\n", source.c_str(), setting.c_str() );
@@ -90,14 +90,14 @@ void Configurator::config_set_command( string parameters, StreamOutput *stream )
 
     /* Live setting not really supported anymore as the cache is never left loaded
         if (value == "") {
-            if(!THEKERNEL->config->config_cache_loaded) {
+            if(!THEKERNEL.config->config_cache_loaded) {
                 stream->printf( "live: setting not allowed as config cache is not loaded\r\n" );
                 return;
             }
             value = setting;
             setting = source;
             source = "";
-            THEKERNEL->config->set_string(setting, value);
+            THEKERNEL.config->set_string(setting, value);
             stream->printf( "live: %s has been set to %s\r\n", setting.c_str(), value.c_str() );
     */
 }
@@ -107,17 +107,17 @@ void Configurator::config_load_command( string parameters, StreamOutput *stream 
 {
     string source = shift_parameter(parameters);
     if(source == "load") {
-        THEKERNEL->config->config_cache_load();
+        THEKERNEL.config->config_cache_load();
         stream->printf( "config cache loaded\r\n");
 
     } else if(source == "unload") {
-        THEKERNEL->config->config_cache_clear();
+        THEKERNEL.config->config_cache_clear();
         stream->printf( "config cache unloaded\r\n" );
 
     } else if(source == "dump") {
-        THEKERNEL->config->config_cache_load();
-        THEKERNEL->config->config_cache->dump(stream);
-        THEKERNEL->config->config_cache_clear();
+        THEKERNEL.config->config_cache_load();
+        THEKERNEL.config->config_cache->dump(stream);
+        THEKERNEL.config->config_cache_clear();
 
     } else if(source == "checksum") {
         string key = shift_parameter(parameters);

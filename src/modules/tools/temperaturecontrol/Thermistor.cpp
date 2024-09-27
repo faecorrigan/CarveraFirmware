@@ -65,12 +65,12 @@ void Thermistor::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
     this->beta = 4066;
 
     // force use of beta perdefined thermistor table based on betas
-    bool use_beta_table= THEKERNEL->config->value(module_checksum, name_checksum, use_beta_table_checksum)->by_default(false)->as_bool();
+    bool use_beta_table= THEKERNEL.config->value(module_checksum, name_checksum, use_beta_table_checksum)->by_default(false)->as_bool();
 
     bool found= false;
     int cnt= 0;
     // load a predefined thermistor name if found
-    string thermistor = THEKERNEL->config->value(module_checksum, name_checksum, thermistor_checksum)->by_default("")->as_string();
+    string thermistor = THEKERNEL.config->value(module_checksum, name_checksum, thermistor_checksum)->by_default("")->as_string();
     if(!thermistor.empty()) {
         if(!use_beta_table) {
             for (auto& i : predefined_thermistors) {
@@ -116,24 +116,24 @@ void Thermistor::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
 
     // Preset values are overriden by specified values
     if(!use_steinhart_hart) {
-        this->beta = THEKERNEL->config->value(module_checksum, name_checksum, beta_checksum)->by_default(this->beta)->as_number(); // Thermistor beta rating. See http://reprap.org/bin/view/Main/MeasuringThermistorBeta
+        this->beta = THEKERNEL.config->value(module_checksum, name_checksum, beta_checksum)->by_default(this->beta)->as_number(); // Thermistor beta rating. See http://reprap.org/bin/view/Main/MeasuringThermistorBeta
     }
-    this->r0 = THEKERNEL->config->value(module_checksum, name_checksum, r0_checksum  )->by_default(this->r0  )->as_number(); // Stated resistance eg. 100K
-    this->t0 = THEKERNEL->config->value(module_checksum, name_checksum, t0_checksum  )->by_default(this->t0  )->as_number(); // Temperature at stated resistance, eg. 25C
-    this->r1 = THEKERNEL->config->value(module_checksum, name_checksum, r1_checksum  )->by_default(this->r1  )->as_number();
-    this->r2 = THEKERNEL->config->value(module_checksum, name_checksum, r2_checksum  )->by_default(this->r2  )->as_number();
+    this->r0 = THEKERNEL.config->value(module_checksum, name_checksum, r0_checksum  )->by_default(this->r0  )->as_number(); // Stated resistance eg. 100K
+    this->t0 = THEKERNEL.config->value(module_checksum, name_checksum, t0_checksum  )->by_default(this->t0  )->as_number(); // Temperature at stated resistance, eg. 25C
+    this->r1 = THEKERNEL.config->value(module_checksum, name_checksum, r1_checksum  )->by_default(this->r1  )->as_number();
+    this->r2 = THEKERNEL.config->value(module_checksum, name_checksum, r2_checksum  )->by_default(this->r2  )->as_number();
 
     // Thermistor pin for ADC readings
-    this->thermistor_pin.from_string(THEKERNEL->config->value(module_checksum, name_checksum, thermistor_pin_checksum )->required()->as_string());
-    THEKERNEL->adc->enable_pin(&thermistor_pin);
+    this->thermistor_pin.from_string(THEKERNEL.config->value(module_checksum, name_checksum, thermistor_pin_checksum )->required()->as_string());
+    THEKERNEL.adc->enable_pin(&thermistor_pin);
 
     // specify the three Steinhart-Hart coefficients
     // specified as three comma separated floats, no spaces
-    string coef= THEKERNEL->config->value(module_checksum, name_checksum, coefficients_checksum)->by_default("")->as_string();
+    string coef= THEKERNEL.config->value(module_checksum, name_checksum, coefficients_checksum)->by_default("")->as_string();
 
     // speficy three temp,resistance pairs, best to use 25° 150° 240° and the coefficients will be calculated
     // specified as 25.0,100000.0,150.0,1355.0,240.0,203.0 which is temp in °C,resistance in ohms
-    string rtc= THEKERNEL->config->value(module_checksum, name_checksum, rt_curve_checksum)->by_default("")->as_string();
+    string rtc= THEKERNEL.config->value(module_checksum, name_checksum, rt_curve_checksum)->by_default("")->as_string();
     if(!rtc.empty()) {
         // use the http://en.wikipedia.org/wiki/Steinhart-Hart_equation instead of beta, as it is more accurate over the entire temp range
         // we use three temps/resistor values taken from the thermistor R-C curve found in most datasheets
@@ -252,7 +252,7 @@ void Thermistor::get_raw()
     }
 
     int adc_value= new_thermistor_reading();
-    const uint32_t max_adc_value= THEKERNEL->adc->get_max_value();
+    const uint32_t max_adc_value= THEKERNEL.adc->get_max_value();
 
      // resistance of the thermistor in ohms
     float r = r2 / (((float)max_adc_value / adc_value) - 1.0F);
@@ -283,7 +283,7 @@ void Thermistor::get_raw()
 
 float Thermistor::adc_value_to_temperature(uint32_t adc_value)
 {
-    const uint32_t max_adc_value= THEKERNEL->adc->get_max_value();
+    const uint32_t max_adc_value= THEKERNEL.adc->get_max_value();
     if ((adc_value >= max_adc_value) || (adc_value == 0))
         return infinityf();
 
@@ -308,7 +308,7 @@ float Thermistor::adc_value_to_temperature(uint32_t adc_value)
 int Thermistor::new_thermistor_reading()
 {
     // filtering now done in ADC
-    return THEKERNEL->adc->read(&thermistor_pin);
+    return THEKERNEL.adc->read(&thermistor_pin);
 }
 
 bool Thermistor::set_optional(const sensor_options_t& options) {

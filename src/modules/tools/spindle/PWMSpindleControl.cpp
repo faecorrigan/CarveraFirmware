@@ -65,21 +65,21 @@ void PWMSpindleControl::on_module_loaded()
     
     factor = 100;
 
-    pulses_per_rev = THEKERNEL->config->value(spindle_checksum, spindle_pulses_per_rev_checksum)->by_default(1.0f)->as_number();
-    target_rpm = THEKERNEL->config->value(spindle_checksum, spindle_default_rpm_checksum)->by_default(10000.0f)->as_number();
-    control_P_term = THEKERNEL->config->value(spindle_checksum, spindle_control_P_checksum)->by_default(0.0001f)->as_number();
-    control_I_term = THEKERNEL->config->value(spindle_checksum, spindle_control_I_checksum)->by_default(0.0001f)->as_number();
-    control_D_term = THEKERNEL->config->value(spindle_checksum, spindle_control_D_checksum)->by_default(0.0001f)->as_number();
+    pulses_per_rev = THEKERNEL.config->value(spindle_checksum, spindle_pulses_per_rev_checksum)->by_default(1.0f)->as_number();
+    target_rpm = THEKERNEL.config->value(spindle_checksum, spindle_default_rpm_checksum)->by_default(10000.0f)->as_number();
+    control_P_term = THEKERNEL.config->value(spindle_checksum, spindle_control_P_checksum)->by_default(0.0001f)->as_number();
+    control_I_term = THEKERNEL.config->value(spindle_checksum, spindle_control_I_checksum)->by_default(0.0001f)->as_number();
+    control_D_term = THEKERNEL.config->value(spindle_checksum, spindle_control_D_checksum)->by_default(0.0001f)->as_number();
 
-    delay_s        = THEKERNEL->config->value(spindle_checksum, spindle_delay_s_checksum)->by_default(3)->as_number();
-    stall_s        = THEKERNEL->config->value(spindle_checksum, spindle_stall_s_checksum)->by_default(100)->as_number();
-    stall_count_rpm = THEKERNEL->config->value(spindle_checksum, spindle_stall_count_rpm_checksum)->by_default(8000)->as_number();
-    stall_alarm_rpm = THEKERNEL->config->value(spindle_checksum, spindle_stall_alarm_rpm_checksum)->by_default(5000)->as_number();
-    acc_ratio      = THEKERNEL->config->value(spindle_checksum, spindle_acc_ratio_checksum)->by_default(1.0f)->as_number();
-    alarm_pin.from_string(THEKERNEL->config->value(spindle_checksum, spindle_alarm_pin_checksum)->by_default("nc")->as_string())->as_input();
+    delay_s        = THEKERNEL.config->value(spindle_checksum, spindle_delay_s_checksum)->by_default(3)->as_number();
+    stall_s        = THEKERNEL.config->value(spindle_checksum, spindle_stall_s_checksum)->by_default(100)->as_number();
+    stall_count_rpm = THEKERNEL.config->value(spindle_checksum, spindle_stall_count_rpm_checksum)->by_default(8000)->as_number();
+    stall_alarm_rpm = THEKERNEL.config->value(spindle_checksum, spindle_stall_alarm_rpm_checksum)->by_default(5000)->as_number();
+    acc_ratio      = THEKERNEL.config->value(spindle_checksum, spindle_acc_ratio_checksum)->by_default(1.0f)->as_number();
+    alarm_pin.from_string(THEKERNEL.config->value(spindle_checksum, spindle_alarm_pin_checksum)->by_default("nc")->as_string())->as_input();
 
     // Smoothing value is low pass filter time constant in seconds.
-    float smoothing_time = THEKERNEL->config->value(spindle_checksum, spindle_control_smoothing_checksum)->by_default(0.1f)->as_number();
+    float smoothing_time = THEKERNEL.config->value(spindle_checksum, spindle_control_smoothing_checksum)->by_default(0.1f)->as_number();
     if (smoothing_time * UPDATE_FREQ < 1.0f)
         smoothing_decay = 1.0f;
     else
@@ -88,7 +88,7 @@ void PWMSpindleControl::on_module_loaded()
     // Get the pin for hardware pwm
     {
         Pin *smoothie_pin = new Pin();
-        smoothie_pin->from_string(THEKERNEL->config->value(spindle_checksum, spindle_pwm_pin_checksum)->by_default("nc")->as_string());
+        smoothie_pin->from_string(THEKERNEL.config->value(spindle_checksum, spindle_pwm_pin_checksum)->by_default("nc")->as_string());
         pwm_pin = smoothie_pin->as_output()->hardware_pwm();
         output_inverted = smoothie_pin->is_inverting();
         delete smoothie_pin;
@@ -101,16 +101,16 @@ void PWMSpindleControl::on_module_loaded()
         return;
     }
 
-    max_pwm = THEKERNEL->config->value(spindle_checksum, spindle_max_pwm_checksum)->by_default(1.0f)->as_number();
+    max_pwm = THEKERNEL.config->value(spindle_checksum, spindle_max_pwm_checksum)->by_default(1.0f)->as_number();
     
-    int period = THEKERNEL->config->value(spindle_checksum, spindle_pwm_period_checksum)->by_default(1000)->as_int();
+    int period = THEKERNEL.config->value(spindle_checksum, spindle_pwm_period_checksum)->by_default(1000)->as_int();
     pwm_pin->period_us(period);
     pwm_pin->write(output_inverted ? 1 : 0);
 
     // Get the pin for interrupt
     {
         Pin *smoothie_pin = new Pin();
-        smoothie_pin->from_string(THEKERNEL->config->value(spindle_checksum, spindle_feedback_pin_checksum)->by_default("nc")->as_string());
+        smoothie_pin->from_string(THEKERNEL.config->value(spindle_checksum, spindle_feedback_pin_checksum)->by_default("nc")->as_string());
         smoothie_pin->as_input();
         if (smoothie_pin->port_number == 0 || smoothie_pin->port_number == 2) {
             PinName pinname = port_pin((PortName)smoothie_pin->port_number, smoothie_pin->pin);
@@ -125,7 +125,7 @@ void PWMSpindleControl::on_module_loaded()
         delete smoothie_pin;
     }
     
-    THEKERNEL->slow_ticker->attach(UPDATE_FREQ, this, &PWMSpindleControl::on_update_speed);
+    THEKERNEL.slow_ticker->attach(UPDATE_FREQ, this, &PWMSpindleControl::on_update_speed);
 }
 
 void PWMSpindleControl::on_pin_rise()
@@ -215,7 +215,7 @@ void PWMSpindleControl::turn_on() {
         if(n > sizeof(buf)) n= sizeof(buf);
         string g(buf, n);
         Gcode gcode(g, &(StreamOutput::NullStream));
-        THEKERNEL->call_event(ON_GCODE_RECEIVED, &gcode);
+        THEKERNEL.call_event(ON_GCODE_RECEIVED, &gcode);
     }
 }
 
@@ -227,7 +227,7 @@ void PWMSpindleControl::turn_off() {
         if(n > sizeof(buf)) n= sizeof(buf);
         string g(buf, n);
         Gcode gcode(g, &(StreamOutput::NullStream));
-        THEKERNEL->call_event(ON_GCODE_RECEIVED, &gcode);
+        THEKERNEL.call_event(ON_GCODE_RECEIVED, &gcode);
     }
 }
 
@@ -326,20 +326,20 @@ bool PWMSpindleControl::get_stall(void)
 
 void PWMSpindleControl::on_idle(void *argument)
 {
-	if(THEKERNEL->is_halted()) return;
+	if(THEKERNEL.is_halted()) return;
 	// check spindle alarm
     if (this->get_alarm()) {
 		printk("ALARM: Spindle alarm triggered -  power off/on required\n");
-		THEKERNEL->call_event(ON_HALT, nullptr);
-		THEKERNEL->set_halt_reason(SPINDLE_ALARM);
+		THEKERNEL.call_event(ON_HALT, nullptr);
+		THEKERNEL.set_halt_reason(SPINDLE_ALARM);
 		return;
     }
     // check spindle stall
     /*
     if (this->get_stall()) {
 		printk("ALARM: Spindle stall triggered -  reset required\n");
-		THEKERNEL->call_event(ON_HALT, nullptr);
-		THEKERNEL->set_halt_reason(SPINDLE_STALL);
+		THEKERNEL.call_event(ON_HALT, nullptr);
+		THEKERNEL.set_halt_reason(SPINDLE_STALL);
     }*/
 
 }

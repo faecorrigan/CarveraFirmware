@@ -42,13 +42,13 @@ WirelessProbe::WirelessProbe() {
 void WirelessProbe::on_module_loaded() {
 
 	this->serial = new mbed::Serial( USBTX, USBRX );
-    this->serial->baud(THEKERNEL->config->value(uart_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
+    this->serial->baud(THEKERNEL.config->value(uart_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
 
     // We want to be called every time a new char is received
     this->serial->attach(this, &WirelessProbe::on_serial_char_received, mbed::Serial::RxIrq);
 
-    this->min_voltage = THEKERNEL->config->value(wp_checksum, min_voltage_checksum)->by_default(3.6F)->as_number();
-    this->max_voltage = THEKERNEL->config->value(wp_checksum, max_voltage_checksum)->by_default(4.1F)->as_number();
+    this->min_voltage = THEKERNEL.config->value(wp_checksum, min_voltage_checksum)->by_default(3.6F)->as_number();
+    this->max_voltage = THEKERNEL.config->value(wp_checksum, max_voltage_checksum)->by_default(4.1F)->as_number();
 
     // We only call the command dispatcher in the main loop, nowhere else
     this->register_for_event(ON_MAIN_LOOP);
@@ -88,7 +88,7 @@ void WirelessProbe::on_main_loop(void * argument) {
                 		   struct pad_switch pad;
                            bool ok = PublicData::get_value(switch_checksum, probecharger_checksum, 0, &pad);
                            if (!ok || !pad.state) {
-                        	   if (!THEKERNEL->is_uploading())
+                        	   if (!THEKERNEL.is_uploading())
                         		   printk("WP voltage: [%1.2fV], start charging\n", this->wp_voltage);
                     		   bool b = true;
                     		   PublicData::set_value( switch_checksum, probecharger_checksum, state_checksum, &b );
@@ -97,7 +97,7 @@ void WirelessProbe::on_main_loop(void * argument) {
                 		   struct pad_switch pad;
                            bool ok = PublicData::get_value(switch_checksum, probecharger_checksum, 0, &pad);
                            if (!ok || pad.state) {
-                        	   if (!THEKERNEL->is_uploading())
+                        	   if (!THEKERNEL.is_uploading())
                         		   printk("WP voltage: [%1.2fV], end charging\n", this->wp_voltage);
                     		   bool b = false;
                     		   PublicData::set_value( switch_checksum, probecharger_checksum, state_checksum, &b );

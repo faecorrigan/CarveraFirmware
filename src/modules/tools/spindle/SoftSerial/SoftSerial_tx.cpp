@@ -11,7 +11,7 @@
 int SoftSerial::_putc(int c)
 {
     while(!writeable()){
-        THEKERNEL->call_event(ON_IDLE, this);
+        THEKERNEL.call_event(ON_IDLE, this);
     };
     prepare_tx(c);
     tx_bit = 0;

@@ -116,7 +116,7 @@ Endstops::Endstops()
 void Endstops::on_module_loaded()
 {
     // Do not do anything if not enabled or if no pins are defined
-    if (THEKERNEL->config->value( endstops_module_enable_checksum )->by_default(true)->as_bool()) {
+    if (THEKERNEL.config->value( endstops_module_enable_checksum )->by_default(true)->as_bool()) {
         if(!load_old_config()) {
             delete this;
             return;
@@ -135,12 +135,12 @@ void Endstops::on_module_loaded()
     register_for_event(ON_SET_PUBLIC_DATA);
 
 
-    THEKERNEL->slow_ticker->attach(1000, this, &Endstops::read_endstops);
+    THEKERNEL.slow_ticker->attach(1000, this, &Endstops::read_endstops);
 
     // load g28 data from eeprom
-//    this->g28_position[0] = THEKERNEL->eeprom_data->G28[0];
-//    this->g28_position[1] = THEKERNEL->eeprom_data->G28[1];
-//    this->g28_position[2] = THEKERNEL->eeprom_data->G28[2];
+//    this->g28_position[0] = THEKERNEL.eeprom_data->G28[0];
+//    this->g28_position[1] = THEKERNEL.eeprom_data->G28[1];
+//    this->g28_position[2] = THEKERNEL.eeprom_data->G28[2];
 }
 
 // Get config using old deprecated syntax Does not support ABC
@@ -164,37 +164,37 @@ bool Endstops::load_old_config()
         hinfo.pin_info = nullptr;
 
         // rates in mm/sec
-        hinfo.fast_rate = THEKERNEL->config->value(checksums[i][FAST_RATE])->by_default(100)->as_number();
-        hinfo.slow_rate = THEKERNEL->config->value(checksums[i][SLOW_RATE])->by_default(10)->as_number();
+        hinfo.fast_rate = THEKERNEL.config->value(checksums[i][FAST_RATE])->by_default(100)->as_number();
+        hinfo.slow_rate = THEKERNEL.config->value(checksums[i][SLOW_RATE])->by_default(10)->as_number();
 
         // retract in mm
-        hinfo.retract = THEKERNEL->config->value(checksums[i][RETRACT])->by_default(5)->as_number();
+        hinfo.retract = THEKERNEL.config->value(checksums[i][RETRACT])->by_default(5)->as_number();
 
         // get homing direction and convert to boolean where true is home to min, and false is home to max
-        hinfo.home_direction = THEKERNEL->config->value(checksums[i][DIRECTION])->by_default("home_to_min")->as_string() != "home_to_max";
+        hinfo.home_direction = THEKERNEL.config->value(checksums[i][DIRECTION])->by_default("home_to_min")->as_string() != "home_to_max";
 
         // homing cartesian position
-        hinfo.homing_position = hinfo.home_direction ? THEKERNEL->config->value(checksums[i][MIN])->by_default(0)->as_number() : THEKERNEL->config->value(checksums[i][MAX])->by_default(200)->as_number();
+        hinfo.homing_position = hinfo.home_direction ? THEKERNEL.config->value(checksums[i][MIN])->by_default(0)->as_number() : THEKERNEL.config->value(checksums[i][MAX])->by_default(200)->as_number();
 
         // used to set maximum movement on homing, set by alpha_max_travel if defined
-        hinfo.max_travel = THEKERNEL->config->value(checksums[i][MAX_TRAVEL])->by_default(500)->as_number();
+        hinfo.max_travel = THEKERNEL.config->value(checksums[i][MAX_TRAVEL])->by_default(500)->as_number();
 
         // motor alarm info
-        if (THEKERNEL->config->value(checksums[i][ALARM_PIN])->by_default("nc" )->as_string() != "nc") {
+        if (THEKERNEL.config->value(checksums[i][ALARM_PIN])->by_default("nc" )->as_string() != "nc") {
         	motor_alarm_info_t *info = new motor_alarm_info_t;
-        	info->pin.from_string(THEKERNEL->config->value(checksums[i][ALARM_PIN])->as_string())->as_input();
+        	info->pin.from_string(THEKERNEL.config->value(checksums[i][ALARM_PIN])->as_string())->as_input();
             info->debounce = 0;
             info->axis = 'X' + i;
             info->axis_index = i;
             motor_alarms.push_back(info);
         }
 
-        hinfo.motor_alarm_pin.from_string(THEKERNEL->config->value(checksums[i][ALARM_PIN])->by_default("nc" )->as_string())->as_input();
+        hinfo.motor_alarm_pin.from_string(THEKERNEL.config->value(checksums[i][ALARM_PIN])->by_default("nc" )->as_string())->as_input();
 
         // pin definitions for endstop pins
         for (int j = MIN_PIN; j <= MAX_PIN; ++j) {
             endstop_info_t *info = new endstop_info_t;
-            info->pin.from_string(THEKERNEL->config->value(checksums[i][j])->by_default("nc" )->as_string())->as_input();
+            info->pin.from_string(THEKERNEL.config->value(checksums[i][j])->by_default("nc" )->as_string())->as_input();
             if (!info->pin.connected()){
                 // no pin defined try next
                 delete info;
@@ -213,7 +213,7 @@ bool Endstops::load_old_config()
             info->axis_index = i;
 
             // limits enabled
-            info->limit_enable = THEKERNEL->config->value(checksums[i][LIMIT])->by_default(false)->as_bool();
+            info->limit_enable = THEKERNEL.config->value(checksums[i][LIMIT])->by_default(false)->as_bool();
             limit_enabled |= info->limit_enable;
         }
 
@@ -266,19 +266,19 @@ bool Endstops::load_config()
 
     // iterate over all endstop.*.*
     std::vector<uint16_t> modules;
-    THEKERNEL->config->get_module_list(&modules, endstop_checksum);
+    THEKERNEL.config->get_module_list(&modules, endstop_checksum);
     for(auto cs : modules ) {
-        if(!THEKERNEL->config->value(endstop_checksum, cs, enable_checksum )->as_bool()) continue;
+        if(!THEKERNEL.config->value(endstop_checksum, cs, enable_checksum )->as_bool()) continue;
 
         endstop_info_t *pin_info= new endstop_info_t;
-        pin_info->pin.from_string(THEKERNEL->config->value(endstop_checksum, cs, pin_checksum)->by_default("nc" )->as_string())->as_input();
+        pin_info->pin.from_string(THEKERNEL.config->value(endstop_checksum, cs, pin_checksum)->by_default("nc" )->as_string())->as_input();
         if(!pin_info->pin.connected()){
             // no pin defined try next
             delete pin_info;
             continue;
         }
 
-        string axis= THEKERNEL->config->value(endstop_checksum, cs, axis_checksum)->by_default("")->as_string();
+        string axis= THEKERNEL.config->value(endstop_checksum, cs, axis_checksum)->by_default("")->as_string();
         if(axis.empty()){
             // axis is required
             delete pin_info;
@@ -315,14 +315,14 @@ bool Endstops::load_config()
         pin_info->axis_index= i;
 
         // are limits enabled
-        pin_info->limit_enable= THEKERNEL->config->value(endstop_checksum, cs, limit_checksum)->by_default(false)->as_bool();
+        pin_info->limit_enable= THEKERNEL.config->value(endstop_checksum, cs, limit_checksum)->by_default(false)->as_bool();
         limit_enabled |= pin_info->limit_enable;
 
         // enter into endstop array
         endstops.push_back(pin_info);
 
         // if set to none it means not used for homing (maybe limit only) so do not add to the homing array
-        string direction= THEKERNEL->config->value(endstop_checksum, cs, direction_checksum)->by_default("none")->as_string();
+        string direction= THEKERNEL.config->value(endstop_checksum, cs, direction_checksum)->by_default("none")->as_string();
         if(direction == "none") {
             continue;
         }
@@ -338,20 +338,20 @@ bool Endstops::load_config()
         hinfo.pin_info= pin_info;
 
         // rates in mm/sec
-        hinfo.fast_rate= THEKERNEL->config->value(endstop_checksum, cs, fast_rate_checksum)->by_default(100)->as_number();
-        hinfo.slow_rate= THEKERNEL->config->value(endstop_checksum, cs, slow_rate_checksum)->by_default(10)->as_number();
+        hinfo.fast_rate= THEKERNEL.config->value(endstop_checksum, cs, fast_rate_checksum)->by_default(100)->as_number();
+        hinfo.slow_rate= THEKERNEL.config->value(endstop_checksum, cs, slow_rate_checksum)->by_default(10)->as_number();
 
         // retract in mm
-        hinfo.retract= THEKERNEL->config->value(endstop_checksum, cs, retract_checksum)->by_default(5)->as_number();
+        hinfo.retract= THEKERNEL.config->value(endstop_checksum, cs, retract_checksum)->by_default(5)->as_number();
 
         // homing direction and convert to boolean where true is home to min, and false is home to max
         hinfo.home_direction=  direction == "home_to_min";
 
         // homing cartesian position
-        hinfo.homing_position= THEKERNEL->config->value(endstop_checksum, cs, position_checksum)->by_default(hinfo.home_direction ? 0 : 200)->as_number();
+        hinfo.homing_position= THEKERNEL.config->value(endstop_checksum, cs, position_checksum)->by_default(hinfo.home_direction ? 0 : 200)->as_number();
 
         // used to set maximum movement on homing, set by max_travel if defined
-        hinfo.max_travel= THEKERNEL->config->value(endstop_checksum, cs, max_travel_checksum)->by_default(500)->as_number();
+        hinfo.max_travel= THEKERNEL.config->value(endstop_checksum, cs, max_travel_checksum)->by_default(500)->as_number();
 
         // stick into array in correct place
         temp_axis_array[hinfo.axis_index]= hinfo;
@@ -403,24 +403,24 @@ bool Endstops::load_config()
 void Endstops::get_global_configs()
 {
     // NOTE the debounce count is in milliseconds so probably does not need to beset anymore
-    this->debounce_ms= THEKERNEL->config->value(endstop_debounce_ms_checksum)->by_default(10)->as_number();
-    this->debounce_count= THEKERNEL->config->value(endstop_debounce_count_checksum)->by_default(100)->as_number();
+    this->debounce_ms= THEKERNEL.config->value(endstop_debounce_ms_checksum)->by_default(10)->as_number();
+    this->debounce_count= THEKERNEL.config->value(endstop_debounce_count_checksum)->by_default(100)->as_number();
 
-    this->is_corexy= THEKERNEL->config->value(corexy_homing_checksum)->by_default(false)->as_bool();
-    this->is_delta=  THEKERNEL->config->value(delta_homing_checksum)->by_default(false)->as_bool();
-    this->is_rdelta= THEKERNEL->config->value(rdelta_homing_checksum)->by_default(false)->as_bool();
-    this->is_scara=  THEKERNEL->config->value(scara_homing_checksum)->by_default(false)->as_bool();
+    this->is_corexy= THEKERNEL.config->value(corexy_homing_checksum)->by_default(false)->as_bool();
+    this->is_delta=  THEKERNEL.config->value(delta_homing_checksum)->by_default(false)->as_bool();
+    this->is_rdelta= THEKERNEL.config->value(rdelta_homing_checksum)->by_default(false)->as_bool();
+    this->is_scara=  THEKERNEL.config->value(scara_homing_checksum)->by_default(false)->as_bool();
 
-    this->home_z_first= THEKERNEL->config->value(home_z_first_checksum)->by_default(true)->as_bool();
+    this->home_z_first= THEKERNEL.config->value(home_z_first_checksum)->by_default(true)->as_bool();
 
-    this->trim_mm[0] = THEKERNEL->config->value(alpha_trim_checksum)->by_default(0)->as_number();
-    this->trim_mm[1] = THEKERNEL->config->value(beta_trim_checksum)->by_default(0)->as_number();
-    this->trim_mm[2] = THEKERNEL->config->value(gamma_trim_checksum)->by_default(0)->as_number();
+    this->trim_mm[0] = THEKERNEL.config->value(alpha_trim_checksum)->by_default(0)->as_number();
+    this->trim_mm[1] = THEKERNEL.config->value(beta_trim_checksum)->by_default(0)->as_number();
+    this->trim_mm[2] = THEKERNEL.config->value(gamma_trim_checksum)->by_default(0)->as_number();
 
-	this->cover_endstop_pin.from_string( THEKERNEL->config->value(cover_endstop_checksum)->by_default("1.9^" )->as_string())->as_input();
+	this->cover_endstop_pin.from_string( THEKERNEL.config->value(cover_endstop_checksum)->by_default("1.9^" )->as_string())->as_input();
 
     // see if an order has been specified, must be three or more characters, XYZABC or ABYXZ etc
-    string order = THEKERNEL->config->value(homing_order_checksum)->by_default("")->as_string();
+    string order = THEKERNEL.config->value(homing_order_checksum)->by_default("")->as_string();
     this->homing_order = 0;
     if(order.size() >= 3 && order.size() <= homing_axis.size() && !(this->is_delta || this->is_rdelta)) {
         int shift = 0;
@@ -438,9 +438,9 @@ void Endstops::get_global_configs()
     }
 
     // set to true by default for deltas due to trim, false on cartesians
-    this->move_to_origin_after_home = THEKERNEL->config->value(move_to_origin_checksum)->by_default(is_delta)->as_bool();
+    this->move_to_origin_after_home = THEKERNEL.config->value(move_to_origin_checksum)->by_default(is_delta)->as_bool();
     if(!this->move_to_origin_after_home) {
-        this->park_after_home = THEKERNEL->config->value(park_after_home_checksum)->by_default(false)->as_bool();
+        this->park_after_home = THEKERNEL.config->value(park_after_home_checksum)->by_default(false)->as_bool();
     }else{
         this->park_after_home= false;
     }
@@ -485,14 +485,14 @@ void Endstops::on_idle(void *argument)
         return;
     }
 
-    if(THEKERNEL->is_halted()) return;
+    if(THEKERNEL.is_halted()) return;
 
     for(auto& i : endstops) {
         if(i->limit_enable && STEPPER[i->axis_index]->is_moving()) {
             // check min and max endstops
             if(debounced_get(&i->pin)) {
                 // endstop triggered
-                if(!THEKERNEL->is_grbl_mode()) {
+                if(!THEKERNEL.is_grbl_mode()) {
                     printk("Limit switch %c%c was hit - reset or M999 required\n", STEPPER[i->axis_index]->which_direction() ? '-' : '+', i->axis);
                 }else{
                     printk("ALARM: Hard limit %c%c\n", STEPPER[i->axis_index]->which_direction() ? '-' : '+', i->axis);
@@ -500,8 +500,8 @@ void Endstops::on_idle(void *argument)
                 this->status = LIMIT_TRIGGERED;
                 i->debounce = 0;
                 // disables heaters and motors, ignores incoming Gcode and flushes block queue
-                THEKERNEL->call_event(ON_HALT, nullptr);
-                THEKERNEL->set_halt_reason(HARD_LIMIT);
+                THEKERNEL.call_event(ON_HALT, nullptr);
+                THEKERNEL.set_halt_reason(HARD_LIMIT);
                 return;
             }
         }
@@ -511,15 +511,15 @@ void Endstops::on_idle(void *argument)
 		// check min and max endstops
 		if(debounced_get(&i->pin)) {
 			// endstop triggered
-			if(!THEKERNEL->is_grbl_mode()) {
+			if(!THEKERNEL.is_grbl_mode()) {
 				printk("%c motor alarm triggered - reset required\n", i->axis);
 			}else{
 				printk("ALARM: %c motor alarm triggered -  reset required\n", i->axis);
 			}
 			i->debounce= 0;
 			// disables heaters and motors, ignores incoming Gcode and flushes block queue
-			THEKERNEL->call_event(ON_HALT, nullptr);
-			THEKERNEL->set_halt_reason(MOTOR_ERROR_X + i->axis_index);
+			THEKERNEL.call_event(ON_HALT, nullptr);
+			THEKERNEL.set_halt_reason(MOTOR_ERROR_X + i->axis_index);
 			return;
 		}
 	}
@@ -604,7 +604,7 @@ void Endstops::move_to_origin(axis_bitmap_t axis)
     struct SerialMessage message;
     message.message = buf;
     message.stream = &(StreamOutput::NullStream);
-    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message ); // as it is a multi G code command
+    THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message ); // as it is a multi G code command
     // Wait for above to finish
     THECONVEYOR->wait_for_idle();
     THEROBOT->pop_state();
@@ -735,8 +735,8 @@ void Endstops::home(axis_bitmap_t a)
         for (size_t i = X_AXIS; i <= Z_AXIS; ++i) {
             if((axis_to_home[i] || this->is_delta || this->is_rdelta) && !homing_axis[i].pin_info->triggered) {
                 this->status = NOT_HOMING;
-                THEKERNEL->call_event(ON_HALT, nullptr);
-                THEKERNEL->set_halt_reason(HOME_FAIL);
+                THEKERNEL.call_event(ON_HALT, nullptr);
+                THEKERNEL.set_halt_reason(HOME_FAIL);
                 THEROBOT->disable_segmentation= false;
                 return;
             }
@@ -748,8 +748,8 @@ void Endstops::home(axis_bitmap_t a)
         for (size_t i = A_AXIS; i < homing_axis.size(); ++i) {
             if(axis_to_home[i] && !homing_axis[i].pin_info->triggered) {
                 this->status = NOT_HOMING;
-                THEKERNEL->call_event(ON_HALT, nullptr);
-                THEKERNEL->set_halt_reason(HOME_FAIL);
+                THEKERNEL.call_event(ON_HALT, nullptr);
+                THEKERNEL.set_halt_reason(HOME_FAIL);
                 THEROBOT->disable_segmentation = false;
                 return;
             }
@@ -881,7 +881,7 @@ void Endstops::process_home_command(Gcode* gcode)
                 home(bs);
             }
             // check if on_halt (eg kill)
-            if(THEKERNEL->is_halted()) break;
+            if(THEKERNEL.is_halted()) break;
         }
 
     } else if(is_corexy) {
@@ -893,7 +893,7 @@ void Endstops::process_home_command(Gcode* gcode)
                 home(bs);
             }
             // check if on_halt (eg kill)
-            if(THEKERNEL->is_halted()) break;
+            if(THEKERNEL.is_halted()) break;
         }
 
     } else {
@@ -905,8 +905,8 @@ void Endstops::process_home_command(Gcode* gcode)
     THEROBOT->compensationTransform= savect;
 
     // check if on_halt (eg kill or fail)
-    if(THEKERNEL->is_halted()) {
-        if(!THEKERNEL->is_grbl_mode()) {
+    if(THEKERNEL.is_halted()) {
+        if(!THEKERNEL.is_grbl_mode()) {
             printk("ERROR: Homing cycle failed - check the max_travel settings\n");
         }else{
             printk("ALARM: Homing fail\n");
@@ -1047,7 +1047,7 @@ void Endstops::handle_park_g28()
 //    struct SerialMessage message;
 //    message.message = "M496";
 //    message.stream = &(StreamOutput::NullStream);
-//    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+//    THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     // Wait for above to finish
     // THECONVEYOR->wait_for_idle();
     // THEROBOT->pop_state();
@@ -1060,7 +1060,7 @@ void Endstops::on_gcode_received(void *argument)
     if ( gcode->has_g && gcode->g == 28) {
         switch(gcode->subcode) {
             case 0: // G28 in grbl mode will do a rapid to the predefined position otherwise it is home command
-                if(THEKERNEL->is_grbl_mode()){
+                if(THEKERNEL.is_grbl_mode()){
                     handle_park_g28();
                 }else{
                     process_home_command(gcode);
@@ -1076,15 +1076,15 @@ void Endstops::on_gcode_received(void *argument)
                 if (gcode->has_letter('Y')) g28_position[Y_AXIS] = gcode->get_value('Y');
 
                 // save g28 data to eeprom
-//                THEKERNEL->eeprom_data->G28[0] = g28_position[X_AXIS];
-//                THEKERNEL->eeprom_data->G28[1] = g28_position[Y_AXIS];
-//                THEKERNEL->eeprom_data->G28[2] = g28_position[Z_AXIS];
-//                THEKERNEL->write_eeprom_data();
+//                THEKERNEL.eeprom_data->G28[0] = g28_position[X_AXIS];
+//                THEKERNEL.eeprom_data->G28[1] = g28_position[Y_AXIS];
+//                THEKERNEL.eeprom_data->G28[2] = g28_position[Z_AXIS];
+//                THEKERNEL.write_eeprom_data();
 
                 break;
 
             case 2: // G28.2 in grbl mode does homing (triggered by $H), otherwise it moves to the park position
-                if(THEKERNEL->is_grbl_mode()) {
+                if(THEKERNEL.is_grbl_mode()) {
                     process_home_command(gcode);
                 }else{
                     handle_park_g28();
@@ -1141,7 +1141,7 @@ void Endstops::on_gcode_received(void *argument)
                 break;
 
             default:
-                if(THEKERNEL->is_grbl_mode()) {
+                if(THEKERNEL.is_grbl_mode()) {
                     gcode->stream->printf("error:Unsupported command\n");
                 }
                 break;

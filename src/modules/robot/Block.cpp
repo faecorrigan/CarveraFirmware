@@ -24,7 +24,7 @@
 using std::string;
 using std::min;
 
-#define STEP_TICKER_FREQUENCY THEKERNEL->step_ticker->get_frequency()
+#define STEP_TICKER_FREQUENCY THEKERNEL.step_ticker->get_frequency()
 
 uint8_t Block::n_actuators= 0;
 double Block::fp_scale= 0;

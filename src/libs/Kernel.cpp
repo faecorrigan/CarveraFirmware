@@ -61,12 +61,11 @@
 #define feed_hold_enable_checksum                   CHECKSUM("enable_feed_hold")
 #define ok_per_line_checksum                        CHECKSUM("ok_per_line")
 
-Kernel* Kernel::instance;
-
 #define	EEP_MAX_PAGE_SIZE	32
 #define EEPROM_DATA_STARTPAGE	1
+
 // The kernel is the central point in Smoothie : it stores modules, and handles event calls
-Kernel::Kernel()
+void Kernel::init()
 {
     halted = false;
     feed_hold = false;
@@ -81,8 +80,6 @@ Kernel::Kernel()
     suspending = false;
     halt_reason = MANUAL;
     atc_state = 0;
-
-    instance = this; // setup the Singleton instance of the kernel
 
     // serial first at fixed baud rate (DEFAULT_SERIAL_BAUD_RATE) so config can report errors to serial
     // Set to UART0, this will be changed to use the same UART as MRI if it's enabled

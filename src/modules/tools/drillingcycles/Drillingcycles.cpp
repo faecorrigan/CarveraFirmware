@@ -41,7 +41,7 @@ Drillingcycles::Drillingcycles() {}
 void Drillingcycles::on_module_loaded()
 {
     // if the module is disabled -> do nothing
-    if(! THEKERNEL->config->value(drillingcycles_checksum, enable_checksum)->by_default(false)->as_bool()) {
+    if(! THEKERNEL.config->value(drillingcycles_checksum, enable_checksum)->by_default(false)->as_bool()) {
         // as this module is not needed free up the resource
         delete this;
         return;
@@ -66,7 +66,7 @@ void Drillingcycles::on_module_loaded()
 void Drillingcycles::on_config_reload(void *argument)
 {
     // take the dwell units configured by user, or select S (seconds) by default
-    string dwell_units = THEKERNEL->config->value(drillingcycles_checksum, dwell_units_checksum)->by_default("S")->as_string();
+    string dwell_units = THEKERNEL.config->value(drillingcycles_checksum, dwell_units_checksum)->by_default("S")->as_string();
     this->dwell_units  = (dwell_units == "P") ? DWELL_UNITS_P : DWELL_UNITS_S;
 }
 
@@ -122,7 +122,7 @@ int Drillingcycles::send_gcode(const char* format, ...)
     //printk(">>> %s\r\n", line);
     // make gcode object and send it (right way)
     Gcode gc(line, &(StreamOutput::NullStream));
-    THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc);
+    THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc);
     // return the gcode srting length
     return n;
 }
@@ -182,7 +182,7 @@ void Drillingcycles::make_hole(Gcode *gcode)
             this->send_gcode("G4 S%f", this->sticky_p);
         }else{
             // dwell exprimed in milliseconds
-            if(THEKERNEL->is_grbl_mode()) {
+            if(THEKERNEL.is_grbl_mode()) {
                 // in grbl mode (and linuxcnc) P is decimal seconds
                 this->send_gcode("G4 P%f", this->sticky_p * 1000.0);
             }else{
@@ -211,7 +211,7 @@ void Drillingcycles::on_gcode_received(void* argument)
     // cycle start
     if (code == 98 || code == 99) {
         // wait for any moves left and current position is update
-        THEKERNEL->conveyor->wait_for_idle();
+        THEKERNEL.conveyor->wait_for_idle();
         // get actual position from robot
         float pos[3];
         THEROBOT->get_axis_position(pos);

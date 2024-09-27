@@ -109,20 +109,20 @@ DeltaGridStrategy::~DeltaGridStrategy()
 
 bool DeltaGridStrategy::handleConfig()
 {
-    grid_size = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, grid_size_checksum)->by_default(7)->as_number();
-    tolerance = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, tolerance_checksum)->by_default(0.03F)->as_number();
-    save = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, save_checksum)->by_default(false)->as_bool();
-    do_home = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, do_home_checksum)->by_default(true)->as_bool();
-    is_square = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, is_square_checksum)->by_default(false)->as_bool();
-    grid_radius = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, grid_radius_checksum)->by_default(50.0F)->as_number();
+    grid_size = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, grid_size_checksum)->by_default(7)->as_number();
+    tolerance = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, tolerance_checksum)->by_default(0.03F)->as_number();
+    save = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, save_checksum)->by_default(false)->as_bool();
+    do_home = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, do_home_checksum)->by_default(true)->as_bool();
+    is_square = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, is_square_checksum)->by_default(false)->as_bool();
+    grid_radius = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, grid_radius_checksum)->by_default(50.0F)->as_number();
 
     // the initial height above the bed we stop the intial move down after home to find the bed
     // this should be a height that is enough that the probe will not hit the bed and is an offset from max_z (can be set to 0 if max_z takes into account the probe offset)
-    this->initial_height = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, initial_height_checksum)->by_default(10)->as_number();
+    this->initial_height = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, initial_height_checksum)->by_default(10)->as_number();
 
     // Probe offsets xxx,yyy,zzz
     {
-        std::string po = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, probe_offsets_checksum)->by_default("0,0,0")->as_string();
+        std::string po = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, probe_offsets_checksum)->by_default("0,0,0")->as_string();
         std::vector<float> v = parse_number_list(po.c_str());
         if(v.size() >= 3) {
             this->probe_offsets = std::make_tuple(v[0], v[1], v[2]);
@@ -298,7 +298,7 @@ bool DeltaGridStrategy::handleGcode(Gcode *gcode)
     if(gcode->has_g) {
         if (gcode->g == 29) { // do a probe to test flatness
             // first wait for an empty queue i.e. no moves left
-            THEKERNEL->conveyor->wait_for_idle();
+            THEKERNEL.conveyor->wait_for_idle();
 
             int n = gcode->has_letter('I') ? gcode->get_value('I') : 0;
             float radius = grid_radius;
@@ -322,7 +322,7 @@ bool DeltaGridStrategy::handleGcode(Gcode *gcode)
             }
 
             // first wait for an empty queue i.e. no moves left
-            THEKERNEL->conveyor->wait_for_idle();
+            THEKERNEL.conveyor->wait_for_idle();
 
             if(!doProbe(gcode)) {
                 gcode->stream->printf("Probe failed to complete, check the initial probe height and/or initial_height settings\n");

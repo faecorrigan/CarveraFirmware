@@ -43,7 +43,7 @@ void SpindleControl::on_gcode_received(void *argument)
         }
         else if (gcode->m == 3)
         {
-        	if (!THEKERNEL->get_laser_mode()) {
+        	if (!THEKERNEL.get_laser_mode()) {
                 // current tool number and tool offset
                 struct tool_status tool;
                 bool tool_ok = PublicData::get_value( atc_handler_checksum, get_tool_status_checksum, &tool );
@@ -52,15 +52,15 @@ void SpindleControl::on_gcode_received(void *argument)
                 }
             	// check if is tool -1 or tool 0
             	if (!tool_ok) {
-        			THEKERNEL->call_event(ON_HALT, nullptr);
-        			THEKERNEL->set_halt_reason(MANUAL);
+        			THEKERNEL.call_event(ON_HALT, nullptr);
+        			THEKERNEL.set_halt_reason(MANUAL);
         			printk("ERROR: No tool or probe tool!\n");
         			return;
             	}
 
                 THECONVEYOR->wait_for_idle();
                 // open vacuum if set
-            	if (THEKERNEL->get_vacuum_mode()) {
+            	if (THEKERNEL.get_vacuum_mode()) {
             		// open vacuum
             		bool b = true;
                     PublicData::set_value( switch_checksum, vacuum_checksum, state_checksum, &b );
@@ -79,11 +79,11 @@ void SpindleControl::on_gcode_received(void *argument)
         }
         else if (gcode->m == 5)
         {
-        	if (!THEKERNEL->get_laser_mode()) {
+        	if (!THEKERNEL.get_laser_mode()) {
                 THECONVEYOR->wait_for_idle();
 
                 // close vacuum if set
-            	if (THEKERNEL->get_vacuum_mode()) {
+            	if (THEKERNEL.get_vacuum_mode()) {
             		// close vacuum
             		bool b = false;
                     PublicData::set_value( switch_checksum, vacuum_checksum, state_checksum, &b );

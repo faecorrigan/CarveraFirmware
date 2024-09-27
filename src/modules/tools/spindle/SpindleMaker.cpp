@@ -26,7 +26,7 @@
 void SpindleMaker::load_spindle(){
 
     // If the spindle module is disabled load no Spindle 
-    if( !THEKERNEL->config->value( spindle_checksum, enable_checksum  )->by_default(true)->as_bool() ) {
+    if( !THEKERNEL.config->value( spindle_checksum, enable_checksum  )->by_default(true)->as_bool() ) {
         printk("NOTE: Spindle Module is disabled\n");
         return;    
     }
@@ -34,8 +34,8 @@ void SpindleMaker::load_spindle(){
     spindle = NULL;
 
     // get the two config options that make us able to determine which spindle module we need to load
-    std::string spindle_type = THEKERNEL->config->value( spindle_checksum, spindle_type_checksum )->by_default("pwm")->as_string();
-    std::string vfd_type = THEKERNEL->config->value( spindle_checksum, spindle_vfd_type_checksum )->by_default("none")->as_string(); 
+    std::string spindle_type = THEKERNEL.config->value( spindle_checksum, spindle_type_checksum )->by_default("pwm")->as_string();
+    std::string vfd_type = THEKERNEL.config->value( spindle_checksum, spindle_vfd_type_checksum )->by_default("none")->as_string(); 
 
     // check config which spindle type we need
     if( spindle_type.compare("pwm") == 0 ) {
@@ -61,11 +61,11 @@ void SpindleMaker::load_spindle(){
         spindle->register_for_event(ON_GET_PUBLIC_DATA);
         spindle->register_for_event(ON_SET_PUBLIC_DATA);
         spindle->register_for_event(ON_IDLE);
-        if (!THEKERNEL->config->value(spindle_checksum, spindle_ignore_on_halt_checksum)->by_default(false)->as_bool()) {
+        if (!THEKERNEL.config->value(spindle_checksum, spindle_ignore_on_halt_checksum)->by_default(false)->as_bool()) {
             spindle->register_for_event(ON_HALT);
         }
 
-        THEKERNEL->add_module( spindle );
+        THEKERNEL.add_module( spindle );
     }
 
 }

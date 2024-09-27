@@ -61,35 +61,35 @@ MainButton::MainButton()
 
 void MainButton::on_module_loaded()
 {
-    bool main_button_enable = THEKERNEL->config->value( main_button_enable_checksum )->by_default(true)->as_bool(); // @deprecated
+    bool main_button_enable = THEKERNEL.config->value( main_button_enable_checksum )->by_default(true)->as_bool(); // @deprecated
     if (!main_button_enable) {
         delete this;
         return;
     }
 
-    this->main_button.from_string( THEKERNEL->config->value( main_button_pin_checksum )->by_default("1.16^")->as_string())->as_input();
-    this->main_button_LED_R.from_string( THEKERNEL->config->value( main_button_LED_R_pin_checksum )->by_default("1.10")->as_string())->as_output();
-    this->main_button_LED_G.from_string( THEKERNEL->config->value( main_button_LED_G_pin_checksum )->by_default("1.15")->as_string())->as_output();
-    this->main_button_LED_B.from_string( THEKERNEL->config->value( main_button_LED_B_pin_checksum )->by_default("1.14")->as_string())->as_output();
-    this->poll_frequency = THEKERNEL->config->value( main_button_poll_frequency_checksum )->by_default(20)->as_number();
-    this->long_press_time_ms = THEKERNEL->config->value( main_long_press_time_ms_checksum )->by_default(3000)->as_number();
-    this->long_press_enable = THEKERNEL->config->value( main_button_long_press_checksum )->by_default(false)->as_string();
+    this->main_button.from_string( THEKERNEL.config->value( main_button_pin_checksum )->by_default("1.16^")->as_string())->as_input();
+    this->main_button_LED_R.from_string( THEKERNEL.config->value( main_button_LED_R_pin_checksum )->by_default("1.10")->as_string())->as_output();
+    this->main_button_LED_G.from_string( THEKERNEL.config->value( main_button_LED_G_pin_checksum )->by_default("1.15")->as_string())->as_output();
+    this->main_button_LED_B.from_string( THEKERNEL.config->value( main_button_LED_B_pin_checksum )->by_default("1.14")->as_string())->as_output();
+    this->poll_frequency = THEKERNEL.config->value( main_button_poll_frequency_checksum )->by_default(20)->as_number();
+    this->long_press_time_ms = THEKERNEL.config->value( main_long_press_time_ms_checksum )->by_default(3000)->as_number();
+    this->long_press_enable = THEKERNEL.config->value( main_button_long_press_checksum )->by_default(false)->as_string();
 
-    this->e_stop.from_string( THEKERNEL->config->value( e_stop_pin_checksum )->by_default("0.26^")->as_string())->as_input();
-    this->PS12.from_string( THEKERNEL->config->value( ps12_pin_checksum )->by_default("0.22")->as_string())->as_output();
-    this->PS24.from_string( THEKERNEL->config->value( ps24_pin_checksum )->by_default("0.10")->as_string())->as_output();
-    this->power_fan_delay_s = THEKERNEL->config->value( power_fan_delay_s_checksum )->by_default(30)->as_int();
+    this->e_stop.from_string( THEKERNEL.config->value( e_stop_pin_checksum )->by_default("0.26^")->as_string())->as_input();
+    this->PS12.from_string( THEKERNEL.config->value( ps12_pin_checksum )->by_default("0.22")->as_string())->as_output();
+    this->PS24.from_string( THEKERNEL.config->value( ps24_pin_checksum )->by_default("0.10")->as_string())->as_output();
+    this->power_fan_delay_s = THEKERNEL.config->value( power_fan_delay_s_checksum )->by_default(30)->as_int();
 
-    this->auto_sleep = THEKERNEL->config->value(power_checksum, auto_sleep_checksum )->by_default(true)->as_bool();
-    this->auto_sleep_min = THEKERNEL->config->value(power_checksum, auto_sleep_min_checksum )->by_default(30)->as_number();
+    this->auto_sleep = THEKERNEL.config->value(power_checksum, auto_sleep_checksum )->by_default(true)->as_bool();
+    this->auto_sleep_min = THEKERNEL.config->value(power_checksum, auto_sleep_min_checksum )->by_default(30)->as_number();
 
 
-    this->enable_light = THEKERNEL->config->value(get_checksum("switch"), get_checksum("light"), get_checksum("startup_state"))->by_default(false)->as_bool();
-    this->turn_off_light_min = THEKERNEL->config->value(light_checksum, turn_off_min_checksum )->by_default(10)->as_number();
+    this->enable_light = THEKERNEL.config->value(get_checksum("switch"), get_checksum("light"), get_checksum("startup_state"))->by_default(false)->as_bool();
+    this->turn_off_light_min = THEKERNEL.config->value(light_checksum, turn_off_min_checksum )->by_default(10)->as_number();
 
-    this->stop_on_cover_open = THEKERNEL->config->value( stop_on_cover_open_checksum )->by_default(false)->as_bool(); // @deprecated
+    this->stop_on_cover_open = THEKERNEL.config->value( stop_on_cover_open_checksum )->by_default(false)->as_bool(); // @deprecated
 
-    this->sd_ok = THEKERNEL->config->value( sd_ok_checksum )->by_default(false)->as_bool(); // @deprecated
+    this->sd_ok = THEKERNEL.config->value( sd_ok_checksum )->by_default(false)->as_bool(); // @deprecated
 
     this->register_for_event(ON_IDLE);
     this->register_for_event(ON_SECOND_TICK);
@@ -104,7 +104,7 @@ void MainButton::on_module_loaded()
     this->main_button_LED_G.set(0);
     this->main_button_LED_B.set(0);
 
-    THEKERNEL->slow_ticker->attach( this->poll_frequency, this, &MainButton::button_tick );
+    THEKERNEL.slow_ticker->attach( this->poll_frequency, this, &MainButton::button_tick );
 
 	mbed::InterruptIn *e_stop_interrupt_in = this->e_stop.interrupt_pin();
 
@@ -125,9 +125,9 @@ void MainButton::switch_power_24(int state)
 void MainButton::on_second_tick(void *)
 {
     // check if sd card is ok
-	if (!this->sd_ok && !THEKERNEL->is_halted()) {
-        THEKERNEL->call_event(ON_HALT, nullptr);
-        THEKERNEL->set_halt_reason(SD_ERROR);
+	if (!this->sd_ok && !THEKERNEL.is_halted()) {
+        THEKERNEL.call_event(ON_HALT, nullptr);
+        THEKERNEL.set_halt_reason(SD_ERROR);
 	}
 
 	bool vacuum_on = false;
@@ -143,7 +143,7 @@ void MainButton::on_second_tick(void *)
     }
 
 	// check if 12v is being used
-	if (THEKERNEL->get_laser_mode() || vacuum_on || toolsensor_on) {
+	if (THEKERNEL.get_laser_mode() || vacuum_on || toolsensor_on) {
 		using_12v = true;
 	} else {
 		using_12v = false;
@@ -151,11 +151,11 @@ void MainButton::on_second_tick(void *)
 }
 
 void MainButton::e_stop_irq() {
-	uint8_t state = THEKERNEL->get_state();
+	uint8_t state = THEKERNEL.get_state();
 
 	if (state != ALARM) {
-		THEKERNEL->call_event(ON_HALT, nullptr);
-		THEKERNEL->set_halt_reason(E_STOP);
+		THEKERNEL.call_event(ON_HALT, nullptr);
+		THEKERNEL.set_halt_reason(E_STOP);
 	}
 }
 
@@ -165,9 +165,9 @@ void MainButton::on_idle(void *argument)
 	bool e_stop_pressed = this->e_stop.get();
     if (e_stop_pressed || button_state == BUTTON_LED_UPDATE || button_state == BUTTON_SHORT_PRESSED || button_state == BUTTON_LONG_PRESSED) {
     	// get current status
-    	uint8_t state = THEKERNEL->get_state();
+    	uint8_t state = THEKERNEL.get_state();
 
-		if (this->stop_on_cover_open && !THEKERNEL->is_halted()) {
+		if (this->stop_on_cover_open && !THEKERNEL.is_halted()) {
             void *return_value;
 			bool cover_endstop_state;
             bool ok = PublicData::get_value( player_checksum, is_playing_checksum, &return_value );
@@ -203,8 +203,8 @@ void MainButton::on_idle(void *argument)
 					this->switch_power_12(0);
 					this->switch_power_24(0);
         			// go to sleep
-    				THEKERNEL->set_sleeping(true);
-    				THEKERNEL->call_event(ON_HALT, nullptr);
+    				THEKERNEL.set_sleeping(true);
+    				THEKERNEL.call_event(ON_HALT, nullptr);
         		}
         	} else {
         		sleep_countdown_us = us_ticker_read();
@@ -232,12 +232,12 @@ void MainButton::on_idle(void *argument)
     			case RUN:
     			case HOME:
     				// Halt
-    		        THEKERNEL->call_event(ON_HALT, nullptr);
-    		        THEKERNEL->set_halt_reason(MANUAL);
+    		        THEKERNEL.call_event(ON_HALT, nullptr);
+    		        THEKERNEL.set_halt_reason(MANUAL);
     				break;
     			case HOLD:
     				// resume
-    				THEKERNEL->set_feed_hold(false);
+    				THEKERNEL.set_feed_hold(false);
     				break;
     			case ALARM:
     				// do nothing
@@ -259,35 +259,35 @@ void MainButton::on_idle(void *argument)
 						this->switch_power_12(0);
 						this->switch_power_24(0);
 	        			// go to sleep
-	    				THEKERNEL->set_sleeping(true);
-	    				THEKERNEL->call_event(ON_HALT, nullptr);
+	    				THEKERNEL.set_sleeping(true);
+	    				THEKERNEL.call_event(ON_HALT, nullptr);
 	    			}
 
 // turn off 12V/24V power supply
 //    				this->switch_power_12(0);
 //    				this->switch_power_24(0);
 //    				// sleep
-//    				THEKERNEL->set_sleeping(true);
-//    				THEKERNEL->call_event(ON_HALT, nullptr);
+//    				THEKERNEL.set_sleeping(true);
+//    				THEKERNEL.call_event(ON_HALT, nullptr);
     				break;
     			case RUN:
     			case HOME:
     				// halt
-    		        THEKERNEL->call_event(ON_HALT, nullptr);
-    		        THEKERNEL->set_halt_reason(MANUAL);
+    		        THEKERNEL.call_event(ON_HALT, nullptr);
+    		        THEKERNEL.set_halt_reason(MANUAL);
     				break;
     			case HOLD:
     				// resume
-    				THEKERNEL->set_feed_hold(false);
+    				THEKERNEL.set_feed_hold(false);
     				break;
     			case ALARM:
-    				halt_reason = THEKERNEL->get_halt_reason();
+    				halt_reason = THEKERNEL.get_halt_reason();
     				if (halt_reason > 20) {
     					// reset
         				system_reset(false);
     				} else {
     					// unlock
-    		            THEKERNEL->call_event(ON_HALT, (void *)1); // clears on_halt
+    		            THEKERNEL.call_event(ON_HALT, (void *)1); // clears on_halt
     		            printk("UnKill button pressed, Halt cleared\r\n");
     				}
     				break;
@@ -344,8 +344,8 @@ void MainButton::on_idle(void *argument)
     				break;
     		}
     		if (cover_open_stop) {
-		        THEKERNEL->call_event(ON_HALT, nullptr);
-		        THEKERNEL->set_halt_reason(COVER_OPEN);
+		        THEKERNEL.call_event(ON_HALT, nullptr);
+		        THEKERNEL.set_halt_reason(COVER_OPEN);
     		}
     	}
     	button_state = NONE;

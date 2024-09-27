@@ -71,9 +71,9 @@ void Conveyor::on_module_loaded()
     register_for_event(ON_HALT);
 
     // Attach to the end_of_move stepper event
-    //THEKERNEL->step_ticker->finished_fnc = std::bind( &Conveyor::all_moves_finished, this);
-    queue_size = THEKERNEL->config->value(planner_queue_size_checksum)->by_default(32)->as_number();
-    queue_delay_time_ms = THEKERNEL->config->value(queue_delay_time_ms_checksum)->by_default(100)->as_number();
+    //THEKERNEL.step_ticker->finished_fnc = std::bind( &Conveyor::all_moves_finished, this);
+    queue_size = THEKERNEL.config->value(planner_queue_size_checksum)->by_default(32)->as_number();
+    queue_delay_time_ms = THEKERNEL.config->value(queue_delay_time_ms_checksum)->by_default(100)->as_number();
 }
 
 // we allocate the queue here after config is completed so we do not run out of memory during config
@@ -134,13 +134,13 @@ void Conveyor::wait_for_idle(bool wait_for_motors)
     running = false; // stops on_idle calling check_queue
     while (!queue.is_empty()) {
         check_queue(true); // forces queue to be made available to stepticker
-        THEKERNEL->call_event(ON_IDLE, this);
+        THEKERNEL.call_event(ON_IDLE, this);
     }
 
     if(wait_for_motors) {
         // now we wait for all motors to stop moving
         while(!is_idle()) {
-            THEKERNEL->call_event(ON_IDLE, this);
+            THEKERNEL.call_event(ON_IDLE, this);
         }
     }
 
@@ -154,12 +154,12 @@ void Conveyor::wait_for_idle(bool wait_for_motors)
 void Conveyor::queue_head_block()
 {
     // upstream caller will block on this until there is room in the queue
-    while (queue.is_full() && !THEKERNEL->is_halted()) {
+    while (queue.is_full() && !THEKERNEL.is_halted()) {
         //check_queue();
-        THEKERNEL->call_event(ON_IDLE, this); // will call check_queue();
+        THEKERNEL.call_event(ON_IDLE, this); // will call check_queue();
     }
 
-    if(THEKERNEL->is_halted()) {
+    if(THEKERNEL.is_halted()) {
         // we do not want to stick more stuff on the queue if we are in halt state
         // clear and release the block on the head
         queue.head_ref()->clear();
@@ -169,7 +169,7 @@ void Conveyor::queue_head_block()
     queue.produce_head();
 
     // not sure if this is the correct place but we need to turn on the motors if they were not already on
-    THEKERNEL->call_event(ON_ENABLE, (void*)1); // turn all enable pins on
+    THEKERNEL.call_event(ON_ENABLE, (void*)1); // turn all enable pins on
 }
 
 void Conveyor::check_queue(bool force)
@@ -204,7 +204,7 @@ bool Conveyor::get_next_block(Block **block)
     // default the feerate to zero if there is no block available
     this->current_feedrate= 0;
 
-    if(THEKERNEL->is_halted() || queue.isr_tail_i == queue.head_i) return false; // we do not have anything to give
+    if(THEKERNEL.is_halted() || queue.isr_tail_i == queue.head_i) return false; // we do not have anything to give
 
     // wait for queue to fill up, optimizes planning
     if(!allow_fetch) return false;

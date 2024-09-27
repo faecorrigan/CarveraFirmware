@@ -134,8 +134,8 @@ float Gcode::set_variable_value() const{
             else
             {
                 this->stream->printf("variable %d not set \n", var_num);
-                THEKERNEL->call_event(ON_HALT, nullptr);
-                THEKERNEL->set_halt_reason(MANUAL);
+                THEKERNEL.call_event(ON_HALT, nullptr);
+                THEKERNEL.set_halt_reason(MANUAL);
                 return 0;
                 
             }
@@ -143,13 +143,13 @@ float Gcode::set_variable_value() const{
         }
 
         if (var_num >= 101 && var_num <= 120) {
-            THEKERNEL->local_vars[var_num -101] = value;
+            THEKERNEL.local_vars[var_num -101] = value;
             this->stream->printf("Variable %d set %.4f \n", var_num,value);
             return value;
         } else if(var_num >= 501 && var_num <= 520)
         {
-            THEKERNEL->eeprom_data->perm_vars[var_num - 501] = value;
-            THEKERNEL->write_eeprom_data();
+            THEKERNEL.eeprom_data->perm_vars[var_num - 501] = value;
+            THEKERNEL.write_eeprom_data();
             this->stream->printf("Variable %d set  %.4f \n", var_num , value);
             return value;
         }else //system variables
@@ -168,23 +168,23 @@ float Gcode::get_variable_value(const char* expr, char** endptr) const{
     if (*expr == '#') {
         int var_num = strtol(expr + 1, endptr, 10);         
         if (var_num >= 101 && var_num <= 120) {
-            if (THEKERNEL->local_vars[var_num -101] > -100000)
+            if (THEKERNEL.local_vars[var_num -101] > -100000)
             {
-                return THEKERNEL->local_vars[var_num -101];
+                return THEKERNEL.local_vars[var_num -101];
             }
             this->stream->printf("Variable %d not set \n", var_num);
-            THEKERNEL->call_event(ON_HALT, nullptr);
-            THEKERNEL->set_halt_reason(MANUAL);
+            THEKERNEL.call_event(ON_HALT, nullptr);
+            THEKERNEL.set_halt_reason(MANUAL);
             return 0;
         } else if(var_num >= 501 && var_num <= 520)
         {
-            if (THEKERNEL->eeprom_data->perm_vars[var_num - 501] > -100000)
+            if (THEKERNEL.eeprom_data->perm_vars[var_num - 501] > -100000)
             {
-                return THEKERNEL->eeprom_data->perm_vars[var_num - 501]; // return permanent variables
+                return THEKERNEL.eeprom_data->perm_vars[var_num - 501]; // return permanent variables
             }
             this->stream->printf("Variable %d not set \n", var_num);
-            THEKERNEL->call_event(ON_HALT, nullptr);
-            THEKERNEL->set_halt_reason(MANUAL);
+            THEKERNEL.call_event(ON_HALT, nullptr);
+            THEKERNEL.set_halt_reason(MANUAL);
             return 0;
         }else //system variables
         {
@@ -193,7 +193,7 @@ float Gcode::get_variable_value(const char* expr, char** endptr) const{
             wcs_t pos;
             switch (var_num){
                 case 2000: //stored tool length offset
-                    return THEKERNEL->eeprom_data->TLO;
+                    return THEKERNEL.eeprom_data->TLO;
                     break;
                 case 2500: //root WCS x position in relation to machine 0
                     return 0;
@@ -222,7 +222,7 @@ float Gcode::get_variable_value(const char* expr, char** endptr) const{
                 //add rest of WCS eventually
 
                 case 3026: //tool in spindle
-                    return THEKERNEL->eeprom_data->TOOL;
+                    return THEKERNEL.eeprom_data->TOOL;
                     break;
                 case 3027: //current spindle RPM
                     struct spindle_status ss;
@@ -234,7 +234,7 @@ float Gcode::get_variable_value(const char* expr, char** endptr) const{
                     return 0;
                     break;
                 case 3033: //Op Stop Enabled
-                    return THEKERNEL->get_optional_stop_mode();
+                    return THEKERNEL.get_optional_stop_mode();
                     break;
                 case 5021: //current machine X position
                     THEROBOT->get_current_machine_position(mpos);
@@ -292,8 +292,8 @@ float Gcode::get_variable_value(const char* expr, char** endptr) const{
 
                 default:
                     this->stream->printf("Variable %d not found \n", var_num);
-                    THEKERNEL->call_event(ON_HALT, nullptr);
-                    THEKERNEL->set_halt_reason(MANUAL);
+                    THEKERNEL.call_event(ON_HALT, nullptr);
+                    THEKERNEL.set_halt_reason(MANUAL);
                     return 0;
                     break;
             }

@@ -44,7 +44,7 @@ void Watchdog::on_idle(void*)
 // TODO handle when MRI is disabled
 extern "C" void WDT_IRQHandler(void)
 {
-    if(THEKERNEL->is_using_leds()) {
+    if(THEKERNEL.is_using_leds()) {
         // set led pattern to show we are in watchdog timeout
         leds[0]= 0;
         leds[1]= 1;

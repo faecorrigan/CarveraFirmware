@@ -34,7 +34,7 @@ void WebServer::on_module_loaded()
     }
 
     // Load the webserver port from the configuration
-    uint16_t webserver_port = THEKERNEL->config->value(webserver_checksum, webserver_port_checksum)->by_default(80)->as_int();
+    uint16_t webserver_port = THEKERNEL.config->value(webserver_checksum, webserver_port_checksum)->by_default(80)->as_int();
 
     tcpserver = new TcpServer(wifi_provider, webserver_port);
 

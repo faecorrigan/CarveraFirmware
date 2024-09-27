@@ -146,13 +146,13 @@ void Robot::on_module_loaded()
     this->load_config();
 
     // load tlo data from eeprom
-    float tlo[3] = {0, 0, THEKERNEL->eeprom_data->TLO};
+    float tlo[3] = {0, 0, THEKERNEL.eeprom_data->TLO};
     this->loadToolOffset(tlo);
 
     // load wcs data from eeprom
-	float x = THEKERNEL->eeprom_data->G54[0];
-	float y = THEKERNEL->eeprom_data->G54[1];
-	float z = THEKERNEL->eeprom_data->G54[2];
+	float x = THEKERNEL.eeprom_data->G54[0];
+	float y = THEKERNEL.eeprom_data->G54[1];
+	float z = THEKERNEL.eeprom_data->G54[2];
     wcs_offsets[0] = wcs_t(x, y, z);
 }
 
@@ -172,51 +172,51 @@ void Robot::load_config()
     // To make adding those solution easier, they have their own, separate object.
     // Here we read the config to find out which arm solution to use
     if (this->arm_solution) delete this->arm_solution;
-    int solution_checksum = get_checksum(THEKERNEL->config->value(arm_solution_checksum)->by_default("cartesian")->as_string());
+    int solution_checksum = get_checksum(THEKERNEL.config->value(arm_solution_checksum)->by_default("cartesian")->as_string());
     // Note checksums are not const expressions when in debug mode, so don't use switch
     if(solution_checksum == hbot_checksum || solution_checksum == corexy_checksum) {
-        this->arm_solution = new HBotSolution(THEKERNEL->config);
+        this->arm_solution = new HBotSolution(THEKERNEL.config);
 
     } else if(solution_checksum == corexz_checksum) {
-        this->arm_solution = new CoreXZSolution(THEKERNEL->config);
+        this->arm_solution = new CoreXZSolution(THEKERNEL.config);
 
     } else if(solution_checksum == rostock_checksum || solution_checksum == kossel_checksum || solution_checksum == delta_checksum || solution_checksum ==  linear_delta_checksum) {
-        this->arm_solution = new LinearDeltaSolution(THEKERNEL->config);
+        this->arm_solution = new LinearDeltaSolution(THEKERNEL.config);
 
     } else if(solution_checksum == rotatable_cartesian_checksum) {
-        this->arm_solution = new RotatableCartesianSolution(THEKERNEL->config);
+        this->arm_solution = new RotatableCartesianSolution(THEKERNEL.config);
 
     } else if(solution_checksum == rotary_delta_checksum) {
-        this->arm_solution = new RotaryDeltaSolution(THEKERNEL->config);
+        this->arm_solution = new RotaryDeltaSolution(THEKERNEL.config);
 
     } else if(solution_checksum == morgan_checksum) {
-        this->arm_solution = new MorganSCARASolution(THEKERNEL->config);
+        this->arm_solution = new MorganSCARASolution(THEKERNEL.config);
 
     } else if(solution_checksum == cartesian_checksum) {
-        this->arm_solution = new CartesianSolution(THEKERNEL->config);
+        this->arm_solution = new CartesianSolution(THEKERNEL.config);
 
     } else {
-        this->arm_solution = new CartesianSolution(THEKERNEL->config);
+        this->arm_solution = new CartesianSolution(THEKERNEL.config);
     }
 
-    this->feed_rate           = THEKERNEL->config->value(default_feed_rate_checksum   )->by_default(  100.0F)->as_number();
-    this->seek_rate           = THEKERNEL->config->value(default_seek_rate_checksum   )->by_default(  100.0F)->as_number();
-    this->mm_per_line_segment = THEKERNEL->config->value(mm_per_line_segment_checksum )->by_default(    5.0F)->as_number();
-    this->delta_segments_per_second = THEKERNEL->config->value(delta_segments_per_second_checksum )->by_default(0.0f   )->as_number();
-    this->mm_per_arc_segment  = THEKERNEL->config->value(mm_per_arc_segment_checksum  )->by_default(    0.0f)->as_number();
-    this->mm_max_arc_error    = THEKERNEL->config->value(mm_max_arc_error_checksum    )->by_default(   0.002f)->as_number();
-    this->arc_correction      = THEKERNEL->config->value(arc_correction_checksum      )->by_default(    5   )->as_number();
+    this->feed_rate           = THEKERNEL.config->value(default_feed_rate_checksum   )->by_default(  100.0F)->as_number();
+    this->seek_rate           = THEKERNEL.config->value(default_seek_rate_checksum   )->by_default(  100.0F)->as_number();
+    this->mm_per_line_segment = THEKERNEL.config->value(mm_per_line_segment_checksum )->by_default(    5.0F)->as_number();
+    this->delta_segments_per_second = THEKERNEL.config->value(delta_segments_per_second_checksum )->by_default(0.0f   )->as_number();
+    this->mm_per_arc_segment  = THEKERNEL.config->value(mm_per_arc_segment_checksum  )->by_default(    0.0f)->as_number();
+    this->mm_max_arc_error    = THEKERNEL.config->value(mm_max_arc_error_checksum    )->by_default(   0.002f)->as_number();
+    this->arc_correction      = THEKERNEL.config->value(arc_correction_checksum      )->by_default(    5   )->as_number();
 
     // in mm/sec but specified in config as mm/min
-    this->max_speeds[X_AXIS]  = THEKERNEL->config->value(x_axis_max_speed_checksum    )->by_default(4000.0F)->as_number() / 60.0F;
-    this->max_speeds[Y_AXIS]  = THEKERNEL->config->value(y_axis_max_speed_checksum    )->by_default(4000.0F)->as_number() / 60.0F;
-    this->max_speeds[Z_AXIS]  = THEKERNEL->config->value(z_axis_max_speed_checksum    )->by_default(3000.0F)->as_number() / 60.0F;
-    this->max_speed           = THEKERNEL->config->value(max_speed_checksum           )->by_default(  -60.0F)->as_number() / 60.0F;
+    this->max_speeds[X_AXIS]  = THEKERNEL.config->value(x_axis_max_speed_checksum    )->by_default(4000.0F)->as_number() / 60.0F;
+    this->max_speeds[Y_AXIS]  = THEKERNEL.config->value(y_axis_max_speed_checksum    )->by_default(4000.0F)->as_number() / 60.0F;
+    this->max_speeds[Z_AXIS]  = THEKERNEL.config->value(z_axis_max_speed_checksum    )->by_default(3000.0F)->as_number() / 60.0F;
+    this->max_speed           = THEKERNEL.config->value(max_speed_checksum           )->by_default(  -60.0F)->as_number() / 60.0F;
 
-    this->segment_z_moves     = THEKERNEL->config->value(segment_z_moves_checksum     )->by_default(true)->as_bool();
-    this->save_g92            = THEKERNEL->config->value(save_g92_checksum            )->by_default(false)->as_bool();
-    this->save_g54            = THEKERNEL->config->value(save_g54_checksum            )->by_default(THEKERNEL->is_grbl_mode())->as_bool();
-    string g92                = THEKERNEL->config->value(set_g92_checksum             )->by_default("")->as_string();
+    this->segment_z_moves     = THEKERNEL.config->value(segment_z_moves_checksum     )->by_default(true)->as_bool();
+    this->save_g92            = THEKERNEL.config->value(save_g92_checksum            )->by_default(false)->as_bool();
+    this->save_g54            = THEKERNEL.config->value(save_g54_checksum            )->by_default(THEKERNEL.is_grbl_mode())->as_bool();
+    string g92                = THEKERNEL.config->value(set_g92_checksum             )->by_default("")->as_string();
     if(!g92.empty()) {
         // optional setting for a fixed G92 offset
         std::vector<float> t= parse_number_list(g92.c_str());
@@ -226,8 +226,8 @@ void Robot::load_config()
     }
 
     // default s value for laser
-    this->s_value = THEKERNEL->config->value(laser_module_default_power_checksum)->by_default(0.8F)->as_number()
-    					* THEKERNEL->config->value(laser_module_maximum_s_value_checksum)->by_default(1.0f)->as_number();
+    this->s_value = THEKERNEL.config->value(laser_module_default_power_checksum)->by_default(0.8F)->as_number()
+    					* THEKERNEL.config->value(laser_module_maximum_s_value_checksum)->by_default(1.0f)->as_number();
 
     // 2024
     /*
@@ -235,9 +235,9 @@ void Robot::load_config()
 	this->s_count = 1;
 	*/
 
-	this->laser_module_offset_x = THEKERNEL->config->value(laser_module_offset_x_checksum)->by_default(-38.0f)->as_number() ;
-	this->laser_module_offset_y = THEKERNEL->config->value(laser_module_offset_y_checksum)->by_default(5.0f)->as_number() ;
-	this->laser_module_offset_z = THEKERNEL->config->value(laser_module_offset_z_checksum)->by_default(-40.0f)->as_number() ;
+	this->laser_module_offset_x = THEKERNEL.config->value(laser_module_offset_x_checksum)->by_default(-38.0f)->as_number() ;
+	this->laser_module_offset_y = THEKERNEL.config->value(laser_module_offset_y_checksum)->by_default(5.0f)->as_number() ;
+	this->laser_module_offset_z = THEKERNEL.config->value(laser_module_offset_z_checksum)->by_default(-40.0f)->as_number() ;
 
 
     // Make our Primary XYZ StepperMotors, and potentially A B C
@@ -257,13 +257,13 @@ void Robot::load_config()
     };
 
     // default acceleration setting, can be overriden with newer per axis settings
-    this->default_acceleration= THEKERNEL->config->value(acceleration_checksum)->by_default(100.0F )->as_number(); // Acceleration is in mm/s^2
+    this->default_acceleration= THEKERNEL.config->value(acceleration_checksum)->by_default(100.0F )->as_number(); // Acceleration is in mm/s^2
 
     // make each motor
     for (size_t a = 0; a < MAX_ROBOT_ACTUATORS; a++) {
         Pin pins[3]; //step, dir, enable
         for (size_t i = 0; i < 3; i++) {
-            pins[i].from_string(THEKERNEL->config->value(motor_checksums[a][i])->by_default("nc")->as_string())->as_output();
+            pins[i].from_string(THEKERNEL.config->value(motor_checksums[a][i])->by_default("nc")->as_string())->as_output();
         }
 
         if(!pins[0].connected() || !pins[1].connected()) { // step and dir must be defined, but enable is optional
@@ -284,16 +284,16 @@ void Robot::load_config()
             return;
         }
 
-        actuators[a]->change_steps_per_mm(THEKERNEL->config->value(motor_checksums[a][3])->by_default(a == 2 ? 2560.0F : 80.0F)->as_number());
-        actuators[a]->set_max_rate(THEKERNEL->config->value(motor_checksums[a][4])->by_default(30000.0F)->as_number()/60.0F); // it is in mm/min and converted to mm/sec
-        actuators[a]->set_acceleration(THEKERNEL->config->value(motor_checksums[a][5])->by_default(NAN)->as_number()); // mm/secs²
+        actuators[a]->change_steps_per_mm(THEKERNEL.config->value(motor_checksums[a][3])->by_default(a == 2 ? 2560.0F : 80.0F)->as_number());
+        actuators[a]->set_max_rate(THEKERNEL.config->value(motor_checksums[a][4])->by_default(30000.0F)->as_number()/60.0F); // it is in mm/min and converted to mm/sec
+        actuators[a]->set_acceleration(THEKERNEL.config->value(motor_checksums[a][5])->by_default(NAN)->as_number()); // mm/secs²
     }
 
     check_max_actuator_speeds(); // check the configs are sane
 
     // if we have not specified a z acceleration see if the legacy config was set
     if(isnan(actuators[Z_AXIS]->get_acceleration())) {
-        float acc= THEKERNEL->config->value(z_acceleration_checksum)->by_default(NAN)->as_number(); // disabled by default
+        float acc= THEKERNEL.config->value(z_acceleration_checksum)->by_default(NAN)->as_number(); // disabled by default
         if(!isnan(acc)) {
             actuators[Z_AXIS]->set_acceleration(acc);
         }
@@ -316,21 +316,21 @@ void Robot::load_config()
 
     //this->clearToolOffset();
 
-    soft_endstop_enabled= THEKERNEL->config->value(soft_endstop_checksum, enable_checksum)->by_default(true)->as_bool();
-    soft_endstop_halt = THEKERNEL->config->value(soft_endstop_checksum, halt_checksum)->by_default(true)->as_bool();
+    soft_endstop_enabled= THEKERNEL.config->value(soft_endstop_checksum, enable_checksum)->by_default(true)->as_bool();
+    soft_endstop_halt = THEKERNEL.config->value(soft_endstop_checksum, halt_checksum)->by_default(true)->as_bool();
 
     soft_endstop_max[X_AXIS]= -1;
     soft_endstop_max[Y_AXIS]= -1;
     soft_endstop_max[Z_AXIS]= -1;
-    soft_endstop_min[X_AXIS] = THEKERNEL->config->value(soft_endstop_checksum, xmin_checksum)->by_default(-371.0F)->as_number();
-    soft_endstop_min[Y_AXIS] = THEKERNEL->config->value(soft_endstop_checksum, ymin_checksum)->by_default(-250.0F)->as_number();
-    soft_endstop_min[Z_AXIS] = THEKERNEL->config->value(soft_endstop_checksum, zmin_checksum)->by_default(-135.0F)->as_number();
+    soft_endstop_min[X_AXIS] = THEKERNEL.config->value(soft_endstop_checksum, xmin_checksum)->by_default(-371.0F)->as_number();
+    soft_endstop_min[Y_AXIS] = THEKERNEL.config->value(soft_endstop_checksum, ymin_checksum)->by_default(-250.0F)->as_number();
+    soft_endstop_min[Z_AXIS] = THEKERNEL.config->value(soft_endstop_checksum, zmin_checksum)->by_default(-135.0F)->as_number();
 }
 
 uint8_t Robot::register_motor(StepperMotor *motor)
 {
     // register this motor with the step ticker
-    THEKERNEL->step_ticker->register_motor(motor);
+    THEKERNEL.step_ticker->register_motor(motor);
     if(n_motors >= k_max_actuators) {
         // this is a fatal error
         printk("FATAL: too many motors, increase k_max_actuators\n");
@@ -488,8 +488,8 @@ void Robot::check_max_actuator_speeds()
         if(actuators[i]->is_extruder()) continue; //extruders are not included in this check
 
         float step_freq = actuators[i]->get_max_rate() * actuators[i]->get_steps_per_mm();
-        if (step_freq > THEKERNEL->base_stepping_frequency) {
-            actuators[i]->set_max_rate(floorf(THEKERNEL->base_stepping_frequency / actuators[i]->get_steps_per_mm()));
+        if (step_freq > THEKERNEL.base_stepping_frequency) {
+            actuators[i]->set_max_rate(floorf(THEKERNEL.base_stepping_frequency / actuators[i]->get_steps_per_mm()));
             printk("WARNING: actuator %d rate exceeds base_stepping_frequency * ..._steps_per_mm: %f, setting to %f\n", i, step_freq, actuators[i]->get_max_rate());
         }
     }
@@ -512,7 +512,7 @@ void Robot::on_gcode_received(void *argument)
             case 4: { // G4 Dwell
                 uint32_t delay_ms = 0;
                 if (gcode->has_letter('P')) {
-                    if(THEKERNEL->is_grbl_mode()) {
+                    if(THEKERNEL.is_grbl_mode()) {
                         // in grbl mode (and linuxcnc) P is decimal seconds
                         float f= gcode->get_value('P');
                         delay_ms= f * 1000.0F;
@@ -527,12 +527,12 @@ void Robot::on_gcode_received(void *argument)
                 }
                 if (delay_ms > 0) {
                     // drain queue
-                    THEKERNEL->conveyor->wait_for_idle();
+                    THEKERNEL.conveyor->wait_for_idle();
                     // wait for specified time
                     uint32_t start = us_ticker_read(); // mbed call
                     while ((us_ticker_read() - start) < delay_ms * 1000) {
-                        THEKERNEL->call_event(ON_IDLE, this);
-                        if(THEKERNEL->is_halted()) return;
+                        THEKERNEL.call_event(ON_IDLE, this);
+                        if(THEKERNEL.is_halted()) return;
                     }
                 }
             }
@@ -587,10 +587,10 @@ void Robot::on_gcode_received(void *argument)
 
                 		// save wcs data to eeprom
                         if (n == 0) {
-                    	    THEKERNEL->eeprom_data->G54[0] = x;
-                    	    THEKERNEL->eeprom_data->G54[1] = y;
-                    	    THEKERNEL->eeprom_data->G54[2] = z;
-                    	    THEKERNEL->write_eeprom_data();
+                    	    THEKERNEL.eeprom_data->G54[0] = x;
+                    	    THEKERNEL.eeprom_data->G54[1] = y;
+                    	    THEKERNEL.eeprom_data->G54[2] = z;
+                    	    THEKERNEL.write_eeprom_data();
                         }
                     }
                 }
@@ -718,11 +718,11 @@ void Robot::on_gcode_received(void *argument)
     } else if( gcode->has_m) {
         switch( gcode->m ) {
             // case 0: // M0 feed hold, (M0.1 is release feed hold, except we are in feed hold)
-            //     if(THEKERNEL->is_grbl_mode()) THEKERNEL->set_feed_hold(gcode->subcode == 0);
+            //     if(THEKERNEL.is_grbl_mode()) THEKERNEL.set_feed_hold(gcode->subcode == 0);
             //     break;
 
             case 30: // M30 end of program in grbl mode (otherwise it is delete sdcard file)
-                if(!THEKERNEL->is_grbl_mode()) break;
+                if(!THEKERNEL.is_grbl_mode()) break;
                 // fall through
             case 2: // M2 end of program
                 current_wcs = 0;
@@ -730,7 +730,7 @@ void Robot::on_gcode_received(void *argument)
                 seconds_per_minute= 60;
                 break;
             case 17:
-                THEKERNEL->call_event(ON_ENABLE, (void*)1); // turn all enable pins on
+                THEKERNEL.call_event(ON_ENABLE, (void*)1); // turn all enable pins on
                 break;
 
             case 18: // this allows individual motors to be turned off, no parameters falls through to turn all off
@@ -751,14 +751,14 @@ void Robot::on_gcode_received(void *argument)
                         }
                     }
 
-                    THEKERNEL->conveyor->wait_for_idle();
-                    THEKERNEL->call_event(ON_ENABLE, (void *)bm);
+                    THEKERNEL.conveyor->wait_for_idle();
+                    THEKERNEL.call_event(ON_ENABLE, (void *)bm);
                     break;
                 }
                 // fall through
             case 84:
-                THEKERNEL->conveyor->wait_for_idle();
-                THEKERNEL->call_event(ON_ENABLE, nullptr); // turn all enable pins off
+                THEKERNEL.conveyor->wait_for_idle();
+                THEKERNEL.call_event(ON_ENABLE, nullptr); // turn all enable pins off
                 break;
 
             case 82: e_absolute_mode= true; break;
@@ -873,21 +873,21 @@ void Robot::on_gcode_received(void *argument)
                     // enforce minimum
                     if (jd < 0.0F)
                         jd = 0.0F;
-                    THEKERNEL->planner->junction_deviation = jd;
+                    THEKERNEL.planner->junction_deviation = jd;
                 }
                 if (gcode->has_letter('Z')) {
                     float jd = gcode->get_value('Z');
                     // enforce minimum, -1 disables it and uses regular junction deviation
                     if (jd <= -1.0F)
                         jd = NAN;
-                    THEKERNEL->planner->z_junction_deviation = jd;
+                    THEKERNEL.planner->z_junction_deviation = jd;
                 }
                 if (gcode->has_letter('S')) {
                     float mps = gcode->get_value('S');
                     // enforce minimum
                     if (mps < 0.0F)
                         mps = 0.0F;
-                    THEKERNEL->planner->minimum_planner_speed = mps;
+                    THEKERNEL.planner->minimum_planner_speed = mps;
                 }
                 break;
 
@@ -931,7 +931,7 @@ void Robot::on_gcode_received(void *argument)
                 break;
 
             case 400: // wait until all moves are done up to this point
-                THEKERNEL->conveyor->wait_for_idle();
+                THEKERNEL.conveyor->wait_for_idle();
                 break;
 
             case 500: // M500 saves some volatile settings to config override file
@@ -953,7 +953,7 @@ void Robot::on_gcode_received(void *argument)
                 }
                 gcode->stream->printf("\n");
 
-                gcode->stream->printf(";X- Junction Deviation, Z- Z junction deviation, S - Minimum Planner speed mm/sec:\nM205 X%1.5f Z%1.5f S%1.5f\n", THEKERNEL->planner->junction_deviation, isnan(THEKERNEL->planner->z_junction_deviation)?-1:THEKERNEL->planner->z_junction_deviation, THEKERNEL->planner->minimum_planner_speed);
+                gcode->stream->printf(";X- Junction Deviation, Z- Z junction deviation, S - Minimum Planner speed mm/sec:\nM205 X%1.5f Z%1.5f S%1.5f\n", THEKERNEL.planner->junction_deviation, isnan(THEKERNEL.planner->z_junction_deviation)?-1:THEKERNEL.planner->z_junction_deviation, THEKERNEL.planner->minimum_planner_speed);
 
                 gcode->stream->printf(";Max cartesian feedrates in mm/sec:\nM203 X%1.5f Y%1.5f Z%1.5f S%1.5f\n", this->max_speeds[X_AXIS], this->max_speeds[Y_AXIS], this->max_speeds[Z_AXIS], this->max_speed);
 
@@ -1370,20 +1370,20 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
     }
 
     // check soft endstops only for homed axis that are enabled
-    if(soft_endstop_enabled && !THEKERNEL->is_zprobing()) {
+    if(soft_endstop_enabled && !THEKERNEL.is_zprobing()) {
         for (int i = 0; i <= Z_AXIS; ++i) {
             if(!is_homed(i)) continue;
             if( (!isnan(soft_endstop_min[i]) && transformed_target[i] < soft_endstop_min[i]) || (!isnan(soft_endstop_max[i]) && transformed_target[i] > soft_endstop_max[i]) ) {
                 if(soft_endstop_halt) {
-                    if(THEKERNEL->is_grbl_mode()) {
+                    if(THEKERNEL.is_grbl_mode()) {
                         printk("error:");
                     }else{
                         printk("Error: ");
                     }
 
                     printk("Soft Endstop %c was exceeded - reset or $X or M999 required\n", i+'X');
-                    THEKERNEL->call_event(ON_HALT, nullptr);
-                    THEKERNEL->set_halt_reason(SOFT_LIMIT);
+                    THEKERNEL.call_event(ON_HALT, nullptr);
+                    THEKERNEL.set_halt_reason(SOFT_LIMIT);
                     return false;
 
                 //} else if(soft_endstop_truncate) {
@@ -1392,7 +1392,7 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
 
                 } else {
                     // ignore it
-                    if(THEKERNEL->is_grbl_mode()) {
+                    if(THEKERNEL.is_grbl_mode()) {
                         printk("error:");
                     }else{
                         printk("Error: ");
@@ -1583,18 +1583,18 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
 	}
 
     // if we are in feed hold wait here until it is released, this means that even segmented lines will pause
-    while(THEKERNEL->get_feed_hold()) {
-        THEKERNEL->call_event(ON_IDLE, this);
+    while(THEKERNEL.get_feed_hold()) {
+        THEKERNEL.call_event(ON_IDLE, this);
         // if we also got a HALT then break out of this
-        if(THEKERNEL->is_halted()) return false;
+        if(THEKERNEL.is_halted()) return false;
     }
 
     // Append the block to the planner
     // NOTE that distance here should be either the distance travelled by the XYZ axis, or the E mm travel if a solo E move
     // NOTE this call will bock until there is room in the block queue, on_idle will continue to be called
-    if(THEKERNEL->planner->append_block( actuator_pos, n_motors, rate_mm_s, distance, auxilliary_move ? nullptr : unit_vec, acceleration, s_value, is_g123, line)) {
+    if(THEKERNEL.planner->append_block( actuator_pos, n_motors, rate_mm_s, distance, auxilliary_move ? nullptr : unit_vec, acceleration, s_value, is_g123, line)) {
 // 2024
-//    if(THEKERNEL->planner->append_block( actuator_pos, n_motors, rate_mm_s, distance, auxilliary_move ? nullptr : unit_vec, acceleration, s_values, s_count, is_g123, line)) {
+//    if(THEKERNEL.planner->append_block( actuator_pos, n_motors, rate_mm_s, distance, auxilliary_move ? nullptr : unit_vec, acceleration, s_values, s_count, is_g123, line)) {
         // this is the new compensated machine position
         memcpy(this->compensated_machine_position, transformed_target, n_motors * sizeof(float));
         return true;
@@ -1607,7 +1607,7 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
 // Used to plan a single move used by things like endstops when homing, zprobe, extruder firmware retracts etc.
 bool Robot::delta_move(const float *delta, float rate_mm_s, uint8_t naxis)
 {
-    if(THEKERNEL->is_halted()) return false;
+    if(THEKERNEL.is_halted()) return false;
 
     // catch negative or zero feed rates
     if(rate_mm_s <= 0.0F) {
@@ -1704,7 +1704,7 @@ bool Robot::append_line(Gcode *gcode, const float target[], float rate_mm_s, flo
         // segment 0 is already done - it's the end point of the previous move so we start at segment 1
         // We always add another point after this loop so we stop at segments-1, ie i < segments
         for (int i = 1; i < segments; i++) {
-            if(THEKERNEL->is_halted()) return false; // don't queue any more segments
+            if(THEKERNEL.is_halted()) return false; // don't queue any more segments
             for (int j = 0; j < n_motors; j++)
                 segment_end[j] += segment_delta[j];
 
@@ -1839,7 +1839,7 @@ bool Robot::append_arc(Gcode * gcode, const float target[], const float offset[]
         arc_target[this->plane_axis_2] = this->machine_position[this->plane_axis_2];
 
         for (i = 1; i < segments; i++) { // Increment (segments-1)
-            if(THEKERNEL->is_halted()) return false; // don't queue any more segments
+            if(THEKERNEL.is_halted()) return false; // don't queue any more segments
 
             if (count < this->arc_correction ) {
                 // Apply vector rotation matrix
@@ -1917,7 +1917,7 @@ void Robot::clearToolOffset()
 {
     this->tool_offset= wcs_t(0,0,0);
 
-    THEKERNEL->eeprom_data->TLO = 0;
+    THEKERNEL.eeprom_data->TLO = 0;
 
 }
 
@@ -1930,14 +1930,14 @@ void Robot::loadToolOffset(const float offset[N_PRIMARY_AXIS]) {
 void Robot::saveToolOffset(const float offset[N_PRIMARY_AXIS], const float cur_tool_mz) {
 	this->loadToolOffset(offset);
     // save data to eeprom
-    THEKERNEL->eeprom_data->TLO = offset[2];
-    THEKERNEL->eeprom_data->TOOLMZ = cur_tool_mz;
-    THEKERNEL->write_eeprom_data();
+    THEKERNEL.eeprom_data->TLO = offset[2];
+    THEKERNEL.eeprom_data->TOOLMZ = cur_tool_mz;
+    THEKERNEL.write_eeprom_data();
 }
 
 void Robot::setLaserOffset()
 {
-	if (THEKERNEL->get_laser_mode()) {
+	if (THEKERNEL.get_laser_mode()) {
 		g92_offset = wcs_t(laser_module_offset_x, laser_module_offset_y, laser_module_offset_z);
 		printk("Laser offset set to: %1.3f, %1.3f, %1.3f\n", laser_module_offset_x, laser_module_offset_y, laser_module_offset_z);
 		// g92_offset = wcs_t(laser_module_offset_x, laser_module_offset_y, laser_module_offset_z + std::get<Z_AXIS>(tool_offset));
@@ -1951,7 +1951,7 @@ void Robot::clearLaserOffset() {
 
 float Robot::get_feed_rate() const
 {
-    return THEKERNEL->gcode_dispatch->get_modal_command() == 0 ? seek_rate : feed_rate;
+    return THEKERNEL.gcode_dispatch->get_modal_command() == 0 ? seek_rate : feed_rate;
 }
 
 bool Robot::is_homed(uint8_t i) const

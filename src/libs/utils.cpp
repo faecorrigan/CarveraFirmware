@@ -198,10 +198,10 @@ void system_reset( bool dfu )
 // Convert a path indication ( absolute or relative ) into a path ( absolute )
 std::string absolute_from_relative( std::string path )
 {
-    string cwd = THEKERNEL->current_path;
+    string cwd = THEKERNEL.current_path;
 
     if ( path.empty() ) {
-        return THEKERNEL->current_path;
+        return THEKERNEL.current_path;
     }
 
     if ( path[0] == '/' ) {
@@ -361,7 +361,7 @@ void safe_delay_us(uint32_t dus)
 {
     uint32_t start = us_ticker_read();
     while ((us_ticker_read() - start) < dus) {
-        THEKERNEL->call_event(ON_IDLE);
+        THEKERNEL.call_event(ON_IDLE);
     }
 }
 

@@ -96,20 +96,20 @@ ThreePointStrategy::~ThreePointStrategy()
 bool ThreePointStrategy::handleConfig()
 {
     // format is xxx,yyy for the probe points
-    std::string p1 = THEKERNEL->config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, probe_point_1_checksum)->by_default("")->as_string();
-    std::string p2 = THEKERNEL->config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, probe_point_2_checksum)->by_default("")->as_string();
-    std::string p3 = THEKERNEL->config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, probe_point_3_checksum)->by_default("")->as_string();
+    std::string p1 = THEKERNEL.config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, probe_point_1_checksum)->by_default("")->as_string();
+    std::string p2 = THEKERNEL.config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, probe_point_2_checksum)->by_default("")->as_string();
+    std::string p3 = THEKERNEL.config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, probe_point_3_checksum)->by_default("")->as_string();
     if(!p1.empty()) probe_points[0] = parseXY(p1.c_str());
     if(!p2.empty()) probe_points[1] = parseXY(p2.c_str());
     if(!p3.empty()) probe_points[2] = parseXY(p3.c_str());
 
     // Probe offsets xxx,yyy,zzz
-    std::string po = THEKERNEL->config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, probe_offsets_checksum)->by_default("0,0,0")->as_string();
+    std::string po = THEKERNEL.config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, probe_offsets_checksum)->by_default("0,0,0")->as_string();
     this->probe_offsets= parseXYZ(po.c_str());
 
-    this->home= THEKERNEL->config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, home_checksum)->by_default(true)->as_bool();
-    this->tolerance= THEKERNEL->config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, tolerance_checksum)->by_default(0.03F)->as_number();
-    this->save= THEKERNEL->config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, save_plane_checksum)->by_default(false)->as_bool();
+    this->home= THEKERNEL.config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, home_checksum)->by_default(true)->as_bool();
+    this->tolerance= THEKERNEL.config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, tolerance_checksum)->by_default(0.03F)->as_number();
+    this->save= THEKERNEL.config->value(leveling_strategy_checksum, three_point_leveling_strategy_checksum, save_plane_checksum)->by_default(false)->as_bool();
     return true;
 }
 
@@ -134,7 +134,7 @@ bool ThreePointStrategy::handleGcode(Gcode *gcode)
 
         } else if( gcode->g == 32 ) { // three point probe
             // first wait for an empty queue i.e. no moves left
-            THEKERNEL->conveyor->wait_for_idle();
+            THEKERNEL.conveyor->wait_for_idle();
 
              // clear any existing plane and compensation
             delete this->plane;
@@ -246,8 +246,8 @@ bool ThreePointStrategy::handleGcode(Gcode *gcode)
 
 void ThreePointStrategy::homeXY()
 {
-    Gcode gc(THEKERNEL->is_grbl_mode() ? "G28.2 X0 Y0": "G28 X0 Y0", &(StreamOutput::NullStream));
-    THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc);
+    Gcode gc(THEKERNEL.is_grbl_mode() ? "G28.2 X0 Y0": "G28 X0 Y0", &(StreamOutput::NullStream));
+    THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc);
 }
 
 bool ThreePointStrategy::doProbing(StreamOutput *stream)

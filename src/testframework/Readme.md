@@ -18,7 +18,7 @@ on_gcode_received() (or other events it is registered for), and monitor its
 actions my mocking the ON_PUBLIC_SET/GET calls it makes. A properly written
 module does not access other modules any other way.
 
-Many HAL calls are made via THEKERNEL->xxx (eg THEKERNEL->adc) and these can be intercepted by mocks to provide the module with its external data.
+Many HAL calls are made via THEKERNEL.xxx (eg THEKERNEL.adc) and these can be intercepted by mocks to provide the module with its external data.
 
 An example is provided here...
 

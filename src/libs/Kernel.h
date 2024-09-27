@@ -8,9 +8,8 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
-#define THEKERNEL Kernel::instance
-#define THECONVEYOR THEKERNEL->conveyor
-#define THEROBOT THEKERNEL->robot
+#define THECONVEYOR THEKERNEL.conveyor
+#define THEROBOT THEKERNEL.robot
 
 #include "Module.h"
 #include "I2C.h" // mbed.h lib
@@ -98,14 +97,15 @@ typedef struct {
 
 class Kernel {
     public:
-        Kernel();
+        Kernel() {};
 
         ~Kernel() {
             delete this->i2c;
             delete this->eeprom_data;
         }
 
-        static Kernel* instance; // the Singleton instance of Kernel usable anywhere
+        void init();
+
         const char* config_override_filename(){ return "/sd/config-override"; }
 
         void printk(const char* format, ...) __attribute__ ((format(printf, 2, 3)));
@@ -220,5 +220,7 @@ class Kernel {
         int iic_page_write(unsigned char u8PageNum, unsigned char u8len, unsigned char *pu8Array);
 
 };
+
+extern Kernel THEKERNEL;
 
 #endif

@@ -189,7 +189,7 @@ void ATCHandler::fill_cali_scripts(bool is_probe, bool clear_z) {
 	// set atc status
 	this->script_queue.push("M497.3");
 	// clamp tool if in laser mode
-	if (THEKERNEL->get_laser_mode()) {
+	if (THEKERNEL.get_laser_mode()) {
 		this->script_queue.push("M490.1");
 	}
 	// lift z to safe position with fast speed
@@ -421,52 +421,52 @@ void ATCHandler::on_module_loaded()
 
     this->on_config_reload(this);
 
-    THEKERNEL->slow_ticker->attach(1000, this, &ATCHandler::read_endstop);
-    THEKERNEL->slow_ticker->attach(1000, this, &ATCHandler::read_detector);
+    THEKERNEL.slow_ticker->attach(1000, this, &ATCHandler::read_endstop);
+    THEKERNEL.slow_ticker->attach(1000, this, &ATCHandler::read_detector);
 
     // load data from eeprom
-    this->active_tool = THEKERNEL->eeprom_data->TOOL;
-    this->ref_tool_mz = THEKERNEL->eeprom_data->REFMZ;
-    this->cur_tool_mz = THEKERNEL->eeprom_data->TOOLMZ;
-    this->tool_offset = THEKERNEL->eeprom_data->TLO;
+    this->active_tool = THEKERNEL.eeprom_data->TOOL;
+    this->ref_tool_mz = THEKERNEL.eeprom_data->REFMZ;
+    this->cur_tool_mz = THEKERNEL.eeprom_data->TOOLMZ;
+    this->tool_offset = THEKERNEL.eeprom_data->TLO;
 }
 
 void ATCHandler::on_config_reload(void *argument)
 {
 	char buff[10];
 
-	atc_home_info.pin.from_string( THEKERNEL->config->value(atc_checksum, endstop_pin_checksum)->by_default("1.0^" )->as_string())->as_input();
-	atc_home_info.debounce_ms    = THEKERNEL->config->value(atc_checksum, debounce_ms_checksum)->by_default(1  )->as_number();
-	atc_home_info.max_travel    = THEKERNEL->config->value(atc_checksum, max_travel_mm_checksum)->by_default(8  )->as_number();
-	atc_home_info.retract    = THEKERNEL->config->value(atc_checksum, homing_retract_mm_checksum)->by_default(3  )->as_number();
-	atc_home_info.action_dist    = THEKERNEL->config->value(atc_checksum, action_mm_checksum)->by_default(1  )->as_number();
-	atc_home_info.homing_rate    = THEKERNEL->config->value(atc_checksum, homing_rate_mm_s_checksum)->by_default(1  )->as_number();
-	atc_home_info.action_rate    = THEKERNEL->config->value(atc_checksum, action_rate_mm_s_checksum)->by_default(1  )->as_number();
+	atc_home_info.pin.from_string( THEKERNEL.config->value(atc_checksum, endstop_pin_checksum)->by_default("1.0^" )->as_string())->as_input();
+	atc_home_info.debounce_ms    = THEKERNEL.config->value(atc_checksum, debounce_ms_checksum)->by_default(1  )->as_number();
+	atc_home_info.max_travel    = THEKERNEL.config->value(atc_checksum, max_travel_mm_checksum)->by_default(8  )->as_number();
+	atc_home_info.retract    = THEKERNEL.config->value(atc_checksum, homing_retract_mm_checksum)->by_default(3  )->as_number();
+	atc_home_info.action_dist    = THEKERNEL.config->value(atc_checksum, action_mm_checksum)->by_default(1  )->as_number();
+	atc_home_info.homing_rate    = THEKERNEL.config->value(atc_checksum, homing_rate_mm_s_checksum)->by_default(1  )->as_number();
+	atc_home_info.action_rate    = THEKERNEL.config->value(atc_checksum, action_rate_mm_s_checksum)->by_default(1  )->as_number();
 
-	detector_info.detect_pin.from_string( THEKERNEL->config->value(atc_checksum, detector_checksum, detect_pin_checksum)->by_default("0.20^" )->as_string())->as_input();
-	detector_info.detect_rate = THEKERNEL->config->value(atc_checksum, detector_checksum, detect_rate_mm_s_checksum)->by_default(1  )->as_number();
-	detector_info.detect_travel = THEKERNEL->config->value(atc_checksum, detector_checksum, detect_travel_mm_checksum)->by_default(1  )->as_number();
+	detector_info.detect_pin.from_string( THEKERNEL.config->value(atc_checksum, detector_checksum, detect_pin_checksum)->by_default("0.20^" )->as_string())->as_input();
+	detector_info.detect_rate = THEKERNEL.config->value(atc_checksum, detector_checksum, detect_rate_mm_s_checksum)->by_default(1  )->as_number();
+	detector_info.detect_travel = THEKERNEL.config->value(atc_checksum, detector_checksum, detect_travel_mm_checksum)->by_default(1  )->as_number();
 
-	this->safe_z_mm = THEKERNEL->config->value(atc_checksum, safe_z_checksum)->by_default(-10)->as_number();
-	this->safe_z_empty_mm = THEKERNEL->config->value(atc_checksum, safe_z_empty_checksum)->by_default(-20)->as_number();
-	this->safe_z_offset_mm = THEKERNEL->config->value(atc_checksum, safe_z_offset_checksum)->by_default(10)->as_number();
-	this->fast_z_rate = THEKERNEL->config->value(atc_checksum, fast_z_rate_checksum)->by_default(500)->as_number();
-	this->slow_z_rate = THEKERNEL->config->value(atc_checksum, slow_z_rate_checksum)->by_default(60)->as_number();
-	this->margin_rate = THEKERNEL->config->value(atc_checksum, margin_rate_checksum)->by_default(1000)->as_number();
+	this->safe_z_mm = THEKERNEL.config->value(atc_checksum, safe_z_checksum)->by_default(-10)->as_number();
+	this->safe_z_empty_mm = THEKERNEL.config->value(atc_checksum, safe_z_empty_checksum)->by_default(-20)->as_number();
+	this->safe_z_offset_mm = THEKERNEL.config->value(atc_checksum, safe_z_offset_checksum)->by_default(10)->as_number();
+	this->fast_z_rate = THEKERNEL.config->value(atc_checksum, fast_z_rate_checksum)->by_default(500)->as_number();
+	this->slow_z_rate = THEKERNEL.config->value(atc_checksum, slow_z_rate_checksum)->by_default(60)->as_number();
+	this->margin_rate = THEKERNEL.config->value(atc_checksum, margin_rate_checksum)->by_default(1000)->as_number();
 
-	this->probe_fast_rate = THEKERNEL->config->value(atc_checksum, probe_checksum, fast_rate_mm_m_checksum)->by_default(300  )->as_number();
-	this->probe_slow_rate = THEKERNEL->config->value(atc_checksum, probe_checksum, slow_rate_mm_m_checksum)->by_default(60   )->as_number();
-	this->probe_retract_mm = THEKERNEL->config->value(atc_checksum, probe_checksum, retract_mm_checksum)->by_default(2   )->as_number();
-	this->probe_height_mm = THEKERNEL->config->value(atc_checksum, probe_checksum, probe_height_mm_checksum)->by_default(0   )->as_number();
+	this->probe_fast_rate = THEKERNEL.config->value(atc_checksum, probe_checksum, fast_rate_mm_m_checksum)->by_default(300  )->as_number();
+	this->probe_slow_rate = THEKERNEL.config->value(atc_checksum, probe_checksum, slow_rate_mm_m_checksum)->by_default(60   )->as_number();
+	this->probe_retract_mm = THEKERNEL.config->value(atc_checksum, probe_checksum, retract_mm_checksum)->by_default(2   )->as_number();
+	this->probe_height_mm = THEKERNEL.config->value(atc_checksum, probe_checksum, probe_height_mm_checksum)->by_default(0   )->as_number();
 
-	this->anchor1_x = THEKERNEL->config->value(coordinate_checksum, anchor1_x_checksum)->by_default(-359  )->as_number();
-	this->anchor1_y = THEKERNEL->config->value(coordinate_checksum, anchor1_y_checksum)->by_default(-234  )->as_number();
-	this->anchor2_offset_x = THEKERNEL->config->value(coordinate_checksum, anchor2_offset_x_checksum)->by_default(90  )->as_number();
-	this->anchor2_offset_y = THEKERNEL->config->value(coordinate_checksum, anchor2_offset_y_checksum)->by_default(45.65F  )->as_number();
+	this->anchor1_x = THEKERNEL.config->value(coordinate_checksum, anchor1_x_checksum)->by_default(-359  )->as_number();
+	this->anchor1_y = THEKERNEL.config->value(coordinate_checksum, anchor1_y_checksum)->by_default(-234  )->as_number();
+	this->anchor2_offset_x = THEKERNEL.config->value(coordinate_checksum, anchor2_offset_x_checksum)->by_default(90  )->as_number();
+	this->anchor2_offset_y = THEKERNEL.config->value(coordinate_checksum, anchor2_offset_y_checksum)->by_default(45.65F  )->as_number();
 
-	this->toolrack_z = THEKERNEL->config->value(coordinate_checksum, toolrack_z_checksum)->by_default(-105  )->as_number();
-	this->toolrack_offset_x = THEKERNEL->config->value(coordinate_checksum, toolrack_offset_x_checksum)->by_default(356  )->as_number();
-	this->toolrack_offset_y = THEKERNEL->config->value(coordinate_checksum, toolrack_offset_y_checksum)->by_default(0  )->as_number();
+	this->toolrack_z = THEKERNEL.config->value(coordinate_checksum, toolrack_z_checksum)->by_default(-105  )->as_number();
+	this->toolrack_offset_x = THEKERNEL.config->value(coordinate_checksum, toolrack_offset_x_checksum)->by_default(356  )->as_number();
+	this->toolrack_offset_y = THEKERNEL.config->value(coordinate_checksum, toolrack_offset_y_checksum)->by_default(0  )->as_number();
 
 	atc_tools.clear();
 	for (int i = 0; i <=  6; i ++) {
@@ -483,13 +483,13 @@ void ATCHandler::on_config_reload(void *argument)
 	probe_my_mm = this->anchor1_y + this->toolrack_offset_y + 180;
 	probe_mz_mm = this->toolrack_z - 40;
 
-	this->rotation_offset_x = THEKERNEL->config->value(coordinate_checksum, rotation_offset_x_checksum)->by_default(-8  )->as_number();
-	this->rotation_offset_y = THEKERNEL->config->value(coordinate_checksum, rotation_offset_y_checksum)->by_default(37.5F  )->as_number();
-	this->rotation_offset_z = THEKERNEL->config->value(coordinate_checksum, rotation_offset_z_checksum)->by_default(22.5F  )->as_number();
+	this->rotation_offset_x = THEKERNEL.config->value(coordinate_checksum, rotation_offset_x_checksum)->by_default(-8  )->as_number();
+	this->rotation_offset_y = THEKERNEL.config->value(coordinate_checksum, rotation_offset_y_checksum)->by_default(37.5F  )->as_number();
+	this->rotation_offset_z = THEKERNEL.config->value(coordinate_checksum, rotation_offset_z_checksum)->by_default(22.5F  )->as_number();
 
-	this->clearance_x = THEKERNEL->config->value(coordinate_checksum, clearance_x_checksum)->by_default(-75  )->as_number();
-	this->clearance_y = THEKERNEL->config->value(coordinate_checksum, clearance_y_checksum)->by_default(-3  )->as_number();
-	this->clearance_z = THEKERNEL->config->value(coordinate_checksum, clearance_z_checksum)->by_default(-3  )->as_number();
+	this->clearance_x = THEKERNEL.config->value(coordinate_checksum, clearance_x_checksum)->by_default(-75  )->as_number();
+	this->clearance_y = THEKERNEL.config->value(coordinate_checksum, clearance_y_checksum)->by_default(-3  )->as_number();
+	this->clearance_z = THEKERNEL.config->value(coordinate_checksum, clearance_z_checksum)->by_default(-3  )->as_number();
 }
 
 void ATCHandler::on_halt(void* argument)
@@ -498,7 +498,7 @@ void ATCHandler::on_halt(void* argument)
         this->atc_status = NONE;
         this->clear_script_queue();
         this->set_inner_playing(false);
-        THEKERNEL->set_atc_state(ATC_NONE);
+        THEKERNEL.set_atc_state(ATC_NONE);
         this->atc_home_info.clamp_status = UNHOMED;
 	}
 }
@@ -578,19 +578,19 @@ bool ATCHandler::laser_detect() {
 	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
 	THECONVEYOR->wait_for_idle();
-	if(THEKERNEL->is_halted()) return false;
+	if(THEKERNEL.is_halted()) return false;
 
 	delta[Y_AXIS]= 0 - detector_info.detect_travel;
 	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
 	THECONVEYOR->wait_for_idle();
-	if(THEKERNEL->is_halted()) return false;
+	if(THEKERNEL.is_halted()) return false;
 
 	delta[Y_AXIS]= detector_info.detect_travel / 2;
 	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
 	THECONVEYOR->wait_for_idle();
-	if(THEKERNEL->is_halted()) return false;
+	if(THEKERNEL.is_halted()) return false;
 
 
 	detecting = false;
@@ -642,13 +642,13 @@ void ATCHandler::home_clamp()
 	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
 	THECONVEYOR->wait_for_idle();
-	if(THEKERNEL->is_halted()) return;
+	if(THEKERNEL.is_halted()) return;
 
 	atc_homing = false;
 
     if (!atc_home_info.triggered) {
-        THEKERNEL->call_event(ON_HALT, nullptr);
-        THEKERNEL->set_halt_reason(ATC_HOME_FAIL);
+        THEKERNEL.call_event(ON_HALT, nullptr);
+        THEKERNEL.set_halt_reason(ATC_HOME_FAIL);
         printk("ERROR: Homing atc failed - check the atc max travel settings\n");
         return;
     } else {
@@ -661,7 +661,7 @@ void ATCHandler::home_clamp()
 	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
 	THECONVEYOR->wait_for_idle();
-	if(THEKERNEL->is_halted()) return;
+	if(THEKERNEL.is_halted()) return;
 
 	atc_home_info.clamp_status = CLAMPED;
 	printk("ATC homed!\r\n");
@@ -688,7 +688,7 @@ void ATCHandler::clamp_tool()
 	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
 	THECONVEYOR->wait_for_idle();
-	if(THEKERNEL->is_halted()) return;
+	if(THEKERNEL.is_halted()) return;
 
 	// change clamp status
 	atc_home_info.clamp_status = CLAMPED;
@@ -714,7 +714,7 @@ void ATCHandler::loose_tool()
 	THEROBOT->delta_move(delta, atc_home_info.action_rate, ATC_AXIS + 1);
 	// wait for it
 	THECONVEYOR->wait_for_idle();
-	if(THEKERNEL->is_halted()) return;
+	if(THEKERNEL.is_halted()) return;
 
 	// change clamp status
 	atc_home_info.clamp_status = LOOSED;
@@ -763,20 +763,20 @@ void ATCHandler::on_gcode_received(void *argument)
     	    	if (ss.state) {
     	    		// Stop
     	    		printk("Error: can not do ATC while spindle is running.\n");
-			        THEKERNEL->set_halt_reason(ATC_HOME_FAIL);
-			        THEKERNEL->call_event(ON_HALT, nullptr);
+			        THEKERNEL.set_halt_reason(ATC_HOME_FAIL);
+			        THEKERNEL.call_event(ON_HALT, nullptr);
 			        return;
     	    	}
     	    }
 
             int new_tool = gcode->get_value('T');
             if (new_tool > this->tool_number) {
-		        THEKERNEL->call_event(ON_HALT, nullptr);
-		        THEKERNEL->set_halt_reason(ATC_TOOL_INVALID);
+		        THEKERNEL.call_event(ON_HALT, nullptr);
+		        THEKERNEL.set_halt_reason(ATC_TOOL_INVALID);
             	gcode->stream->printf("ALARM: Invalid tool: T%d\r\n", new_tool);
             } else {
             	if (new_tool != active_tool) {
-            		if (new_tool > -1 && THEKERNEL->get_laser_mode()) {
+            		if (new_tool > -1 && THEKERNEL.get_laser_mode()) {
             			printk("ALARM: Can not do ATC in laser mode!\n");
             			return;
             		}
@@ -796,7 +796,7 @@ void ATCHandler::on_gcode_received(void *argument)
                 		// just drop tool
                 		atc_status = DROP;
                 		this->fill_drop_scripts(active_tool);
-                		if (THEKERNEL->get_laser_mode()) {
+                		if (THEKERNEL.get_laser_mode()) {
                 			this->fill_cali_scripts(false, false);
                 		}
                 	} else {
@@ -807,7 +807,7 @@ void ATCHandler::on_gcode_received(void *argument)
                 	    this->fill_pick_scripts(new_tool, false);
                 	    this->fill_cali_scripts(new_tool == 0, false);
                 	}
-            	} else if (new_tool == -1  && THEKERNEL->get_laser_mode()) {
+            	} else if (new_tool == -1  && THEKERNEL.get_laser_mode()) {
             		// calibrate
                     THEROBOT->push_state();
                     THEROBOT->get_axis_position(last_pos, 3);
@@ -836,14 +836,14 @@ void ATCHandler::on_gcode_received(void *argument)
 		    		tolerance = gcode->get_value('H');
 					if (tolerance < 0.02) {
 						printk("ERROR: Tool Break Check - tolerance set too small\n");
-						THEKERNEL->call_event(ON_HALT, nullptr);
-        				THEKERNEL->set_halt_reason(CALIBRATE_FAIL);
+						THEKERNEL.call_event(ON_HALT, nullptr);
+        				THEKERNEL.set_halt_reason(CALIBRATE_FAIL);
 						return;
 					}
 
 				}
 				//store current TLO
-				float tlo = THEKERNEL->eeprom_data->TLO;
+				float tlo = THEKERNEL.eeprom_data->TLO;
 
 				// do calibrate to find new TLO
 				THEROBOT->push_state();
@@ -874,8 +874,8 @@ void ATCHandler::on_gcode_received(void *argument)
 		    		tolerance = gcode->get_value('H');
 					if (tolerance < 0.02) {
 						printk("ERROR: Tool Break Check - tolerance set too small\n");
-						THEKERNEL->call_event(ON_HALT, nullptr);
-        				THEKERNEL->set_halt_reason(CALIBRATE_FAIL);
+						THEKERNEL.call_event(ON_HALT, nullptr);
+        				THEKERNEL.set_halt_reason(CALIBRATE_FAIL);
 						return;
 					}
 
@@ -888,13 +888,13 @@ void ATCHandler::on_gcode_received(void *argument)
 					}
 
 				}
-				float new_tlo = THEKERNEL->eeprom_data->TLO;
+				float new_tlo = THEKERNEL.eeprom_data->TLO;
 				printk("Old: %.3f , new: %.3f\n",tlo,new_tlo);
 				//test for breakage
 				if (fabs(tlo - new_tlo) > tolerance) {
 					printk("ERROR: Tool Break Check - check tool for breakage\n");
-					THEKERNEL->call_event(ON_HALT, nullptr);
-					THEKERNEL->set_halt_reason(CALIBRATE_FAIL);
+					THEKERNEL.call_event(ON_HALT, nullptr);
+					THEKERNEL.set_halt_reason(CALIBRATE_FAIL);
 					return;
 				}
 
@@ -912,22 +912,22 @@ void ATCHandler::on_gcode_received(void *argument)
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
 				// check true
 				if (!laser_detect()) {
-			        THEKERNEL->call_event(ON_HALT, nullptr);
-			        THEKERNEL->set_halt_reason(ATC_NO_TOOL);
+			        THEKERNEL.call_event(ON_HALT, nullptr);
+			        THEKERNEL.set_halt_reason(ATC_NO_TOOL);
 			        printk("ERROR: Tool confliction occured, please check tool rack!\n");
 				}
 			} else if (gcode->subcode == 2) {
 				// check false
 				if (laser_detect()) {
-			        THEKERNEL->call_event(ON_HALT, nullptr);
-			        THEKERNEL->set_halt_reason(ATC_HAS_TOOL);
+			        THEKERNEL.call_event(ON_HALT, nullptr);
+			        THEKERNEL.set_halt_reason(ATC_HAS_TOOL);
 			        printk("ERROR: Tool confliction occured, please check tool rack!\n");
 				}
 			} else if (gcode->subcode == 3) {
 				// check if the probe was triggered
 				if (!probe_detect()) {
-			        THEKERNEL->call_event(ON_HALT, nullptr);
-			        THEKERNEL->set_halt_reason(PROBE_INVALID);
+			        THEKERNEL.call_event(ON_HALT, nullptr);
+			        THEKERNEL.set_halt_reason(PROBE_INVALID);
 			        printk("ERROR: Wireless probe dead or not set, please charge or set first!\n");
 				}
 			}
@@ -940,14 +940,14 @@ void ATCHandler::on_gcode_received(void *argument)
 				if (gcode->has_letter('T')) {
 		    		this->active_tool = gcode->get_value('T');
 		    		// save current tool data to eeprom
-		    		if (THEKERNEL->eeprom_data->TOOL != this->active_tool) {
-		        	    THEKERNEL->eeprom_data->TOOL = this->active_tool;
-		        	    THEKERNEL->write_eeprom_data();
+		    		if (THEKERNEL.eeprom_data->TOOL != this->active_tool) {
+		        	    THEKERNEL.eeprom_data->TOOL = this->active_tool;
+		        	    THEKERNEL.write_eeprom_data();
 		    		}
 
 				} else {
-					THEKERNEL->call_event(ON_HALT, nullptr);
-					THEKERNEL->set_halt_reason(ATC_NO_TOOL);
+					THEKERNEL.call_event(ON_HALT, nullptr);
+					THEKERNEL.set_halt_reason(ATC_NO_TOOL);
 					printk("ERROR: No tool was set!\n");
 
 				}
@@ -980,7 +980,7 @@ void ATCHandler::on_gcode_received(void *argument)
 			} else {
 				// Do Margin, ZProbe, Auto Leveling based on parameters, change probe tool if needed
 				if (gcode->has_letter('X') && gcode->has_letter('Y')) {
-	        		if (THEKERNEL->get_laser_mode()) {
+	        		if (THEKERNEL.get_laser_mode()) {
 	        			printk("ALARM: Can not do Automatic work in laser mode!\n");
 	        			return;
 	        		}
@@ -1089,17 +1089,17 @@ void ATCHandler::on_gcode_received(void *argument)
 		} else if (gcode->m == 497) {
 		    // wait for the queue to be empty
 		    THECONVEYOR->wait_for_idle();
-			THEKERNEL->set_atc_state(gcode->subcode);
+			THEKERNEL.set_atc_state(gcode->subcode);
 		} else if (gcode->m == 498) {
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
-				printk("EEPRROM Data: TOOL:%d\n", THEKERNEL->eeprom_data->TOOL);
-				printk("EEPRROM Data: TLO:%1.3f\n", THEKERNEL->eeprom_data->TLO);
-				printk("EEPRROM Data: TOOLMZ:%1.3f\n", THEKERNEL->eeprom_data->TOOLMZ);
-				printk("EEPRROM Data: REFMZ:%1.3f\n", THEKERNEL->eeprom_data->REFMZ);
-				printk("EEPRROM Data: G54: %1.3f, %1.3f, %1.3f\n", THEKERNEL->eeprom_data->G54[0], THEKERNEL->eeprom_data->G54[1], THEKERNEL->eeprom_data->G54[2]);
+				printk("EEPRROM Data: TOOL:%d\n", THEKERNEL.eeprom_data->TOOL);
+				printk("EEPRROM Data: TLO:%1.3f\n", THEKERNEL.eeprom_data->TLO);
+				printk("EEPRROM Data: TOOLMZ:%1.3f\n", THEKERNEL.eeprom_data->TOOLMZ);
+				printk("EEPRROM Data: REFMZ:%1.3f\n", THEKERNEL.eeprom_data->REFMZ);
+				printk("EEPRROM Data: G54: %1.3f, %1.3f, %1.3f\n", THEKERNEL.eeprom_data->G54[0], THEKERNEL.eeprom_data->G54[1], THEKERNEL.eeprom_data->G54[2]);
 			} else if (gcode->subcode == 2) {
 				// Show EEPROM DATA
-				THEKERNEL->erase_eeprom_data();
+				THEKERNEL.erase_eeprom_data();
 			}
 		} else if ( gcode->m == 499 ) {
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
@@ -1119,12 +1119,12 @@ void ATCHandler::on_gcode_received(void *argument)
 void ATCHandler::on_main_loop(void *argument)
 {
     if (this->atc_status != NONE) {
-        if (THEKERNEL->is_halted()) {
+        if (THEKERNEL.is_halted()) {
             printk("Kernel is halted!....\r\n");
             return;
         }
 
-        if (THEKERNEL->is_suspending() || THEKERNEL->is_waiting()) {
+        if (THEKERNEL.is_suspending() || THEKERNEL.is_waiting()) {
         	return;
         }
 
@@ -1137,7 +1137,7 @@ void ATCHandler::on_main_loop(void *argument)
 
 				this->atc_status = NONE;
 				set_inner_playing(false);
-				THEKERNEL->set_atc_state(ATC_NONE);
+				THEKERNEL.set_atc_state(ATC_NONE);
 
 				// pop old state
 				THEROBOT->pop_state();
@@ -1153,12 +1153,12 @@ void ATCHandler::on_main_loop(void *argument)
         	printk("%s\r\n", this->script_queue.front().c_str());
 			struct SerialMessage message;
 			message.message = this->script_queue.front();
-			message.stream = THEKERNEL->streams;
+			message.stream = THEKERNEL.streams;
 			message.line = 0;
 			this->script_queue.pop();
 
 			// waits for the queue to have enough room
-			THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
+			THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message);
             return;
         }
 
@@ -1174,7 +1174,7 @@ void ATCHandler::on_main_loop(void *argument)
 
 		set_inner_playing(false);
 
-		THEKERNEL->set_atc_state(ATC_NONE);
+		THEKERNEL.set_atc_state(ATC_NONE);
 
         // pop old state
         THEROBOT->pop_state();
@@ -1257,8 +1257,8 @@ void ATCHandler::rapid_move(bool mc, float x, float y, float z)
 
     message.stream = &(StreamOutput::NullStream);
     message.line = 0;
-    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
-    THEKERNEL->conveyor->wait_for_idle();
+    THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+    THEKERNEL.conveyor->wait_for_idle();
 
 }
 
@@ -1295,9 +1295,9 @@ void ATCHandler::on_set_public_data(void* argument)
     if(pdr->second_element_is(set_ref_tool_mz_checksum)) {
         this->ref_tool_mz = cur_tool_mz;
         // update eeprom data if needed
-        if (this->ref_tool_mz != THEKERNEL->eeprom_data->REFMZ) {
-        	THEKERNEL->eeprom_data->REFMZ = this->ref_tool_mz;
-		    THEKERNEL->write_eeprom_data();
+        if (this->ref_tool_mz != THEKERNEL.eeprom_data->REFMZ) {
+        	THEKERNEL.eeprom_data->REFMZ = this->ref_tool_mz;
+		    THEKERNEL.write_eeprom_data();
         }
         this->tool_offset = 0.0;
         pdr->set_taken();
