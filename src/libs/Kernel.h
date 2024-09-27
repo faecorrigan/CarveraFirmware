@@ -181,7 +181,6 @@ class Kernel {
         Config*           config;
         Conveyor*         conveyor;
         Configurator*     configurator;
-        SimpleShell*      simpleshell;
 
         SlowTicker*       slow_ticker;
         StepTicker*       step_ticker;
@@ -222,5 +221,6 @@ class Kernel {
 };
 
 extern Kernel THEKERNEL;
+extern SimpleShell simpleshell;
 
 #endif

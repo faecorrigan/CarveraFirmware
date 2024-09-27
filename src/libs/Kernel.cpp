@@ -199,7 +199,6 @@ void Kernel::init()
     this->add_module( this->conveyor       = new(AHB0) Conveyor()      );
     this->add_module( this->gcode_dispatch = new(AHB0) GcodeDispatch() );
     this->add_module( this->robot          = new(AHB0) Robot()         );
-    this->add_module( this->simpleshell    = new(AHB0) SimpleShell()   );
 
     this->planner = new(AHB0) Planner();
     this->configurator = new(AHB0) Configurator();

@@ -74,6 +74,7 @@ GPIO leds[4] = {
 };
 
 Kernel THEKERNEL;
+SimpleShell simpleshell;
 
 void init() {
     // Default pins to low status
@@ -83,9 +84,10 @@ void init() {
     }
 
     THEKERNEL.init();
+    THEKERNEL.add_module(&simpleshell);
 
     printk("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
-    THEKERNEL.simpleshell->version_command("", THEKERNEL.streams);
+    simpleshell.version_command("", THEKERNEL.streams);
 
     bool sdok = (sd.disk_initialize() == 0);
     if(!sdok) printk("SDCard failed to initialize\r\n");
