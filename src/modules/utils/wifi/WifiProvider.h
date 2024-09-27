@@ -75,7 +75,8 @@ private:
     RingBuffer<char, 256> buffer; // Receive buffer
     string test_buffer;
 
-	u8 WifiData[WIFI_DATA_MAX_SIZE];
+    u8 txData[WIFI_DATA_MAX_SIZE];
+    u8 rxData[WIFI_DATA_MAX_SIZE];
 
     std::map<u8, std::function<void(u8*, u16, u8*, u16)>> data_callbacks;
 

@@ -125,13 +125,13 @@ void WifiProvider::receive_wifi_data()
 	u16 remote_port;
 
     while (true) {
-        received = M8266WIFI_SPI_RecvData_ex(WifiData, WIFI_DATA_MAX_SIZE, WIFI_DATA_TIMEOUT_MS, &link_no, remote_ip, &remote_port, &status);
+        received = M8266WIFI_SPI_RecvData_ex(rxData, WIFI_DATA_MAX_SIZE, WIFI_DATA_TIMEOUT_MS, &link_no, remote_ip, &remote_port, &status);
 
 		// Check if there is a callback registered for this link
         auto it = data_callbacks.find(link_no);
         if (it != data_callbacks.end()) {
             // Call the registered callback function
-            it->second(remote_ip, remote_port, WifiData, received);
+            it->second(remote_ip, remote_port, rxData, received);
         } else {
 			if (link_no == udp_link_no) {
 				// Ignore UDP data
@@ -142,34 +142,34 @@ void WifiProvider::receive_wifi_data()
 				// Data received from the primary TCP connection
 				for (int i = 0; i < received; i++) {
 					// Handle special control characters
-					if (WifiData[i] == '?') {
+					if (rxData[i] == '?') {
 						query_flag = true;
 						continue;
 					}
-					if (WifiData[i] == '*') {
+					if (rxData[i] == '*') {
 						diagnose_flag = true;
 						continue;
 					}
-					if (WifiData[i] == 'X' - 'A' + 1) { // Ctrl+X
+					if (rxData[i] == 'X' - 'A' + 1) { // Ctrl+X
 						halt_flag = true;
 						continue;
 					}
 					if (THEKERNEL->is_feed_hold_enabled()) {
-						if (WifiData[i] == '!') { // Safe pause
+						if (rxData[i] == '!') { // Safe pause
 							THEKERNEL->set_feed_hold(true);
 							continue;
 						}
-						if (WifiData[i] == '~') { // Safe resume
+						if (rxData[i] == '~') { // Safe resume
 							THEKERNEL->set_feed_hold(false);
 							continue;
 						}
 					}
 					// Convert carriage return to newline
-					if (WifiData[i] == '\r') {
-						WifiData[i] = '\n';
+					if (rxData[i] == '\r') {
+						rxData[i] = '\n';
 					}
 					// Add data to buffer
-					this->buffer.push_back(char(WifiData[i]));
+					this->buffer.push_back(char(rxData[i]));
 				}
 			}
 		}
@@ -321,17 +321,31 @@ int WifiProvider::puts(const char* s, int size)
     u16 status = 0;
     u32 sent = 0;
     u32 to_send = 0;
+
     while (sent_index < total_length) {
-        // Send data in chunks if necessary
-        to_send = total_length - sent_index > WIFI_DATA_MAX_SIZE ? WIFI_DATA_MAX_SIZE : total_length - sent_index;
-        memcpy(WifiData, s + sent_index, to_send);
-        sent = M8266WIFI_SPI_Send_BlockData(WifiData, to_send, 5000, tcp_link_no, NULL, 0, &status);
+        // Determine the size of data to send in this chunk
+        to_send = std::min(static_cast<u32>(total_length - sent_index), static_cast<u32>(WIFI_DATA_MAX_SIZE));
+        memcpy(txData, s + sent_index, to_send);
+
+        // Send data directly from the buffer
+        sent = M8266WIFI_SPI_Send_BlockData(
+            txData,
+            to_send,
+            5000,
+            tcp_link_no,
+            NULL,
+            0,
+            &status
+        );
+
         sent_index += sent;
+
         if (sent != to_send) {
             // Error or connection closed
             break;
         }
     }
+
     return sent_index;
 }
 
@@ -358,14 +372,14 @@ int WifiProvider::gets(char** buf, int size)
 {
     u16 status;
     u8 link_no;
-    u16 received = M8266WIFI_SPI_RecvData(WifiData,
+    u16 received = M8266WIFI_SPI_RecvData(rxData,
                                           (size == 0 || size > WIFI_DATA_MAX_SIZE) ? WIFI_DATA_MAX_SIZE : size,
                                           WIFI_DATA_TIMEOUT_MS, &link_no, &status);
     if (link_no == udp_link_no) {
         // Ignore UDP data
         return 0;
     }
-    *buf = (char*)&WifiData;
+    *buf = (char*)&rxData;
     return received;
 }
 
@@ -840,7 +854,7 @@ bool WifiProvider::setup_server(uint16_t local_port, uint8_t link_no, uint8_t ma
     const int timeout = 3;
 
     // Setup the connection
-    if (M8266WIFI_SPI_Setup_Connection(connection_type, local_port, "0.0.0.0", 0, link_no, timeout, &status) == 0) {
+    if (M8266WIFI_SPI_Setup_Connection(connection_type, local_port, const_cast<char*>("0.0.0.0"), 0, link_no, timeout, &status) == 0) {
         THEKERNEL->streams->printf("Setup_Connection ERROR on link %d, status: %d\n", link_no, status);
         return false;
     }
@@ -861,43 +875,52 @@ void WifiProvider::register_data_callback(uint8_t link_no, std::function<void(ui
     data_callbacks[link_no] = callback;
 }
 
-// WifiProvider.cpp
-
 bool WifiProvider::send_data(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no, const uint8_t* data, uint16_t length)
 {
     uint16_t status = 0;
     char ip_str[16];
 
-    // Convert remote_ip (uint8_t[4]) to string
+    // Convert remote_ip (uint8_t[4]) to string format
+    snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u", remote_ip[0], remote_ip[1], remote_ip[2], remote_ip[3]);
 
-	uint32_t remote_ip_word = remote_ip[0] << 24 | remote_ip[1] << 16 | remote_ip[2] << 8 | remote_ip[3];
-
-    int_to_ip(remote_ip_word, ip_str);
+    THEKERNEL->streams->printf("WifiProvider::send_data: Starting to send data to %s:%d on link %d, Total length: %d\n", ip_str, remote_port, link_no, length);
 
     uint32_t sent_index = 0;
     uint16_t sent = 0;
     uint16_t to_send = 0;
-    uint8_t WifiData[WIFI_DATA_MAX_SIZE];
 
     while (sent_index < length) {
+        // Determine how much data to send in this chunk
         to_send = std::min(static_cast<uint16_t>(length - sent_index), static_cast<uint16_t>(WIFI_DATA_MAX_SIZE));
-        memcpy(WifiData, data + sent_index, to_send);
+
+        // Debug statement before sending
+        THEKERNEL->streams->printf("WifiProvider::send_data: Attempting to send %d bytes to %s:%d on link %d, sent_index: %d, status before sending: %d\n", 
+                                    to_send, ip_str, remote_port, link_no, sent_index, status);
+
+        memcpy(txData, data + sent_index, to_send);
+        // Send data directly from the original buffer with a cast to `u8*`
         sent = M8266WIFI_SPI_Send_Data_to_TcpClient(
-            WifiData,
+            txData,
             to_send,
             link_no,
             ip_str,
             remote_port,
             &status
         );
+
         sent_index += sent;
 
         if (sent != to_send) {
             // Error or connection closed
-            THEKERNEL->streams->printf("Send data ERROR on link %d to %s:%d, status:%d\n", link_no, ip_str, remote_port, status);
+            THEKERNEL->streams->printf("WifiProvider::send_data: ERROR on link %d to %s:%d, sent %d of %d bytes, status: %d\n", link_no, ip_str, remote_port, sent, to_send, status);
             return false;
         }
+
+        // Debug statement after successful send
+        THEKERNEL->streams->printf("WifiProvider::send_data: Successfully sent %d bytes to %s:%d on link %d, Total sent: %d/%d\n", sent, ip_str, remote_port, link_no, sent_index, length);
     }
+
+    THEKERNEL->streams->printf("WifiProvider::send_data: Completed sending all data to %s:%d on link %d\n", ip_str, remote_port, link_no);
     return true;
 }
 
