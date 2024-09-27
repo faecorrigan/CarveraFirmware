@@ -199,11 +199,11 @@ void Laser::on_gcode_received(void *argument)
             // M3 with S value provided: set speed
             if (gcode->has_letter('S'))
             {
-            	THEROBOT->set_s_value(gcode->get_value('S'));
+            	THEROBOT.set_s_value(gcode->get_value('S'));
             }
     		this->laser_on = true;
     		this->testing = false;
-    		// printk("Laser on, S: %1.4f\n", THEROBOT->get_s_value());
+    		// printk("Laser on, S: %1.4f\n", THEROBOT.get_s_value());
 		} else if (gcode->m == 5) {
     		THECONVEYOR.wait_for_idle();
 			this->laser_on = false;
@@ -275,7 +275,7 @@ float Laser::current_speed_ratio(const Block *block) const
 	// 2024
     size_t pm = 0;
     uint32_t max_steps = 0;
-    for (size_t i = 0; i < THEROBOT->get_number_registered_motors(); i++) {
+    for (size_t i = 0; i < THEROBOT.get_number_registered_motors(); i++) {
         // find the motor with the most steps
         if(block->steps[i] > max_steps) {
             max_steps = block->steps[i];
@@ -385,6 +385,6 @@ void Laser::on_halt(void *argument)
     	THEKERNEL.set_laser_mode(false);
     	this->laser_pin->set(false);
     	this->testing = false;
-    	THEROBOT->clearLaserOffset();
+    	THEROBOT.clearLaserOffset();
     }
 }

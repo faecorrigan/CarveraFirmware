@@ -29,7 +29,7 @@ class StepperMotor;
 class Robot : public Module {
     public:
         using wcs_t= std::tuple<float, float, float>;
-        Robot();
+        void init();
         void on_module_loaded();
         void on_gcode_received(void* argument);
 

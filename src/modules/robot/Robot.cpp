@@ -117,7 +117,7 @@ float ROUND_NEAR_HALF(float x) {
 	return roundf(x * 200.0) / 200.0;
 }
 
-Robot::Robot()
+void Robot::init()
 {
     this->inch_mode = false;
     this->absolute_mode = true;
@@ -622,22 +622,22 @@ void Robot::on_gcode_received(void *argument)
                 } else if (gcode->subcode == 4) {
                     // G92.4 is a smoothie special it sets manual homing for X,Y,Z
                     // do a manual homing based on given coordinates, no endstops required
-                    if(gcode->has_letter('X')){ THEROBOT->reset_axis_position(gcode->get_value('X'), X_AXIS); }
-                    if(gcode->has_letter('Y')){ THEROBOT->reset_axis_position(gcode->get_value('Y'), Y_AXIS); }
-                    if(gcode->has_letter('Z')){ THEROBOT->reset_axis_position(gcode->get_value('Z'), Z_AXIS); }
+                    if(gcode->has_letter('X')){ THEROBOT.reset_axis_position(gcode->get_value('X'), X_AXIS); }
+                    if(gcode->has_letter('Y')){ THEROBOT.reset_axis_position(gcode->get_value('Y'), Y_AXIS); }
+                    if(gcode->has_letter('Z')){ THEROBOT.reset_axis_position(gcode->get_value('Z'), Z_AXIS); }
 
                     if(gcode->has_letter('A')){
                     	if (gcode->has_letter('S')) {
                     		// shrink A value
                     		float ma = actuators[A_AXIS]->get_current_position();
                     		if (fabs(ma) > 360) {
-                    			THEROBOT->reset_axis_position(fmodf(ma, 360.0), A_AXIS);
+                    			THEROBOT.reset_axis_position(fmodf(ma, 360.0), A_AXIS);
                     		}
                     	} else if(gcode->has_letter('R')){
                     		// first shrink A value
                     		float ma = actuators[A_AXIS]->get_current_position();
                     		ma = fmodf(ma, 360.0);
-                    		THEROBOT->reset_axis_position(ma, A_AXIS);
+                    		THEROBOT.reset_axis_position(ma, A_AXIS);
                     		// second 
                     		float mb = gcode->get_value('A');
                     		mb = fmodf(mb, 360.0);
@@ -645,14 +645,14 @@ void Robot::on_gcode_received(void *argument)
                     		float delta[A_AXIS+1];
                     		for (size_t j = 0; j <= A_AXIS; ++j) delta[j]= 0;
                     		delta[A_AXIS]= mb - ma; // we go the max
-                    		THEROBOT->delta_move(delta, this->seek_rate, A_AXIS+1);
+                    		THEROBOT.delta_move(delta, this->seek_rate, A_AXIS+1);
                     		// wait for A moving
         					THECONVEYOR.wait_for_idle();
                     		// third
-                    		THEROBOT->reset_axis_position(gcode->get_value('A'), A_AXIS);                    		
+                    		THEROBOT.reset_axis_position(gcode->get_value('A'), A_AXIS);                    		
                     		
                     	} else {
-                        	THEROBOT->reset_axis_position(gcode->get_value('A'), A_AXIS);
+                        	THEROBOT.reset_axis_position(gcode->get_value('A'), A_AXIS);
                     	}
                     }
 

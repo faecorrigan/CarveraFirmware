@@ -389,13 +389,13 @@ bool CartGridStrategy::handleGcode(Gcode *gcode)
                 THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc);
             }
 
-            THEROBOT->disable_segmentation= true;
+            THEROBOT.disable_segmentation= true;
             if(!doProbe(gcode)) {
                 gcode->stream->printf("Probe failed to complete, check the initial probe height and/or initial_height settings\n");
             } else {
                 gcode->stream->printf("Probe completed.\n");
             }
-            THEROBOT->disable_segmentation= false;
+            THEROBOT.disable_segmentation= false;
 
             if(!after_probe.empty()) {
                 Gcode gc(after_probe, &(StreamOutput::NullStream));
@@ -493,10 +493,10 @@ void CartGridStrategy::setAdjustFunction(bool on)
         using std::placeholders::_1;
         using std::placeholders::_2;
         using std::placeholders::_3;
-        THEROBOT->compensationTransform = std::bind(&CartGridStrategy::doCompensation, this, _1, _2, _3); // [this](float *target, bool inverse) { doCompensation(target, inverse); };
+        THEROBOT.compensationTransform = std::bind(&CartGridStrategy::doCompensation, this, _1, _2, _3); // [this](float *target, bool inverse) { doCompensation(target, inverse); };
     } else {
         // clear it
-        THEROBOT->compensationTransform = nullptr;
+        THEROBOT.compensationTransform = nullptr;
     }
 }
 
@@ -538,8 +538,8 @@ bool CartGridStrategy::scan_bed(Gcode *gc)
     }
 
     // NOTE as we are positioning the probe we need to reverse offset for the probe offset
-    _x_start = THEROBOT->get_axis_position(X_AXIS) + X_PROBE_OFFSET_FROM_EXTRUDER;
-    _y_start = THEROBOT->get_axis_position(Y_AXIS) + Y_PROBE_OFFSET_FROM_EXTRUDER;
+    _x_start = THEROBOT.get_axis_position(X_AXIS) + X_PROBE_OFFSET_FROM_EXTRUDER;
+    _y_start = THEROBOT.get_axis_position(Y_AXIS) + Y_PROBE_OFFSET_FROM_EXTRUDER;
 
     if(!findBed(_x_start, _y_start, gc->has_letter('H') ? gc->get_value('H') : zprobe->getProbeHeight())) return false;
 
@@ -593,8 +593,8 @@ bool CartGridStrategy::doProbe(Gcode *gc)
                 float xo = gc->get_value('X'); // offset current start position
                 float yo = gc->get_value('Y');
                 // NOTE as we are positioning the probe we need to reverse offset for the probe offset
-                this->x_start = THEROBOT->get_axis_position(X_AXIS) + xo + X_PROBE_OFFSET_FROM_EXTRUDER;
-                this->y_start = THEROBOT->get_axis_position(Y_AXIS) + yo + Y_PROBE_OFFSET_FROM_EXTRUDER;
+                this->x_start = THEROBOT.get_axis_position(X_AXIS) + xo + X_PROBE_OFFSET_FROM_EXTRUDER;
+                this->y_start = THEROBOT.get_axis_position(Y_AXIS) + yo + Y_PROBE_OFFSET_FROM_EXTRUDER;
             }else{
                 this->x_start = gc->get_value('X'); // override default probe start point
                 this->y_start = gc->get_value('Y'); // override default probe start point
@@ -705,7 +705,7 @@ bool CartGridStrategy::doProbe(Gcode *gc)
 
     setAdjustFunction(true);
 
-    THEROBOT->set_max_delta(max_delta);
+    THEROBOT.set_max_delta(max_delta);
 
     return true;
 }
@@ -844,5 +844,5 @@ void CartGridStrategy::reset_bed_level()
             grid[x + (current_grid_x_size * y)] = NAN;
         }
     }
-    THEROBOT->set_max_delta(0.0);
+    THEROBOT.set_max_delta(0.0);
 }

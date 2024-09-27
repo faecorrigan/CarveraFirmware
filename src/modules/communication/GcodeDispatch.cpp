@@ -222,7 +222,7 @@ try_again:
 							}
 						}
 						// makes it handle the parameters as a machine position
-						THEROBOT->next_command_is_MCS= true;
+						THEROBOT.next_command_is_MCS= true;
 
 					} else if(gcode->g == 1) {
 						// optimize G1 to send ok immediately (one per line) before it is planned

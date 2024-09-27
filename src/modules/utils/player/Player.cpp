@@ -98,7 +98,7 @@ void Player::on_halt(void* argument)
 		// clean up from suspend
 		THEKERNEL.set_waiting(false);
 		THEKERNEL.set_suspending(false);
-		THEROBOT->pop_state();
+		THEROBOT.pop_state();
 		printk("Suspend cleared\n");
 	}
 }
@@ -258,7 +258,7 @@ void Player::on_gcode_received(void *argument)
             if (THEKERNEL.is_suspending()) {
                 // clean up
             	THEKERNEL.set_suspending(false);
-                THEROBOT->pop_state();
+                THEROBOT.pop_state();
             }
         }
     }
@@ -382,11 +382,11 @@ void Player::play_command( string parameters, StreamOutput *stream )
     this->goto_line = 0;
 
     // force into absolute mode
-    THEROBOT->absolute_mode = true;
-    THEROBOT->e_absolute_mode = true;
+    THEROBOT.absolute_mode = true;
+    THEROBOT.e_absolute_mode = true;
 
     // reset current position;
-    THEROBOT->reset_position_from_current_actuator_position();
+    THEROBOT.reset_position_from_current_actuator_position();
 }
 
 // Goto a certain line when playing a file
@@ -525,7 +525,7 @@ void Player::abort_command( string parameters, StreamOutput *stream )
         THECONVEYOR.flush_queue();
 
         // now the position will think it is at the last received pos, so we need to do FK to get the actuator position and reset the current position
-        THEROBOT->reset_position_from_current_actuator_position();
+        THEROBOT.reset_position_from_current_actuator_position();
         stream->printf("Aborted playing or paused file. \r\n");
     }
 }
@@ -602,7 +602,7 @@ void Player::on_main_loop(void *argument)
 
                 /*
             	// Add laser cluster support when in laser mode
-            	if (this->laser_clustering && THEKERNEL.get_laser_mode() && !THEROBOT->absolute_mode && played_lines > 100) {
+            	if (this->laser_clustering && THEKERNEL.get_laser_mode() && !THEROBOT.absolute_mode && played_lines > 100) {
             		// G1 X0.5 Y 0.8 S1:0:0.5:0.75:0:0.2
             		is_cluster = this->check_cluster(buf, &x_value, &y_value, &distance, &slope, &s_value);
                     min_value = fmin(min_distance, distance);
@@ -852,15 +852,15 @@ void Player::suspend_command(string parameters, StreamOutput *stream )
     THEKERNEL.set_suspending(true);
 
     // save current XYZ position in WCS
-    Robot::wcs_t mpos= THEROBOT->get_axis_position();
-    Robot::wcs_t wpos= THEROBOT->mcs2wcs(mpos);
+    Robot::wcs_t mpos= THEROBOT.get_axis_position();
+    Robot::wcs_t wpos= THEROBOT.mcs2wcs(mpos);
     saved_position[0]= std::get<X_AXIS>(wpos);
     saved_position[1]= std::get<Y_AXIS>(wpos);
     saved_position[2]= std::get<Z_AXIS>(wpos);
 
     // save current state
-    THEROBOT->push_state();
-    current_motion_mode = THEROBOT->get_current_motion_mode();
+    THEROBOT.push_state();
+    current_motion_mode = THEROBOT.get_current_motion_mode();
 
     // execute optional gcode if defined
     if(!after_suspend_gcode.empty()) {
@@ -892,7 +892,7 @@ void Player::resume_command(string parameters, StreamOutput *stream )
 
     if(THEKERNEL.is_halted()) {
         printk("Resume aborted by kill\n");
-        THEROBOT->pop_state();
+        THEROBOT.pop_state();
         THEKERNEL.set_suspending(false);
         return;
     }
@@ -911,10 +911,10 @@ void Player::resume_command(string parameters, StreamOutput *stream )
         // Restore position
         stream->printf("Restoring saved XYZ positions and state...\n");
 
-        THEROBOT->absolute_mode = true;
+        THEROBOT.absolute_mode = true;
 
         char buf[128];
-        snprintf(buf, sizeof(buf), "G1 X%.3f Y%.3f Z%.3f F%.3f", saved_position[0], saved_position[1], saved_position[2], THEROBOT->from_millimeters(1000));
+        snprintf(buf, sizeof(buf), "G1 X%.3f Y%.3f Z%.3f F%.3f", saved_position[0], saved_position[1], saved_position[2], THEROBOT.from_millimeters(1000));
         struct SerialMessage message;
         message.message = buf;
         message.stream = &(StreamOutput::NullStream);
@@ -929,7 +929,7 @@ void Player::resume_command(string parameters, StreamOutput *stream )
     	}
     }
 
-    THEROBOT->pop_state();
+    THEROBOT.pop_state();
 
     if(THEKERNEL.is_halted()) {
         printk("Resume aborted by kill\n");

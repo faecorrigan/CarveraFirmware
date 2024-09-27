@@ -92,7 +92,7 @@ enum DEFNS { MIN_PIN, MAX_PIN, MAX_TRAVEL, FAST_RATE, SLOW_RATE, RETRACT, DIRECT
 
 #define cover_endstop_checksum              CHECKSUM("cover_endstop")
 
-#define STEPPER THEROBOT->actuators
+#define STEPPER THEROBOT.actuators
 #define STEPS_PER_MM(a) (STEPPER[a]->get_steps_per_mm())
 
 
@@ -299,7 +299,7 @@ bool Endstops::load_config()
         }
 
         // check we are not going above the number of defined actuators/axis
-        if(i >= THEROBOT->get_number_registered_motors()) {
+        if(i >= THEROBOT.get_number_registered_motors()) {
             // too many axis we only have configured n_motors
             printk("ERROR: endstop %d is greater than number of defined motors. Endstops disabled\n", i);
             delete pin_info;
@@ -537,7 +537,7 @@ void Endstops::back_off_home(axis_bitmap_t axis)
     // these are handled differently
     if(is_delta) {
         // Move off of the endstop using a regular relative move in Z only
-        params.push_back({'Z', THEROBOT->from_millimeters(homing_axis[Z_AXIS].retract * (homing_axis[Z_AXIS].home_direction ? 1 : -1))});
+        params.push_back({'Z', THEROBOT.from_millimeters(homing_axis[Z_AXIS].retract * (homing_axis[Z_AXIS].home_direction ? 1 : -1))});
         slow_rate= homing_axis[Z_AXIS].slow_rate;
 
     } else {
@@ -549,7 +549,7 @@ void Endstops::back_off_home(axis_bitmap_t axis)
 //            if(e.pin_info != nullptr && e.pin_info->limit_enable && debounced_get(&e.pin_info->pin)) {
 			if(e.pin_info != nullptr && e.pin_info->limit_enable && e.pin_info->triggered) {
                 char ax= e.axis;
-                params.push_back({ax, THEROBOT->from_millimeters(e.retract * (e.home_direction ? 1 : -1))});
+                params.push_back({ax, THEROBOT.from_millimeters(e.retract * (e.home_direction ? 1 : -1))});
                 // select slowest of them all
                 slow_rate= isnan(slow_rate) ? e.slow_rate : std::min(slow_rate, e.slow_rate);
             }
@@ -560,16 +560,16 @@ void Endstops::back_off_home(axis_bitmap_t axis)
         // Move off of the endstop using a regular relative move
         params.insert(params.begin(), {'G', 0});
         // use X slow rate to move, Z should have a max speed set anyway
-        params.push_back({'F', THEROBOT->from_millimeters(slow_rate * 60.0F)});
+        params.push_back({'F', THEROBOT.from_millimeters(slow_rate * 60.0F)});
         char gcode_buf[64];
         append_parameters(gcode_buf, params, sizeof(gcode_buf));
         Gcode gc(gcode_buf, &(StreamOutput::NullStream));
-        THEROBOT->push_state();
-        THEROBOT->absolute_mode = false; // needs to be relative mode
-        THEROBOT->on_gcode_received(&gc); // send to robot directly
+        THEROBOT.push_state();
+        THEROBOT.absolute_mode = false; // needs to be relative mode
+        THEROBOT.on_gcode_received(&gc); // send to robot directly
         // Wait for above to finish
         THECONVEYOR.wait_for_idle();
-        THEROBOT->pop_state();
+        THEROBOT.pop_state();
     }
 
     this->status = NOT_HOMING;
@@ -593,21 +593,21 @@ void Endstops::move_to_origin(axis_bitmap_t axis)
 
     this->status = MOVE_TO_ORIGIN;
     // Do we need to check if we are already at 0,0? probably not as the G0 will not do anything if we are
-    // float pos[3]; THEROBOT->get_axis_position(pos); if(pos[0] == 0 && pos[1] == 0) return;
+    // float pos[3]; THEROBOT.get_axis_position(pos); if(pos[0] == 0 && pos[1] == 0) return;
 
     // Move to center using a regular move, use slower of X and Y fast rate in mm/sec
     float rate = std::min(homing_axis[X_AXIS].fast_rate, homing_axis[Y_AXIS].fast_rate) * 60.0F;
     char buf[32];
-    THEROBOT->push_state();
-    THEROBOT->absolute_mode = true;
-    snprintf(buf, sizeof(buf), "G53 G0 X0 Y0 F%1.4f", THEROBOT->from_millimeters(rate)); // must use machine coordinates in case G92 or WCS is in effect
+    THEROBOT.push_state();
+    THEROBOT.absolute_mode = true;
+    snprintf(buf, sizeof(buf), "G53 G0 X0 Y0 F%1.4f", THEROBOT.from_millimeters(rate)); // must use machine coordinates in case G92 or WCS is in effect
     struct SerialMessage message;
     message.message = buf;
     message.stream = &(StreamOutput::NullStream);
     THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message ); // as it is a multi G code command
     // Wait for above to finish
     THECONVEYOR.wait_for_idle();
-    THEROBOT->pop_state();
+    THEROBOT.pop_state();
     this->status = NOT_HOMING;
 }
 
@@ -661,19 +661,19 @@ void Endstops::home_xy()
         if(homing_axis[X_AXIS].home_direction) delta[X_AXIS]= -delta[X_AXIS];
         if(homing_axis[Y_AXIS].home_direction) delta[Y_AXIS]= -delta[Y_AXIS];
         float feed_rate = std::min(homing_axis[X_AXIS].fast_rate, homing_axis[Y_AXIS].fast_rate);
-        THEROBOT->delta_move(delta, feed_rate, 3);
+        THEROBOT.delta_move(delta, feed_rate, 3);
 
     } else if(axis_to_home[X_AXIS]) {
         // now home X only
         float delta[3] {homing_axis[X_AXIS].max_travel, 0, 0};
         if(homing_axis[X_AXIS].home_direction) delta[X_AXIS]= -delta[X_AXIS];
-        THEROBOT->delta_move(delta, homing_axis[X_AXIS].fast_rate, 3);
+        THEROBOT.delta_move(delta, homing_axis[X_AXIS].fast_rate, 3);
 
     } else if(axis_to_home[Y_AXIS]) {
         // now home Y only
         float delta[3] {0,  homing_axis[Y_AXIS].max_travel, 0};
         if(homing_axis[Y_AXIS].home_direction) delta[Y_AXIS]= -delta[Y_AXIS];
-        THEROBOT->delta_move(delta, homing_axis[Y_AXIS].fast_rate, 3);
+        THEROBOT.delta_move(delta, homing_axis[Y_AXIS].fast_rate, 3);
     }
 
     // Wait for axis to have homed
@@ -689,7 +689,7 @@ void Endstops::home(axis_bitmap_t a)
     }
 
     if (is_scara) {
-        THEROBOT->disable_arm_solution = true;  // Polar bots has to home in the actuator space.  Arm solution disabled.
+        THEROBOT.disable_arm_solution = true;  // Polar bots has to home in the actuator space.  Arm solution disabled.
     }
 
     this->axis_to_home= a;
@@ -697,7 +697,7 @@ void Endstops::home(axis_bitmap_t a)
     // Start moving the axes to the origin
     this->status = MOVING_TO_ENDSTOP_FAST;
 
-    THEROBOT->disable_segmentation= true; // we must disable segmentation as this won't work with it enabled
+    THEROBOT.disable_segmentation= true; // we must disable segmentation as this won't work with it enabled
 
     if(!home_z_first) home_xy();
 
@@ -705,7 +705,7 @@ void Endstops::home(axis_bitmap_t a)
         // now home z
         float delta[3] {0, 0, homing_axis[Z_AXIS].max_travel}; // we go the max z
         if(homing_axis[Z_AXIS].home_direction) delta[Z_AXIS]= -delta[Z_AXIS];
-        THEROBOT->delta_move(delta, homing_axis[Z_AXIS].fast_rate, 3);
+        THEROBOT.delta_move(delta, homing_axis[Z_AXIS].fast_rate, 3);
         // wait for Z
         THECONVEYOR.wait_for_idle();
     }
@@ -721,7 +721,7 @@ void Endstops::home(axis_bitmap_t a)
                 for (size_t j = 0; j <= i; ++j) delta[j]= 0;
                 delta[i]= homing_axis[i].max_travel; // we go the max
                 if(homing_axis[i].home_direction) delta[i]= -delta[i];
-                THEROBOT->delta_move(delta, homing_axis[i].fast_rate, i+1);
+                THEROBOT.delta_move(delta, homing_axis[i].fast_rate, i+1);
                 // wait for it
                 THECONVEYOR.wait_for_idle();
             }
@@ -737,7 +737,7 @@ void Endstops::home(axis_bitmap_t a)
                 this->status = NOT_HOMING;
                 THEKERNEL.call_event(ON_HALT, nullptr);
                 THEKERNEL.set_halt_reason(HOME_FAIL);
-                THEROBOT->disable_segmentation= false;
+                THEROBOT.disable_segmentation= false;
                 return;
             }
         }
@@ -750,7 +750,7 @@ void Endstops::home(axis_bitmap_t a)
                 this->status = NOT_HOMING;
                 THEKERNEL.call_event(ON_HALT, nullptr);
                 THEKERNEL.set_halt_reason(HOME_FAIL);
-                THEROBOT->disable_segmentation = false;
+                THEROBOT.disable_segmentation = false;
                 return;
             }
         }
@@ -760,7 +760,7 @@ void Endstops::home(axis_bitmap_t a)
         // Only for non polar bots
         // we did not complete movement the full distance if we hit the endstops
         // TODO Maybe only reset axis involved in the homing cycle
-        THEROBOT->reset_position_from_current_actuator_position();
+        THEROBOT.reset_position_from_current_actuator_position();
     }
 
     // Move back a small distance for all homing axis
@@ -779,7 +779,7 @@ void Endstops::home(axis_bitmap_t a)
         }
     }
 
-    THEROBOT->delta_move(delta, feed_rate, homing_axis.size());
+    THEROBOT.delta_move(delta, feed_rate, homing_axis.size());
     // wait until finished
     THECONVEYOR.wait_for_idle();
 
@@ -794,17 +794,17 @@ void Endstops::home(axis_bitmap_t a)
             delta[c]= 0;
         }
     }
-    THEROBOT->delta_move(delta, feed_rate, homing_axis.size());
+    THEROBOT.delta_move(delta, feed_rate, homing_axis.size());
     // wait until finished
     THECONVEYOR.wait_for_idle();
 
     // we did not complete movement the full distance if we hit the endstops
     // TODO Maybe only reset axis involved in the homing cycle
-    THEROBOT->reset_position_from_current_actuator_position();
+    THEROBOT.reset_position_from_current_actuator_position();
 
-    THEROBOT->disable_segmentation= false;
+    THEROBOT.disable_segmentation= false;
     if (is_scara) {
-        THEROBOT->disable_arm_solution = false;  // Arm solution enabled again.
+        THEROBOT.disable_arm_solution = false;  // Arm solution enabled again.
     }
 
     this->status = NOT_HOMING;
@@ -816,8 +816,8 @@ void Endstops::process_home_command(Gcode* gcode)
     THECONVEYOR.wait_for_idle();
 
     // turn off any compensation transform so Z does not move as XY home
-    auto savect= THEROBOT->compensationTransform;
-    THEROBOT->compensationTransform= nullptr;
+    auto savect= THEROBOT.compensationTransform;
+    THEROBOT.compensationTransform= nullptr;
 
     // deltas always home Z axis only, which moves all three actuators
     bool home_in_z_only = this->is_delta || this->is_rdelta;
@@ -837,10 +837,10 @@ void Endstops::process_home_command(Gcode* gcode)
                 haxis.set(p.axis_index);
                 // now reset axis to 0 as we do not know what state we are in
                 if (!is_scara) {
-                    THEROBOT->reset_axis_position(0, p.axis_index);
+                    THEROBOT.reset_axis_position(0, p.axis_index);
                 } else {
                     // SCARA resets arms to plausable minimum angles
-                    THEROBOT->reset_axis_position(-30,30,0); // angles set into axis space for homing.
+                    THEROBOT.reset_axis_position(-30,30,0); // angles set into axis space for homing.
                 }
             }
         }
@@ -859,7 +859,7 @@ void Endstops::process_home_command(Gcode* gcode)
             // Only Z axis homes (even though all actuators move this is handled by arm solution)
             haxis.set(Z_AXIS);
             // we also set the kinematics to a known good position, this is necessary for a rotary delta, but doesn't hurt for linear delta
-            THEROBOT->reset_axis_position(0, 0, 0);
+            THEROBOT.reset_axis_position(0, 0, 0);
         }
     }
 
@@ -902,7 +902,7 @@ void Endstops::process_home_command(Gcode* gcode)
     }
 
     // restore compensationTransform
-    THEROBOT->compensationTransform= savect;
+    THEROBOT.compensationTransform= savect;
 
     // check if on_halt (eg kill or fail)
     if(THEKERNEL.is_halted()) {
@@ -930,7 +930,7 @@ void Endstops::process_home_command(Gcode* gcode)
         bool has_endstop_trim = this->is_delta || is_scara;
         if (has_endstop_trim) {
             ActuatorCoordinates ideal_actuator_position;
-            THEROBOT->arm_solution->cartesian_to_actuator(ideal_position, ideal_actuator_position);
+            THEROBOT.arm_solution->cartesian_to_actuator(ideal_position, ideal_actuator_position);
 
             // We are actually not at the ideal position, but a trim away
             ActuatorCoordinates real_actuator_position = {
@@ -940,20 +940,20 @@ void Endstops::process_home_command(Gcode* gcode)
             };
 
             float real_position[3];
-            THEROBOT->arm_solution->actuator_to_cartesian(real_actuator_position, real_position);
+            THEROBOT.arm_solution->actuator_to_cartesian(real_actuator_position, real_position);
             // Reset the actuator positions to correspond to our real position
-            THEROBOT->reset_axis_position(real_position[0], real_position[1], real_position[2]);
+            THEROBOT.reset_axis_position(real_position[0], real_position[1], real_position[2]);
 
         } else {
             // without endstop trim, real_position == ideal_position
             if(is_rdelta) {
                 // with a rotary delta we set the actuators angle then use the FK to calculate the resulting cartesian coordinates
                 ActuatorCoordinates real_actuator_position = {ideal_position[0], ideal_position[1], ideal_position[2]};
-                THEROBOT->reset_actuator_position(real_actuator_position);
+                THEROBOT.reset_actuator_position(real_actuator_position);
 
             } else {
                 // Reset the actuator positions to correspond to our real position
-                THEROBOT->reset_axis_position(ideal_position[0], ideal_position[1], ideal_position[2]);
+                THEROBOT.reset_axis_position(ideal_position[0], ideal_position[1], ideal_position[2]);
             }
         }
 
@@ -966,7 +966,7 @@ void Endstops::process_home_command(Gcode* gcode)
         for (size_t i = A_AXIS; i < homing_axis.size(); ++i) {
             auto &p= homing_axis[i];
             if (haxis[p.axis_index]) { // if we requested this axis to home
-                THEROBOT->reset_axis_position(p.homing_position + p.home_offset, p.axis_index);
+                THEROBOT.reset_axis_position(p.homing_position + p.home_offset, p.axis_index);
                 // set flag indicating axis was homed, it stays set once set until H/W reset or unhomed
                 p.homed= true;
             }
@@ -978,7 +978,7 @@ void Endstops::process_home_command(Gcode* gcode)
         // so XY are at a known consistent position.  (especially true if using a proximity probe)
         for (auto &p : homing_axis) {
             if (haxis[p.axis_index]) { // if we requested this axis to home
-                THEROBOT->reset_axis_position(p.homing_position + p.home_offset, p.axis_index);
+                THEROBOT.reset_axis_position(p.homing_position + p.home_offset, p.axis_index);
                 // set flag indicating axis was homed, it stays set once set until H/W reset or unhomed
                 p.homed= true;
             }
@@ -1007,14 +1007,14 @@ void Endstops::set_homing_offset(Gcode *gcode)
     // Basically it finds the delta between the current MCS position and the requested position and adds it to the homing offset
     // then will not let it be set again until that axis is homed.
     float pos[3];
-    THEROBOT->get_axis_position(pos);
+    THEROBOT.get_axis_position(pos);
 
     if (gcode->has_letter('X')) {
         if(!homing_axis[X_AXIS].homed) {
             gcode->stream->printf("error: Axis X must be homed before setting Homing offset\n");
             return;
         }
-        homing_axis[X_AXIS].home_offset += (THEROBOT->to_millimeters(gcode->get_value('X')) - pos[X_AXIS]);
+        homing_axis[X_AXIS].home_offset += (THEROBOT.to_millimeters(gcode->get_value('X')) - pos[X_AXIS]);
         homing_axis[X_AXIS].homed= false; // force it to be homed
     }
     if (gcode->has_letter('Y')) {
@@ -1022,7 +1022,7 @@ void Endstops::set_homing_offset(Gcode *gcode)
             gcode->stream->printf("error: Axis Y must be homed before setting Homing offset\n");
             return;
         }
-        homing_axis[Y_AXIS].home_offset += (THEROBOT->to_millimeters(gcode->get_value('Y')) - pos[Y_AXIS]);
+        homing_axis[Y_AXIS].home_offset += (THEROBOT.to_millimeters(gcode->get_value('Y')) - pos[Y_AXIS]);
         homing_axis[Y_AXIS].homed= false; // force it to be homed
     }
     if (gcode->has_letter('Z')) {
@@ -1030,7 +1030,7 @@ void Endstops::set_homing_offset(Gcode *gcode)
             gcode->stream->printf("error: Axis Z must be homed before setting Homing offset\n");
             return;
         }
-        homing_axis[Z_AXIS].home_offset += (THEROBOT->to_millimeters(gcode->get_value('Z')) - pos[Z_AXIS]);
+        homing_axis[Z_AXIS].home_offset += (THEROBOT.to_millimeters(gcode->get_value('Z')) - pos[Z_AXIS]);
         homing_axis[Z_AXIS].homed= false; // force it to be homed
     }
 
@@ -1040,9 +1040,9 @@ void Endstops::set_homing_offset(Gcode *gcode)
 void Endstops::handle_park_g28()
 {
     // TODO: spec says if XYZ specified move to them first then move to MCS of specifed axis
-    // THEROBOT->push_state();
-    // THEROBOT->absolute_mode = true;
-	// snprintf(buf, sizeof(buf), "G53 G0 X%f Y%f", THEROBOT->from_millimeters(g28_position[X_AXIS]), THEROBOT->from_millimeters(g28_position[Y_AXIS])); // must use machine coordinates in case G92 or WCS is in effect
+    // THEROBOT.push_state();
+    // THEROBOT.absolute_mode = true;
+	// snprintf(buf, sizeof(buf), "G53 G0 X%f Y%f", THEROBOT.from_millimeters(g28_position[X_AXIS]), THEROBOT.from_millimeters(g28_position[Y_AXIS])); // must use machine coordinates in case G92 or WCS is in effect
     // snprintf(buf, sizeof(buf), "M496"); // Got clearance position instead
 //    struct SerialMessage message;
 //    message.message = "M496";
@@ -1050,7 +1050,7 @@ void Endstops::handle_park_g28()
 //    THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     // Wait for above to finish
     // THECONVEYOR.wait_for_idle();
-    // THEROBOT->pop_state();
+    // THEROBOT.pop_state();
 }
 
 // parse gcodes
@@ -1069,7 +1069,7 @@ void Endstops::on_gcode_received(void *argument)
 
             case 1: // G28.1 set pre defined park position
                 // saves current position in absolute machine coordinates
-                THEROBOT->get_axis_position(g28_position); // Only XY are used
+                THEROBOT.get_axis_position(g28_position); // Only XY are used
                 // Note the following is only meant to be used for recovering a saved position from config-override
                 // Not a standard Gcode and not to be relied on
                 if (gcode->has_letter('X')) g28_position[X_AXIS] = gcode->get_value('X');
@@ -1096,16 +1096,16 @@ void Endstops::on_gcode_received(void *argument)
                     for (auto &p : homing_axis) {
                         if(p.pin_info == nullptr) continue; // ignore if not a homing endstop
                         p.homed= true;
-                        THEROBOT->reset_axis_position(0, p.axis_index);
+                        THEROBOT.reset_axis_position(0, p.axis_index);
                     }
                 } else {
                     // do a manual homing based on given coordinates, no endstops required
-                    if(gcode->has_letter('X')){ THEROBOT->reset_axis_position(gcode->get_value('X'), X_AXIS); homing_axis[X_AXIS].homed= true; }
-                    if(gcode->has_letter('Y')){ THEROBOT->reset_axis_position(gcode->get_value('Y'), Y_AXIS); homing_axis[Y_AXIS].homed= true; }
-                    if(gcode->has_letter('Z')){ THEROBOT->reset_axis_position(gcode->get_value('Z'), Z_AXIS); homing_axis[Z_AXIS].homed= true; }
-                    if(homing_axis.size() > A_AXIS && homing_axis[A_AXIS].pin_info != nullptr && gcode->has_letter('A')){ THEROBOT->reset_axis_position(gcode->get_value('A'), A_AXIS); homing_axis[A_AXIS].homed= true; }
-                    if(homing_axis.size() > B_AXIS && homing_axis[B_AXIS].pin_info != nullptr && gcode->has_letter('B')){ THEROBOT->reset_axis_position(gcode->get_value('B'), B_AXIS); homing_axis[B_AXIS].homed= true; }
-                    if(homing_axis.size() > C_AXIS && homing_axis[C_AXIS].pin_info != nullptr && gcode->has_letter('C')){ THEROBOT->reset_axis_position(gcode->get_value('C'), C_AXIS); homing_axis[C_AXIS].homed= true; }
+                    if(gcode->has_letter('X')){ THEROBOT.reset_axis_position(gcode->get_value('X'), X_AXIS); homing_axis[X_AXIS].homed= true; }
+                    if(gcode->has_letter('Y')){ THEROBOT.reset_axis_position(gcode->get_value('Y'), Y_AXIS); homing_axis[Y_AXIS].homed= true; }
+                    if(gcode->has_letter('Z')){ THEROBOT.reset_axis_position(gcode->get_value('Z'), Z_AXIS); homing_axis[Z_AXIS].homed= true; }
+                    if(homing_axis.size() > A_AXIS && homing_axis[A_AXIS].pin_info != nullptr && gcode->has_letter('A')){ THEROBOT.reset_axis_position(gcode->get_value('A'), A_AXIS); homing_axis[A_AXIS].homed= true; }
+                    if(homing_axis.size() > B_AXIS && homing_axis[B_AXIS].pin_info != nullptr && gcode->has_letter('B')){ THEROBOT.reset_axis_position(gcode->get_value('B'), B_AXIS); homing_axis[B_AXIS].homed= true; }
+                    if(homing_axis.size() > C_AXIS && homing_axis[C_AXIS].pin_info != nullptr && gcode->has_letter('C')){ THEROBOT.reset_axis_position(gcode->get_value('C'), C_AXIS); homing_axis[C_AXIS].homed= true; }
                 }
                 break;
 
@@ -1115,7 +1115,7 @@ void Endstops::on_gcode_received(void *argument)
                     if(gcode->has_letter('X')){ ac[0] =  gcode->get_value('X'); homing_axis[X_AXIS].homed= true; }
                     if(gcode->has_letter('Y')){ ac[1] =  gcode->get_value('Y'); homing_axis[Y_AXIS].homed= true; }
                     if(gcode->has_letter('Z')){ ac[2] =  gcode->get_value('Z'); homing_axis[Z_AXIS].homed= true; }
-                    THEROBOT->reset_actuator_position(ac);
+                    THEROBOT.reset_actuator_position(ac);
                 }
                 break;
 

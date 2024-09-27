@@ -41,7 +41,7 @@
 #include <math.h>
 
 #define ATC_AXIS 4
-#define STEPPER THEROBOT->actuators
+#define STEPPER THEROBOT.actuators
 // #define STEPS_PER_MM(a) (STEPPER[a]->get_steps_per_mm())
 
 #define atc_checksum            	CHECKSUM("atc")
@@ -120,26 +120,26 @@ void ATCHandler::fill_drop_scripts(int old_tool) {
 	// set atc status
 	this->script_queue.push("M497.1");
     // lift z axis to atc start position
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->clearance_z));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(this->clearance_z));
 	this->script_queue.push(buff);
     // move x and y to active tool position
-	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(current_tool->mx_mm), THEROBOT->from_millimeters(current_tool->my_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(current_tool->mx_mm), THEROBOT.from_millimeters(current_tool->my_mm));
 	this->script_queue.push(buff);
 	// move around to see if tool rack is empty
 	this->script_queue.push("M492.2");
     // move x and y to reseted tool position
-	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(current_tool->mx_mm), THEROBOT->from_millimeters(current_tool->my_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(current_tool->mx_mm), THEROBOT.from_millimeters(current_tool->my_mm));
 	this->script_queue.push(buff);
     // drop z axis to z position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G1 Z%.3f F%.3f", THEROBOT->from_millimeters(current_tool->mz_mm + safe_z_offset_mm), THEROBOT->from_millimeters(fast_z_rate));
+	snprintf(buff, sizeof(buff), "G53 G1 Z%.3f F%.3f", THEROBOT.from_millimeters(current_tool->mz_mm + safe_z_offset_mm), THEROBOT.from_millimeters(fast_z_rate));
 	this->script_queue.push(buff);
     // drop z axis with slow speed
-	snprintf(buff, sizeof(buff), "G53 G1 Z%.3f F%.3f", THEROBOT->from_millimeters(current_tool->mz_mm), THEROBOT->from_millimeters(slow_z_rate));
+	snprintf(buff, sizeof(buff), "G53 G1 Z%.3f F%.3f", THEROBOT.from_millimeters(current_tool->mz_mm), THEROBOT.from_millimeters(slow_z_rate));
 	this->script_queue.push(buff);
 	// loose tool
 	this->script_queue.push("M490.2");
 	// lift z to safe position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->safe_z_empty_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(this->safe_z_empty_mm));
 	this->script_queue.push(buff);
 	// set new tool to -1
 	this->script_queue.push("M493.2 T-1");
@@ -153,28 +153,28 @@ void ATCHandler::fill_pick_scripts(int new_tool, bool clear_z) {
 	// set atc status
 	this->script_queue.push("M497.2");
 	// lift z to safe position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(clear_z ? this->clearance_z : this->safe_z_empty_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(clear_z ? this->clearance_z : this->safe_z_empty_mm));
 	this->script_queue.push(buff);
 	// move x and y to new tool position
-	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(current_tool->mx_mm), THEROBOT->from_millimeters(current_tool->my_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(current_tool->mx_mm), THEROBOT.from_millimeters(current_tool->my_mm));
 	this->script_queue.push(buff);
 	// move around to see if tool rack is filled
 	this->script_queue.push("M492.1");
 	// loose tool
 	this->script_queue.push("M490.2");
 	// move x and y to reseted tool position
-	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(current_tool->mx_mm), THEROBOT->from_millimeters(current_tool->my_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(current_tool->mx_mm), THEROBOT.from_millimeters(current_tool->my_mm));
 	this->script_queue.push(buff);
     // drop z axis to z position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G1 Z%.3f F%.3f", THEROBOT->from_millimeters(current_tool->mz_mm + safe_z_offset_mm), THEROBOT->from_millimeters(fast_z_rate));
+	snprintf(buff, sizeof(buff), "G53 G1 Z%.3f F%.3f", THEROBOT.from_millimeters(current_tool->mz_mm + safe_z_offset_mm), THEROBOT.from_millimeters(fast_z_rate));
 	this->script_queue.push(buff);
     // drop z axis with slow speed
-	snprintf(buff, sizeof(buff), "G53 G1 Z%.3f F%.3f", THEROBOT->from_millimeters(current_tool->mz_mm), THEROBOT->from_millimeters(slow_z_rate));
+	snprintf(buff, sizeof(buff), "G53 G1 Z%.3f F%.3f", THEROBOT.from_millimeters(current_tool->mz_mm), THEROBOT.from_millimeters(slow_z_rate));
 	this->script_queue.push(buff);
 	// clamp tool
 	this->script_queue.push("M490.1");
 	// lift z to safe position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->safe_z_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(this->safe_z_mm));
 	this->script_queue.push(buff);
 	// move around to see if tool rack is empty, halt if not
 	this->script_queue.push("M492.2");
@@ -193,16 +193,16 @@ void ATCHandler::fill_cali_scripts(bool is_probe, bool clear_z) {
 		this->script_queue.push("M490.1");
 	}
 	// lift z to safe position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(clear_z ? this->clearance_z : this->safe_z_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(clear_z ? this->clearance_z : this->safe_z_mm));
 	this->script_queue.push(buff);
 	// move x and y to calibrate position
-	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(probe_mx_mm), THEROBOT->from_millimeters(probe_my_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(probe_mx_mm), THEROBOT.from_millimeters(probe_my_mm));
 	this->script_queue.push(buff);
 	// do calibrate with fast speed
 	snprintf(buff, sizeof(buff), "G38.6 Z%.3f F%.3f", probe_mz_mm, probe_fast_rate);
 	this->script_queue.push(buff);
 	// lift a bit
-	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT->from_millimeters(probe_retract_mm));
+	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT.from_millimeters(probe_retract_mm));
 	this->script_queue.push(buff);
 	// do calibrate with slow speed
 	snprintf(buff, sizeof(buff), "G38.6 Z%.3f F%.3f", -1 - probe_retract_mm, probe_slow_rate);
@@ -210,7 +210,7 @@ void ATCHandler::fill_cali_scripts(bool is_probe, bool clear_z) {
 	// save new tool offset
 	this->script_queue.push("M493.1");
 	// lift z to safe position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->safe_z_mm));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(this->safe_z_mm));
 	this->script_queue.push(buff);
 
 	// check if wireless probe is will be triggered
@@ -229,27 +229,27 @@ void ATCHandler::fill_margin_scripts(float x_pos, float y_pos, float x_pos_max, 
 	this->script_queue.push("M494.1");
 
 	// lift z to safe position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->clearance_z));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(this->clearance_z));
 	this->script_queue.push(buff);
 
 	// goto margin start position
-	snprintf(buff, sizeof(buff), "G90 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(x_pos), THEROBOT->from_millimeters(y_pos));
+	snprintf(buff, sizeof(buff), "G90 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(x_pos), THEROBOT.from_millimeters(y_pos));
 	this->script_queue.push(buff);
 
 	// goto margin top left corner
-	snprintf(buff, sizeof(buff), "G90 G1 X%.3f Y%.3f F%.3f", THEROBOT->from_millimeters(x_pos), THEROBOT->from_millimeters(y_pos_max), THEROBOT->from_millimeters(this->margin_rate));
+	snprintf(buff, sizeof(buff), "G90 G1 X%.3f Y%.3f F%.3f", THEROBOT.from_millimeters(x_pos), THEROBOT.from_millimeters(y_pos_max), THEROBOT.from_millimeters(this->margin_rate));
 	this->script_queue.push(buff);
 
 	// goto margin top right corner
-	snprintf(buff, sizeof(buff), "G90 G1 X%.3f Y%.3f F%.3f", THEROBOT->from_millimeters(x_pos_max), THEROBOT->from_millimeters(y_pos_max), THEROBOT->from_millimeters(this->margin_rate));
+	snprintf(buff, sizeof(buff), "G90 G1 X%.3f Y%.3f F%.3f", THEROBOT.from_millimeters(x_pos_max), THEROBOT.from_millimeters(y_pos_max), THEROBOT.from_millimeters(this->margin_rate));
 	this->script_queue.push(buff);
 
 	// goto margin bottom right corner
-	snprintf(buff, sizeof(buff), "G90 G1 X%.3f Y%.3f F%.3f", THEROBOT->from_millimeters(x_pos_max), THEROBOT->from_millimeters(y_pos), THEROBOT->from_millimeters(this->margin_rate));
+	snprintf(buff, sizeof(buff), "G90 G1 X%.3f Y%.3f F%.3f", THEROBOT.from_millimeters(x_pos_max), THEROBOT.from_millimeters(y_pos), THEROBOT.from_millimeters(this->margin_rate));
 	this->script_queue.push(buff);
 
 	// goto margin start position
-	snprintf(buff, sizeof(buff), "G90 G1 X%.3f Y%.3f F%.3f", THEROBOT->from_millimeters(x_pos), THEROBOT->from_millimeters(y_pos), THEROBOT->from_millimeters(this->margin_rate));
+	snprintf(buff, sizeof(buff), "G90 G1 X%.3f Y%.3f F%.3f", THEROBOT.from_millimeters(x_pos), THEROBOT.from_millimeters(y_pos), THEROBOT.from_millimeters(this->margin_rate));
 	this->script_queue.push(buff);
 
 	// close probe laser
@@ -261,11 +261,11 @@ void ATCHandler::fill_goto_origin_scripts(float x_pos, float y_pos) {
 	char buff[100];
 
 	// lift z to clearance position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->clearance_z));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(this->clearance_z));
 	this->script_queue.push(buff);
 
 	// goto start position
-	snprintf(buff, sizeof(buff), "G90 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(x_pos), THEROBOT->from_millimeters(y_pos));
+	snprintf(buff, sizeof(buff), "G90 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(x_pos), THEROBOT.from_millimeters(y_pos));
 	this->script_queue.push(buff);
 
 }
@@ -277,11 +277,11 @@ void ATCHandler::fill_zprobe_scripts(float x_pos, float y_pos, float x_offset, f
 	this->script_queue.push("M497.5");
 
 	// lift z to safe position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->clearance_z));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(this->clearance_z));
 	this->script_queue.push(buff);
 
 	// goto z probe position
-	snprintf(buff, sizeof(buff), "G90 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(x_pos + x_offset), THEROBOT->from_millimeters(y_pos + y_offset));
+	snprintf(buff, sizeof(buff), "G90 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(x_pos + x_offset), THEROBOT.from_millimeters(y_pos + y_offset));
 	this->script_queue.push(buff);
 
 	// do probe with fast speed
@@ -289,7 +289,7 @@ void ATCHandler::fill_zprobe_scripts(float x_pos, float y_pos, float x_offset, f
 	this->script_queue.push(buff);
 
 	// lift a bit
-	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT->from_millimeters(probe_retract_mm));
+	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT.from_millimeters(probe_retract_mm));
 	this->script_queue.push(buff);
 
 	// do calibrate with slow speed
@@ -297,11 +297,11 @@ void ATCHandler::fill_zprobe_scripts(float x_pos, float y_pos, float x_offset, f
 	this->script_queue.push(buff);
 
 	// set z working coordinate
-	snprintf(buff, sizeof(buff), "G10 L20 P0 Z%.3f", THEROBOT->from_millimeters(probe_height_mm));
+	snprintf(buff, sizeof(buff), "G10 L20 P0 Z%.3f", THEROBOT.from_millimeters(probe_height_mm));
 	this->script_queue.push(buff);
 
 	// retract z a bit
-	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT->from_millimeters(probe_retract_mm));
+	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT.from_millimeters(probe_retract_mm));
 	this->script_queue.push(buff);
 }
 
@@ -312,11 +312,11 @@ void ATCHandler::fill_zprobe_abs_scripts() {
 	this->script_queue.push("M497.5");
 
 	// lift z to safe position with fast speed
-	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(clearance_z));
+	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(clearance_z));
 	this->script_queue.push(buff);
 
 	// goto z probe position
-	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(anchor1_x + rotation_offset_x - 3), THEROBOT->from_millimeters(anchor1_y + rotation_offset_y));
+	snprintf(buff, sizeof(buff), "G53 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(anchor1_x + rotation_offset_x - 3), THEROBOT.from_millimeters(anchor1_y + rotation_offset_y));
 	this->script_queue.push(buff);
 
 	// do probe with fast speed
@@ -324,7 +324,7 @@ void ATCHandler::fill_zprobe_abs_scripts() {
 	this->script_queue.push(buff);
 
 	// lift a bit
-	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT->from_millimeters(probe_retract_mm));
+	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT.from_millimeters(probe_retract_mm));
 	this->script_queue.push(buff);
 
 	// do calibrate with slow speed
@@ -332,11 +332,11 @@ void ATCHandler::fill_zprobe_abs_scripts() {
 	this->script_queue.push(buff);
 
 	// set z working coordinate
-	snprintf(buff, sizeof(buff), "G10 L20 P0 Z%.3f", THEROBOT->from_millimeters(rotation_offset_z));
+	snprintf(buff, sizeof(buff), "G10 L20 P0 Z%.3f", THEROBOT.from_millimeters(rotation_offset_z));
 	this->script_queue.push(buff);
 
 	// retract z a bit
-	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT->from_millimeters(probe_retract_mm));
+	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT.from_millimeters(probe_retract_mm));
 	this->script_queue.push(buff);
 }
 
@@ -351,11 +351,11 @@ void ATCHandler::fill_xyzprobe_scripts(float tool_dia, float probe_height) {
 	this->script_queue.push(buff);
 
 	// set Z origin
-	snprintf(buff, sizeof(buff), "G10 L20 P0 Z%.3f", THEROBOT->from_millimeters(probe_height));
+	snprintf(buff, sizeof(buff), "G10 L20 P0 Z%.3f", THEROBOT.from_millimeters(probe_height));
 	this->script_queue.push(buff);
 
 	// lift a bit
-	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT->from_millimeters(probe_retract_mm));
+	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT.from_millimeters(probe_retract_mm));
 	this->script_queue.push(buff);
 
 	// do x probe with slow speed
@@ -363,11 +363,11 @@ void ATCHandler::fill_xyzprobe_scripts(float tool_dia, float probe_height) {
 	this->script_queue.push(buff);
 
 	// set x origin
-	snprintf(buff, sizeof(buff), "G10 L20 P0 X%.3f", THEROBOT->from_millimeters(tool_dia / 2));
+	snprintf(buff, sizeof(buff), "G10 L20 P0 X%.3f", THEROBOT.from_millimeters(tool_dia / 2));
 	this->script_queue.push(buff);
 
 	// move right a little bit
-	snprintf(buff, sizeof(buff), "G91 G0 X%.3f", THEROBOT->from_millimeters(5.0));
+	snprintf(buff, sizeof(buff), "G91 G0 X%.3f", THEROBOT.from_millimeters(5.0));
 	this->script_queue.push(buff);
 
 	// do y probe with slow speed
@@ -375,19 +375,19 @@ void ATCHandler::fill_xyzprobe_scripts(float tool_dia, float probe_height) {
 	this->script_queue.push(buff);
 
 	// set y origin
-	snprintf(buff, sizeof(buff), "G10 L20 P0 Y%.3f", THEROBOT->from_millimeters(tool_dia / 2));
+	snprintf(buff, sizeof(buff), "G10 L20 P0 Y%.3f", THEROBOT.from_millimeters(tool_dia / 2));
 	this->script_queue.push(buff);
 
 	// move forward a little bit
-	snprintf(buff, sizeof(buff), "G91 G0 Y%.3f", THEROBOT->from_millimeters(5.0));
+	snprintf(buff, sizeof(buff), "G91 G0 Y%.3f", THEROBOT.from_millimeters(5.0));
 	this->script_queue.push(buff);
 
 	// retract z to be above probe
-	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT->from_millimeters(15.0));
+	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT.from_millimeters(15.0));
 	this->script_queue.push(buff);
 
 	// move to XY zero
-	snprintf(buff, sizeof(buff), "G91 G0 X%.3f Y%0.3f", THEROBOT->from_millimeters(-5 - tool_dia / 2), THEROBOT->from_millimeters(-5 - tool_dia / 2));
+	snprintf(buff, sizeof(buff), "G91 G0 X%.3f Y%0.3f", THEROBOT.from_millimeters(-5 - tool_dia / 2), THEROBOT.from_millimeters(-5 - tool_dia / 2));
 	this->script_queue.push(buff);
 
 }
@@ -401,7 +401,7 @@ void ATCHandler::fill_autolevel_scripts(float x_pos, float y_pos,
 	this->script_queue.push("M497.6");
 
 	// goto x and y path origin
-	snprintf(buff, sizeof(buff), "G90 G0 X%.3f Y%.3f", THEROBOT->from_millimeters(x_pos), THEROBOT->from_millimeters(y_pos));
+	snprintf(buff, sizeof(buff), "G90 G0 X%.3f Y%.3f", THEROBOT.from_millimeters(x_pos), THEROBOT.from_millimeters(y_pos));
 	this->script_queue.push(buff);
 
 	// do auto leveling
@@ -575,19 +575,19 @@ bool ATCHandler::laser_detect() {
 	float delta[Y_AXIS + 1];
 	for (size_t i = 0; i <= Y_AXIS; i++) delta[i] = 0;
 	delta[Y_AXIS]= detector_info.detect_travel / 2;
-	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
+	THEROBOT.delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
 	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return false;
 
 	delta[Y_AXIS]= 0 - detector_info.detect_travel;
-	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
+	THEROBOT.delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
 	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return false;
 
 	delta[Y_AXIS]= detector_info.detect_travel / 2;
-	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
+	THEROBOT.delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
 	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return false;
@@ -603,7 +603,7 @@ bool ATCHandler::laser_detect() {
     }
 
     // reset position
-    THEROBOT->reset_position_from_current_actuator_position();
+    THEROBOT.reset_position_from_current_actuator_position();
 
     return detector_info.triggered;
 }
@@ -639,7 +639,7 @@ void ATCHandler::home_clamp()
 	float delta[ATC_AXIS + 1];
 	for (size_t i = 0; i <= ATC_AXIS; i++) delta[i] = 0;
 	delta[ATC_AXIS]= atc_home_info.max_travel; // we go the max
-	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
+	THEROBOT.delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
 	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return;
@@ -652,13 +652,13 @@ void ATCHandler::home_clamp()
         printk("ERROR: Homing atc failed - check the atc max travel settings\n");
         return;
     } else {
-    	THEROBOT->reset_position_from_current_actuator_position();
+    	THEROBOT.reset_position_from_current_actuator_position();
     }
 
     // Move back
 	for (size_t i = 0; i <= ATC_AXIS; i++) delta[i] = 0;
 	delta[ATC_AXIS] = -atc_home_info.retract; // we go to retract position
-	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
+	THEROBOT.delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
 	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return;
@@ -685,7 +685,7 @@ void ATCHandler::clamp_tool()
 	float delta[ATC_AXIS + 1];
 	for (size_t i = 0; i <= ATC_AXIS; i++) delta[i] = 0;
 	delta[4] = atc_home_info.action_dist;
-	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
+	THEROBOT.delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
 	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return;
@@ -711,7 +711,7 @@ void ATCHandler::loose_tool()
 	float delta[ATC_AXIS + 1];
 	for (size_t i = 0; i <= ATC_AXIS; i++) delta[i] = 0;
 	delta[4] = -atc_home_info.action_dist;
-	THEROBOT->delta_move(delta, atc_home_info.action_rate, ATC_AXIS + 1);
+	THEROBOT.delta_move(delta, atc_home_info.action_rate, ATC_AXIS + 1);
 	// wait for it
 	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return;
@@ -725,13 +725,13 @@ void ATCHandler::set_tool_offset()
 {
     float px, py, pz;
     uint8_t ps;
-    std::tie(px, py, pz, ps) = THEROBOT->get_last_probe_position();
+    std::tie(px, py, pz, ps) = THEROBOT.get_last_probe_position();
     if (ps == 1) {
         cur_tool_mz = pz;
         if (ref_tool_mz < 0) {
         	tool_offset = cur_tool_mz - ref_tool_mz;
         	const float offset[3] = {0.0, 0.0, tool_offset};
-        	THEROBOT->saveToolOffset(offset, cur_tool_mz);
+        	THEROBOT.saveToolOffset(offset, cur_tool_mz);
         }
     }
 	
@@ -781,8 +781,8 @@ void ATCHandler::on_gcode_received(void *argument)
             			return;
             		}
                     // push old state
-                    THEROBOT->push_state();
-                    THEROBOT->get_axis_position(last_pos, 3);
+                    THEROBOT.push_state();
+                    THEROBOT.get_axis_position(last_pos, 3);
                     set_inner_playing(true);
                     this->clear_script_queue();
                 	if (this->active_tool < 0) {
@@ -809,8 +809,8 @@ void ATCHandler::on_gcode_received(void *argument)
                 	}
             	} else if (new_tool == -1  && THEKERNEL.get_laser_mode()) {
             		// calibrate
-                    THEROBOT->push_state();
-                    THEROBOT->get_axis_position(last_pos, 3);
+                    THEROBOT.push_state();
+                    THEROBOT.get_axis_position(last_pos, 3);
                     set_inner_playing(true);
                     this->clear_script_queue();
             		atc_status = CALI;
@@ -846,8 +846,8 @@ void ATCHandler::on_gcode_received(void *argument)
 				float tlo = THEKERNEL.eeprom_data->TLO;
 
 				// do calibrate to find new TLO
-				THEROBOT->push_state();
-				THEROBOT->get_axis_position(last_pos, 3);
+				THEROBOT.push_state();
+				THEROBOT.get_axis_position(last_pos, 3);
 				set_inner_playing(true);
 				this->clear_script_queue();
 				
@@ -858,7 +858,7 @@ void ATCHandler::on_gcode_received(void *argument)
 				// lift z to safe position with fast speed
 				snprintf(buff, sizeof(buff), "M5");
 				this->script_queue.push(buff);
-				snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->safe_z_mm));
+				snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT.from_millimeters(this->safe_z_mm));
 				this->script_queue.push(buff);
 				snprintf(buff, sizeof(buff), "M491.2 H%.3f , P%.3f", tolerance, tlo);
 				this->script_queue.push(buff);
@@ -900,8 +900,8 @@ void ATCHandler::on_gcode_received(void *argument)
 
 			} else {
 				// do calibrate
-				THEROBOT->push_state();
-				THEROBOT->get_axis_position(last_pos, 3);
+				THEROBOT.push_state();
+				THEROBOT.get_axis_position(last_pos, 3);
 				set_inner_playing(true);
 				this->clear_script_queue();
 				atc_status = CALI;
@@ -971,7 +971,7 @@ void ATCHandler::on_gcode_received(void *argument)
 				if (gcode->has_letter('H')) {
 					probe_height = gcode->get_value('H');
 				}
-	            THEROBOT->push_state();
+	            THEROBOT.push_state();
 				set_inner_playing(true);
 				atc_status = AUTOMATION;
 	            this->clear_script_queue();
@@ -1025,7 +1025,7 @@ void ATCHandler::on_gcode_received(void *argument)
 			    		z_level_height = gcode->get_value('H');
 					}
 		    		if (margin || zprobe || leveling) {
-			            THEROBOT->push_state();
+			            THEROBOT.push_state();
 						set_inner_playing(true);
 						atc_status = AUTOMATION;
 			            this->clear_script_queue();
@@ -1033,7 +1033,7 @@ void ATCHandler::on_gcode_received(void *argument)
 			            	// need to change to probe tool first
 			        		gcode->stream->printf("Change to probe tool first!\r\n");
 			                // save current position
-			                THEROBOT->get_axis_position(last_pos, 3);
+			                THEROBOT.get_axis_position(last_pos, 3);
 			        		if (active_tool > 0) {
 			        			// drop current tool
 			            		int old_tool = active_tool;
@@ -1140,7 +1140,7 @@ void ATCHandler::on_main_loop(void *argument)
 				THEKERNEL.set_atc_state(ATC_NONE);
 
 				// pop old state
-				THEROBOT->pop_state();
+				THEROBOT.pop_state();
 
 				// if we were printing from an M command from pronterface we need to send this back
 				printk("Abort from ATC\n");
@@ -1177,19 +1177,19 @@ void ATCHandler::on_main_loop(void *argument)
 		THEKERNEL.set_atc_state(ATC_NONE);
 
         // pop old state
-        THEROBOT->pop_state();
+        THEROBOT.pop_state();
 
 		// if we were printing from an M command from pronterface we need to send this back
 		printk("Done ATC\r\n");
     } else if (g28_triggered) {
 		printk("G28 means goto clearance position on CARVERA\n");
-		THEROBOT->push_state();
+		THEROBOT.push_state();
 		// goto z clearance
 		rapid_move(true, NAN, NAN, this->clearance_z);
 		// goto x and y clearance
 		rapid_move(true, this->clearance_x, this->clearance_y, NAN);
 		THECONVEYOR.wait_for_idle();
-		THEROBOT->pop_state();
+		THEROBOT.pop_state();
 		g28_triggered = false;
     } else if (goto_position > -1) {
         rapid_move(true, NAN, NAN, this->clearance_z);
@@ -1239,15 +1239,15 @@ void ATCHandler::rapid_move(bool mc, float x, float y, float z)
 
     if(!isnan(x)) {
         size_t n= strlen(cmd);
-        snprintf(&cmd[n], CMDLEN-n, " X%1.3f", THEROBOT->from_millimeters(x));
+        snprintf(&cmd[n], CMDLEN-n, " X%1.3f", THEROBOT.from_millimeters(x));
     }
     if(!isnan(y)) {
         size_t n= strlen(cmd);
-        snprintf(&cmd[n], CMDLEN-n, " Y%1.3f", THEROBOT->from_millimeters(y));
+        snprintf(&cmd[n], CMDLEN-n, " Y%1.3f", THEROBOT.from_millimeters(y));
     }
     if(!isnan(z)) {
         size_t n= strlen(cmd);
-        snprintf(&cmd[n], CMDLEN-n, " Z%1.3f", THEROBOT->from_millimeters(z));
+        snprintf(&cmd[n], CMDLEN-n, " Z%1.3f", THEROBOT.from_millimeters(z));
     }
 
     // send as a command line as may have multiple G codes in it

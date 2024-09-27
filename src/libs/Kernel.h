@@ -8,8 +8,6 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
-#define THEROBOT THEKERNEL.robot
-
 #include "Module.h"
 #include "I2C.h" // mbed.h lib
 #include <array>
@@ -174,7 +172,6 @@ class Kernel {
         // These modules are available to all other modules
         SerialConsole*    serial;
         StreamOutputPool* streams;
-        Robot*            robot;
         Planner*          planner;
         Config*           config;
         Configurator*     configurator;
@@ -219,6 +216,7 @@ class Kernel {
 
 extern Kernel THEKERNEL;
 extern Conveyor THECONVEYOR;
+extern Robot THEROBOT;
 extern SimpleShell simpleshell;
 extern GcodeDispatch gcode_dispatch;    
 

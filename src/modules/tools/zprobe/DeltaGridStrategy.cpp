@@ -404,10 +404,10 @@ void DeltaGridStrategy::setAdjustFunction(bool on)
         // set the compensationTransform in robot
         using std::placeholders::_1;
         using std::placeholders::_2;
-        THEROBOT->compensationTransform = std::bind(&DeltaGridStrategy::doCompensation, this, _1, _2); // [this](float *target, bool inverse) { doCompensation(target, inverse); };
+        THEROBOT.compensationTransform = std::bind(&DeltaGridStrategy::doCompensation, this, _1, _2); // [this](float *target, bool inverse) { doCompensation(target, inverse); };
     } else {
         // clear it
-        THEROBOT->compensationTransform = nullptr;
+        THEROBOT.compensationTransform = nullptr;
     }
 }
 

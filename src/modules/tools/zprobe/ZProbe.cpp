@@ -50,7 +50,7 @@
 #define Y_AXIS 1
 #define Z_AXIS 2
 
-#define STEPPER THEROBOT->actuators
+#define STEPPER THEROBOT.actuators
 #define STEPS_PER_MM(a) (STEPPER[a]->get_steps_per_mm())
 #define Z_STEPS_PER_MM STEPS_PER_MM(Z_AXIS)
 
@@ -167,7 +167,7 @@ void ZProbe::probe_pin_irq(bool status) {
     // we check all axis as it maybe a G38.2 X10 for instance, not just a probe in Z
     if(STEPPER[X_AXIS]->is_moving() || STEPPER[Y_AXIS]->is_moving() || STEPPER[Z_AXIS]->is_moving()) {
         if (status != invert_probe) {
-            for (auto &a : THEROBOT->actuators) a->stop_moving();
+            for (auto &a : THEROBOT.actuators) a->stop_moving();
             probe_detected = true;
         }
     }
@@ -184,7 +184,7 @@ void ZProbe::calibrate_pin_irq() {
 
         // we signal the motors to stop, which will preempt any moves on that axis
         // we do all motors as it may be a delta
-        for (auto &a : THEROBOT->actuators) a->stop_moving();
+        for (auto &a : THEROBOT.actuators) a->stop_moving();
         calibrate_detected = true;
     }
 }
@@ -206,14 +206,14 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
     probe_detected = false;
 
     // save current actuator position so we can report how far we moved
-    float z_start_pos= THEROBOT->actuators[Z_AXIS]->get_current_position();
+    float z_start_pos= THEROBOT.actuators[Z_AXIS]->get_current_position();
 
     // move Z down
     bool dir= (!reverse_z != reverse); // xor
     float delta[3]= {0,0,0};
     delta[Z_AXIS]= dir ? -maxz : maxz;
     THEKERNEL.set_zprobing(true);
-    THEROBOT->delta_move(delta, feedrate, 3);
+    THEROBOT.delta_move(delta, feedrate, 3);
     THEKERNEL.set_zprobing(false);
 
     // wait until finished
@@ -222,16 +222,16 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
 
     // now see how far we moved, get delta in z we moved
     // NOTE this works for deltas as well as all three actuators move the same amount in Z
-    mm = z_start_pos - THEROBOT->actuators[2]->get_current_position();
+    mm = z_start_pos - THEROBOT.actuators[2]->get_current_position();
 
     // set the last probe position to the actuator units moved during this home
-    THEROBOT->set_last_probe_position(std::make_tuple(0, 0, mm, probe_detected ? 1:0));
+    THEROBOT.set_last_probe_position(std::make_tuple(0, 0, mm, probe_detected ? 1:0));
 
     probing= false;
 
     if(probe_detected) {
         // if the probe stopped the move we need to correct the last_milestone as it did not reach where it thought
-        THEROBOT->reset_position_from_current_actuator_position();
+        THEROBOT.reset_position_from_current_actuator_position();
     }
 
     return probe_detected;
@@ -240,7 +240,7 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
 // do probe then return to start position
 bool ZProbe::run_probe_return(float& mm, float feedrate, float max_dist, bool reverse)
 {
-    float save_z_pos= THEROBOT->get_axis_position(Z_AXIS);
+    float save_z_pos= THEROBOT.get_axis_position(Z_AXIS);
 
     bool ok= run_probe(mm, feedrate, max_dist, reverse);
 
@@ -299,7 +299,7 @@ void ZProbe::on_gcode_received(void *argument)
 
             if(probe_result) {
                 // the result is in actuator coordinates moved
-                gcode->stream->printf("Z:%1.4f\n", THEKERNEL.robot->from_millimeters(mm));
+                gcode->stream->printf("Z:%1.4f\n", THEROBOT.from_millimeters(mm));
 
                 if(set_z) {
                     // set current Z to the specified value, shortcut for G92 Znnn
@@ -445,7 +445,7 @@ void ZProbe::probe_XYZ(Gcode *gcode)
     // do a delta move which will stop as soon as the probe is triggered, or the distance is reached
     float delta[3]= {x, y, z};
     THEKERNEL.set_zprobing(true);
-    if(!THEROBOT->delta_move(delta, rate, 3)) {
+    if(!THEROBOT.delta_move(delta, rate, 3)) {
     	gcode->stream->printf("ERROR: Move too small,  %1.3f, %1.3f, %1.3f\n", x, y, z);
         THEKERNEL.call_event(ON_HALT, nullptr);
         THEKERNEL.set_halt_reason(PROBE_FAIL);
@@ -462,15 +462,15 @@ void ZProbe::probe_XYZ(Gcode *gcode)
 
     // if the probe stopped the move we need to correct the last_milestone as it did not reach where it thought
     // this also sets last_milestone to the machine coordinates it stopped at
-    THEROBOT->reset_position_from_current_actuator_position();
+    THEROBOT.reset_position_from_current_actuator_position();
     float pos[3];
-    THEROBOT->get_axis_position(pos, 3);
+    THEROBOT.get_axis_position(pos, 3);
 
     uint8_t probeok= this->probe_detected ? 1 : 0;
 
     // print results using the GRBL format
-    gcode->stream->printf("[PRB:%1.3f,%1.3f,%1.3f:%d]\n", THEKERNEL.robot->from_millimeters(pos[X_AXIS]), THEKERNEL.robot->from_millimeters(pos[Y_AXIS]), THEKERNEL.robot->from_millimeters(pos[Z_AXIS]), probeok);
-    THEROBOT->set_last_probe_position(std::make_tuple(pos[X_AXIS], pos[Y_AXIS], pos[Z_AXIS], probeok));
+    gcode->stream->printf("[PRB:%1.3f,%1.3f,%1.3f:%d]\n", THEROBOT.from_millimeters(pos[X_AXIS]), THEROBOT.from_millimeters(pos[Y_AXIS]), THEROBOT.from_millimeters(pos[Z_AXIS]), probeok);
+    THEROBOT.set_last_probe_position(std::make_tuple(pos[X_AXIS], pos[Y_AXIS], pos[Z_AXIS], probeok));
 
     if(probeok == 0 && (gcode->subcode == 2 || gcode->subcode == 4)) {
         // issue error if probe was not triggered and subcode is 2 or 4
@@ -512,7 +512,7 @@ void ZProbe::calibrate_Z(Gcode *gcode)
     // do a delta move which will stop as soon as the probe is triggered, or the distance is reached
     float delta[3]= {0, 0, z};
     THEKERNEL.set_zprobing(true);
-    if(!THEROBOT->delta_move(delta, rate, 3)) {
+    if(!THEROBOT.delta_move(delta, rate, 3)) {
         gcode->stream->printf("ERROR: Move too small,  %1.3f\n", z);
         THEKERNEL.call_event(ON_HALT, nullptr);
         THEKERNEL.set_halt_reason(PROBE_FAIL);
@@ -529,15 +529,15 @@ void ZProbe::calibrate_Z(Gcode *gcode)
 
     // if the probe stopped the move we need to correct the last_milestone as it did not reach where it thought
     // this also sets last_milestone to the machine coordinates it stopped at
-    THEROBOT->reset_position_from_current_actuator_position();
+    THEROBOT.reset_position_from_current_actuator_position();
     float pos[3];
-    THEROBOT->get_axis_position(pos, 3);
+    THEROBOT.get_axis_position(pos, 3);
 
     uint8_t calibrateok = this->calibrate_detected ? 1 : 0;
 
     // print results using the GRBL format
-    gcode->stream->printf("[PRB:%1.3f,%1.3f,%1.3f:%d]\n", THEKERNEL.robot->from_millimeters(pos[X_AXIS]), THEKERNEL.robot->from_millimeters(pos[Y_AXIS]), THEKERNEL.robot->from_millimeters(pos[Z_AXIS]), calibrateok);
-    THEROBOT->set_last_probe_position(std::make_tuple(pos[X_AXIS], pos[Y_AXIS], pos[Z_AXIS], calibrateok));
+    gcode->stream->printf("[PRB:%1.3f,%1.3f,%1.3f:%d]\n", THEROBOT.from_millimeters(pos[X_AXIS]), THEROBOT.from_millimeters(pos[Y_AXIS]), THEROBOT.from_millimeters(pos[Z_AXIS]), calibrateok);
+    THEROBOT.set_last_probe_position(std::make_tuple(pos[X_AXIS], pos[Y_AXIS], pos[Z_AXIS], calibrateok));
 
     if (calibrateok == 0) {
         // issue error if probe was not triggered and subcode is 2 or 4
@@ -565,15 +565,15 @@ void ZProbe::coordinated_move(float x, float y, float z, float feedrate, bool re
 
     if(!isnan(x)) {
         size_t n= strlen(cmd);
-        snprintf(&cmd[n], CMDLEN-n, " X%1.3f", THEROBOT->from_millimeters(x));
+        snprintf(&cmd[n], CMDLEN-n, " X%1.3f", THEROBOT.from_millimeters(x));
     }
     if(!isnan(y)) {
         size_t n= strlen(cmd);
-        snprintf(&cmd[n], CMDLEN-n, " Y%1.3f", THEROBOT->from_millimeters(y));
+        snprintf(&cmd[n], CMDLEN-n, " Y%1.3f", THEROBOT.from_millimeters(y));
     }
     if(!isnan(z)) {
         size_t n= strlen(cmd);
-        snprintf(&cmd[n], CMDLEN-n, " Z%1.3f", THEROBOT->from_millimeters(z));
+        snprintf(&cmd[n], CMDLEN-n, " Z%1.3f", THEROBOT.from_millimeters(z));
     }
 
     {
@@ -583,7 +583,7 @@ void ZProbe::coordinated_move(float x, float y, float z, float feedrate, bool re
     }
 
     // send as a command line as may have multiple G codes in it
-    THEROBOT->push_state();
+    THEROBOT.push_state();
     struct SerialMessage message;
     message.message = cmd;
     delete [] cmd;
@@ -591,7 +591,7 @@ void ZProbe::coordinated_move(float x, float y, float z, float feedrate, bool re
     message.stream = &(StreamOutput::NullStream);
     THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     THECONVEYOR.wait_for_idle();
-    THEROBOT->pop_state();
+    THEROBOT.pop_state();
 
 }
 

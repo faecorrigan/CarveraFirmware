@@ -50,7 +50,7 @@ bool DeltaCalibrationStrategy::handleGcode(Gcode *gcode)
             THECONVEYOR.wait_for_idle();
 
             // turn off any compensation transform as it will be invalidated anyway by this
-            THEROBOT->compensationTransform= nullptr;
+            THEROBOT.compensationTransform= nullptr;
 
             if(!gcode->has_letter('R')) {
                 if(!calibrate_delta_endstops(gcode)) {
@@ -117,7 +117,7 @@ bool DeltaCalibrationStrategy::probe_delta_points(Gcode *gcode)
 
     float max_delta= 0;
     float last_z= NAN;
-    float start_z= THEROBOT->actuators[2]->get_current_position();
+    float start_z= THEROBOT.actuators[2]->get_current_position();
 
     for(auto& i : pp) {
         float mm;
@@ -337,7 +337,7 @@ bool DeltaCalibrationStrategy::calibrate_delta_radius(Gcode *gcode)
     // get current delta radius
     float delta_radius = 0.0F;
     BaseSolution::arm_options_t options;
-    if(THEROBOT->arm_solution->get_optional(options)) {
+    if(THEROBOT.arm_solution->get_optional(options)) {
         delta_radius = options['R'];
     }
     if(delta_radius == 0.0F) {
@@ -374,7 +374,7 @@ bool DeltaCalibrationStrategy::calibrate_delta_radius(Gcode *gcode)
 
         // set the new delta radius
         options['R'] = delta_radius;
-        THEROBOT->arm_solution->set_optional(options);
+        THEROBOT.arm_solution->set_optional(options);
         gcode->stream->printf("Setting delta radius to: %1.4f\n", delta_radius);
 
         zprobe->home();

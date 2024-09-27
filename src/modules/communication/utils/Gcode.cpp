@@ -237,56 +237,56 @@ float Gcode::get_variable_value(const char* expr, char** endptr) const{
                     return THEKERNEL.get_optional_stop_mode();
                     break;
                 case 5021: //current machine X position
-                    THEROBOT->get_current_machine_position(mpos);
+                    THEROBOT.get_current_machine_position(mpos);
                     // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
-                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    if(THEROBOT.compensationTransform) THEROBOT.compensationTransform(mpos, true, false); // get inverse compensation transform
                     return mpos[X_AXIS];
                     break;
                 case 5022: //current machine Y position
-                    THEROBOT->get_current_machine_position(mpos);
+                    THEROBOT.get_current_machine_position(mpos);
                     // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
-                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    if(THEROBOT.compensationTransform) THEROBOT.compensationTransform(mpos, true, false); // get inverse compensation transform
                     return mpos[Y_AXIS];
                     break;
                 case 5023: //current machine Z position
-                    THEROBOT->get_current_machine_position(mpos);
+                    THEROBOT.get_current_machine_position(mpos);
                     // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
-                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    if(THEROBOT.compensationTransform) THEROBOT.compensationTransform(mpos, true, false); // get inverse compensation transform
                     return mpos[Z_AXIS];
                     break;
 
                 #if MAX_ROBOT_ACTUATORS > 3
                 case 5024: //current machine A position
-                    return THEROBOT->actuators[A_AXIS]->get_current_position();
+                    return THEROBOT.actuators[A_AXIS]->get_current_position();
                     break;
                 #endif
                 case 5041: //current WCS X position
-                     THEROBOT->get_current_machine_position(mpos);
+                     THEROBOT.get_current_machine_position(mpos);
                     // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
-                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
-                    pos= THEROBOT->mcs2wcs(mpos);
-                    return THEROBOT->from_millimeters(std::get<X_AXIS>(pos));
+                    if(THEROBOT.compensationTransform) THEROBOT.compensationTransform(mpos, true, false); // get inverse compensation transform
+                    pos= THEROBOT.mcs2wcs(mpos);
+                    return THEROBOT.from_millimeters(std::get<X_AXIS>(pos));
                     return 0;
                     break;
                 case 5042: //current WCS Y position
-                     THEROBOT->get_current_machine_position(mpos);
+                     THEROBOT.get_current_machine_position(mpos);
                     // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
-                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
-                    pos= THEROBOT->mcs2wcs(mpos);
-                    return THEROBOT->from_millimeters(std::get<Y_AXIS>(pos));
+                    if(THEROBOT.compensationTransform) THEROBOT.compensationTransform(mpos, true, false); // get inverse compensation transform
+                    pos= THEROBOT.mcs2wcs(mpos);
+                    return THEROBOT.from_millimeters(std::get<Y_AXIS>(pos));
                     return 0;
                     break;
                 case 5043: //current WCS A position
-                     THEROBOT->get_current_machine_position(mpos);
+                     THEROBOT.get_current_machine_position(mpos);
                     // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
-                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
-                    pos= THEROBOT->mcs2wcs(mpos);
-                    return THEROBOT->from_millimeters(std::get<Z_AXIS>(pos));
+                    if(THEROBOT.compensationTransform) THEROBOT.compensationTransform(mpos, true, false); // get inverse compensation transform
+                    pos= THEROBOT.mcs2wcs(mpos);
+                    return THEROBOT.from_millimeters(std::get<Z_AXIS>(pos));
                     return 0;
                     break;
                 #if MAX_ROBOT_ACTUATORS > 3
                 case 5044: //current machine A position
-                    return THEROBOT->actuators[A_AXIS]->get_current_position();
+                    return THEROBOT.actuators[A_AXIS]->get_current_position();
                     break;
                 #endif
 

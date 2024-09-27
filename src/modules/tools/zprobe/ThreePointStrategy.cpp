@@ -283,7 +283,7 @@ bool ThreePointStrategy::doProbing(StreamOutput *stream)
     if(!zprobe->run_probe(mm, zprobe->getSlowFeedrate())) return false;
 
     // TODO if using probe then we probably need to set Z to 0 at first probe point, but take into account probe offset from head
-    THEROBOT->reset_axis_position(std::get<Z_AXIS>(this->probe_offsets), Z_AXIS);
+    THEROBOT.reset_axis_position(std::get<Z_AXIS>(this->probe_offsets), Z_AXIS);
 
     // move up to specified probe start position
     zprobe->coordinated_move(NAN, NAN, zprobe->getProbeHeight(), zprobe->getSlowFeedrate()); // move to probe start position
@@ -360,10 +360,10 @@ void ThreePointStrategy::setAdjustFunction(bool on)
 {
     if(on) {
         // set the compensationTransform in robot
-        THEROBOT->compensationTransform= [this](float *target, bool inverse, bool debug) { if(inverse) target[2] -= this->plane->getz(target[0], target[1]); else target[2] += this->plane->getz(target[0], target[1]); };
+        THEROBOT.compensationTransform= [this](float *target, bool inverse, bool debug) { if(inverse) target[2] -= this->plane->getz(target[0], target[1]); else target[2] += this->plane->getz(target[0], target[1]); };
     }else{
         // clear it
-        THEROBOT->compensationTransform= nullptr;
+        THEROBOT.compensationTransform= nullptr;
     }
 }
 

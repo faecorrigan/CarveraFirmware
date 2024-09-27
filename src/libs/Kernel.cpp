@@ -20,8 +20,8 @@
 #include "libs/PublicData.h"
 #include "modules/communication/SerialConsole.h"
 #include "modules/robot/Planner.h"
-#include "modules/robot/Robot.h"
 #include "modules/robot/Conveyor.h"
+#include "modules/robot/Robot.h"
 #include "StepperMotor.h"
 #include "BaseSolution.h"
 #include "EndstopsPublicAccess.h"
@@ -194,9 +194,6 @@ void Kernel::init()
     // read eeprom data
     this->read_eeprom_data();
 
-    // Core modules
-    this->add_module( this->robot          = new(AHB0) Robot()         );
-
     this->planner = new(AHB0) Planner();
     this->configurator = new(AHB0) Configurator();
 }
@@ -274,29 +271,29 @@ std::string Kernel::get_query_string()
     char buf[128];
     if(running) {
         float mpos[3];
-        robot->get_current_machine_position(mpos);
+        THEROBOT.get_current_machine_position(mpos);
         // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
-        if(robot->compensationTransform) robot->compensationTransform(mpos, true, false); // get inverse compensation transform
+        if(THEROBOT.compensationTransform) THEROBOT.compensationTransform(mpos, true, false); // get inverse compensation transform
 
         // machine position
-        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(mpos[0]), robot->from_millimeters(mpos[1]), robot->from_millimeters(mpos[2]));
+        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", THEROBOT.from_millimeters(mpos[0]), THEROBOT.from_millimeters(mpos[1]), THEROBOT.from_millimeters(mpos[2]));
         if(n > sizeof(buf)) n= sizeof(buf);
 
         str.append("|MPos:").append(buf, n);
 
 #if MAX_ROBOT_ACTUATORS > 3
         // deal with the ABC axis (E will be A)
-        for (int i = A_AXIS; i < robot->get_number_registered_motors(); ++i) {
+        for (int i = A_AXIS; i < THEROBOT.get_number_registered_motors(); ++i) {
             // current actuator position
-            n = snprintf(buf, sizeof(buf), ",%1.4f", robot->actuators[i]->get_current_position());
+            n = snprintf(buf, sizeof(buf), ",%1.4f", THEROBOT.actuators[i]->get_current_position());
             if(n > sizeof(buf)) n= sizeof(buf);
             str.append(buf, n);
         }
 #endif
 
         // work space position
-        Robot::wcs_t pos = robot->mcs2wcs(mpos);
-        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(std::get<X_AXIS>(pos)), robot->from_millimeters(std::get<Y_AXIS>(pos)), robot->from_millimeters(std::get<Z_AXIS>(pos)));
+        Robot::wcs_t pos = THEROBOT.mcs2wcs(mpos);
+        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", THEROBOT.from_millimeters(std::get<X_AXIS>(pos)), THEROBOT.from_millimeters(std::get<Y_AXIS>(pos)), THEROBOT.from_millimeters(std::get<Z_AXIS>(pos)));
         if(n > sizeof(buf)) n= sizeof(buf);
 
         str.append("|WPos:").append(buf, n);
@@ -304,33 +301,33 @@ std::string Kernel::get_query_string()
     } else {
         // return the last milestone if idle
         // machine position
-        Robot::wcs_t mpos = robot->get_axis_position();
-        size_t n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(std::get<X_AXIS>(mpos)), robot->from_millimeters(std::get<Y_AXIS>(mpos)), robot->from_millimeters(std::get<Z_AXIS>(mpos)));
+        Robot::wcs_t mpos = THEROBOT.get_axis_position();
+        size_t n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", THEROBOT.from_millimeters(std::get<X_AXIS>(mpos)), THEROBOT.from_millimeters(std::get<Y_AXIS>(mpos)), THEROBOT.from_millimeters(std::get<Z_AXIS>(mpos)));
         if(n > sizeof(buf)) n= sizeof(buf);
 
         str.append("|MPos:").append(buf, n);
 
 #if MAX_ROBOT_ACTUATORS > 3
         // deal with the ABC axis (E will be A)
-        for (int i = A_AXIS; i < robot->get_number_registered_motors(); ++i) {
+        for (int i = A_AXIS; i < THEROBOT.get_number_registered_motors(); ++i) {
             // current actuator position
-            n = snprintf(buf, sizeof(buf), ",%1.4f", robot->actuators[i]->get_current_position());
+            n = snprintf(buf, sizeof(buf), ",%1.4f", THEROBOT.actuators[i]->get_current_position());
             if(n > sizeof(buf)) n= sizeof(buf);
             str.append(buf, n);
         }
 #endif
 
         // work space position
-        Robot::wcs_t pos = robot->mcs2wcs(mpos);
-        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(std::get<X_AXIS>(pos)), robot->from_millimeters(std::get<Y_AXIS>(pos)), robot->from_millimeters(std::get<Z_AXIS>(pos)));
+        Robot::wcs_t pos = THEROBOT.mcs2wcs(mpos);
+        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", THEROBOT.from_millimeters(std::get<X_AXIS>(pos)), THEROBOT.from_millimeters(std::get<Y_AXIS>(pos)), THEROBOT.from_millimeters(std::get<Z_AXIS>(pos)));
         if(n > sizeof(buf)) n= sizeof(buf);
         str.append("|WPos:").append(buf, n);
     }
 
     // current feedrate and requested fr and override
-    float fr= running ? robot->from_millimeters(THECONVEYOR.get_current_feedrate()*60.0F) : 0;
-    float frr= robot->from_millimeters(robot->get_feed_rate());
-    float fro= 6000.0F / robot->get_seconds_per_minute();
+    float fr= running ? THEROBOT.from_millimeters(THECONVEYOR.get_current_feedrate()*60.0F) : 0;
+    float frr= THEROBOT.from_millimeters(THEROBOT.get_feed_rate());
+    float fro= 6000.0F / THEROBOT.get_seconds_per_minute();
     n = snprintf(buf, sizeof(buf), "|F:%1.1f,%1.1f,%1.1f", fr, frr, fro);
     if(n > sizeof(buf)) n= sizeof(buf);
     str.append(buf, n);
@@ -413,8 +410,8 @@ std::string Kernel::get_query_string()
     }
 
     // if auto leveling is active
-    if (robot->compensationTransform != nullptr) {
-        n = snprintf(buf, sizeof(buf), "|O:%1.3f", robot->get_max_delta());
+    if (THEROBOT.compensationTransform != nullptr) {
+        n = snprintf(buf, sizeof(buf), "|O:%1.3f", THEROBOT.get_max_delta());
         if(n > sizeof(buf)) n = sizeof(buf);
         str.append(buf, n);
     }
@@ -568,7 +565,7 @@ void Kernel::call_event(_EVENT_ENUM id_event, void * argument)
             // if we were running and this is a HALT
             // or if we are clearing the halt with $X or M999
             // fix up the current positions in case they got out of sync due to backed up commands
-            this->robot->reset_position_from_current_actuator_position();
+            THEROBOT.reset_position_from_current_actuator_position();
         }
     }
 }

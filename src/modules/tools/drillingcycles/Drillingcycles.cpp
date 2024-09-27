@@ -214,9 +214,9 @@ void Drillingcycles::on_gcode_received(void* argument)
         THECONVEYOR.wait_for_idle();
         // get actual position from robot
         float pos[3];
-        THEROBOT->get_axis_position(pos);
+        THEROBOT.get_axis_position(pos);
         // convert to WCS
-        Robot::wcs_t wpos= THEROBOT->mcs2wcs(pos);
+        Robot::wcs_t wpos= THEROBOT.mcs2wcs(pos);
         // backup Z position as Initial-Z value
         this->initial_z = std::get<Z_AXIS>(wpos); // must use the work coordinate position
         // set retract type
@@ -240,7 +240,7 @@ void Drillingcycles::on_gcode_received(void* argument)
     // in cycle
     else if (this->cycle_started) {
         // relative mode not supported for now...
-        if (THEROBOT->absolute_mode == false) {
+        if (THEROBOT.absolute_mode == false) {
             gcode->stream->printf("Drillingcycles: relative mode not supported.\r\n");
             gcode->stream->printf("Drillingcycles: skip hole...\r\n");
             // exit
