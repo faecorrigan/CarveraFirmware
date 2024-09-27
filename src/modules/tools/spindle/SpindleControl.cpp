@@ -29,7 +29,7 @@ void SpindleControl::on_gcode_received(void *argument)
         }
         else if (gcode->m == 958)
         {
-            THECONVEYOR->wait_for_idle();
+            THECONVEYOR.wait_for_idle();
             // M958: set spindle PID parameters
             if (gcode->has_letter('P'))
                 set_p_term( gcode->get_value('P') );
@@ -58,7 +58,7 @@ void SpindleControl::on_gcode_received(void *argument)
         			return;
             	}
 
-                THECONVEYOR->wait_for_idle();
+                THECONVEYOR.wait_for_idle();
                 // open vacuum if set
             	if (THEKERNEL.get_vacuum_mode()) {
             		// open vacuum
@@ -80,7 +80,7 @@ void SpindleControl::on_gcode_received(void *argument)
         else if (gcode->m == 5)
         {
         	if (!THEKERNEL.get_laser_mode()) {
-                THECONVEYOR->wait_for_idle();
+                THECONVEYOR.wait_for_idle();
 
                 // close vacuum if set
             	if (THEKERNEL.get_vacuum_mode()) {

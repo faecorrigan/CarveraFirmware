@@ -195,7 +195,7 @@ void Laser::on_gcode_received(void *argument)
     if (gcode->has_m) {
     	if (gcode->m == 3 && THEKERNEL.get_laser_mode())
 		{
-    		THECONVEYOR->wait_for_idle();
+    		THECONVEYOR.wait_for_idle();
             // M3 with S value provided: set speed
             if (gcode->has_letter('S'))
             {
@@ -205,11 +205,11 @@ void Laser::on_gcode_received(void *argument)
     		this->testing = false;
     		// printk("Laser on, S: %1.4f\n", THEROBOT->get_s_value());
 		} else if (gcode->m == 5) {
-    		THECONVEYOR->wait_for_idle();
+    		THECONVEYOR.wait_for_idle();
 			this->laser_on = false;
 			this->testing = false;
 		} else if (gcode->m == 321 && !THEKERNEL.get_laser_mode()) { // change to laser mode
-			THECONVEYOR->wait_for_idle();
+			THECONVEYOR.wait_for_idle();
         	THEKERNEL.set_laser_mode(true);
         	// turn on laser pin
         	this->laser_pin->set(true);
@@ -232,7 +232,7 @@ void Laser::on_gcode_received(void *argument)
         	}
 
         } else if (gcode->m == 322) { // change to CNC mode
-        	THECONVEYOR->wait_for_idle();
+        	THECONVEYOR.wait_for_idle();
         	THEKERNEL.set_laser_mode(false);
         	this->laser_pin->set(false);
         	this->testing = false;

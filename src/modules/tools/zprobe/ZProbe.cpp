@@ -217,7 +217,7 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
     THEKERNEL.set_zprobing(false);
 
     // wait until finished
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
     if(THEKERNEL.is_halted()) return false;
 
     // now see how far we moved, get delta in z we moved
@@ -280,7 +280,7 @@ void ZProbe::on_gcode_received(void *argument)
         }
 
         // first wait for all moves to finish
-        THEKERNEL.conveyor->wait_for_idle();
+        THECONVEYOR.wait_for_idle();
 
         if(this->probe_pin.get()) {
             gcode->stream->printf("ZProbe triggered before move, aborting command.\n");
@@ -429,7 +429,7 @@ void ZProbe::probe_XYZ(Gcode *gcode)
     float rate = (gcode->has_letter('F')) ? gcode->get_value('F')/60 : this->slow_feedrate;
 
     // first wait for all moves to finish
-    THEKERNEL.conveyor->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     if(this->probe_pin.get() != invert_probe) {
         gcode->stream->printf("Error:ZProbe triggered before move, aborting command.\n");
@@ -455,7 +455,7 @@ void ZProbe::probe_XYZ(Gcode *gcode)
     }
     THEKERNEL.set_zprobing(false);
 
-    THEKERNEL.conveyor->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     // disable probe checking
     probing = false;
@@ -497,7 +497,7 @@ void ZProbe::calibrate_Z(Gcode *gcode)
     float rate = (gcode->has_letter('F')) ? gcode->get_value('F') / 60 : this->slow_feedrate;
 
     // first wait for all moves to finish
-    THEKERNEL.conveyor->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     if (this->calibrate_pin.get()) {
         gcode->stream->printf("error: ZCalibrate triggered before move, aborting command.\n");
@@ -522,7 +522,7 @@ void ZProbe::calibrate_Z(Gcode *gcode)
     }
     THEKERNEL.set_zprobing(false);
 
-    THEKERNEL.conveyor->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     // disable probe checking
     calibrating = false;
@@ -590,7 +590,7 @@ void ZProbe::coordinated_move(float x, float y, float z, float feedrate, bool re
 
     message.stream = &(StreamOutput::NullStream);
     THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
-    THEKERNEL.conveyor->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
     THEROBOT->pop_state();
 
 }

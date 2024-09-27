@@ -568,7 +568,7 @@ void Endstops::back_off_home(axis_bitmap_t axis)
         THEROBOT->absolute_mode = false; // needs to be relative mode
         THEROBOT->on_gcode_received(&gc); // send to robot directly
         // Wait for above to finish
-        THECONVEYOR->wait_for_idle();
+        THECONVEYOR.wait_for_idle();
         THEROBOT->pop_state();
     }
 
@@ -606,7 +606,7 @@ void Endstops::move_to_origin(axis_bitmap_t axis)
     message.stream = &(StreamOutput::NullStream);
     THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message ); // as it is a multi G code command
     // Wait for above to finish
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
     THEROBOT->pop_state();
     this->status = NOT_HOMING;
 }
@@ -677,7 +677,7 @@ void Endstops::home_xy()
     }
 
     // Wait for axis to have homed
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 }
 
 void Endstops::home(axis_bitmap_t a)
@@ -707,7 +707,7 @@ void Endstops::home(axis_bitmap_t a)
         if(homing_axis[Z_AXIS].home_direction) delta[Z_AXIS]= -delta[Z_AXIS];
         THEROBOT->delta_move(delta, homing_axis[Z_AXIS].fast_rate, 3);
         // wait for Z
-        THECONVEYOR->wait_for_idle();
+        THECONVEYOR.wait_for_idle();
     }
 
     if(home_z_first) home_xy();
@@ -723,7 +723,7 @@ void Endstops::home(axis_bitmap_t a)
                 if(homing_axis[i].home_direction) delta[i]= -delta[i];
                 THEROBOT->delta_move(delta, homing_axis[i].fast_rate, i+1);
                 // wait for it
-                THECONVEYOR->wait_for_idle();
+                THECONVEYOR.wait_for_idle();
             }
         }
     }
@@ -781,7 +781,7 @@ void Endstops::home(axis_bitmap_t a)
 
     THEROBOT->delta_move(delta, feed_rate, homing_axis.size());
     // wait until finished
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     // Start moving the axes towards the endstops slowly
     this->status = MOVING_TO_ENDSTOP_SLOW;
@@ -796,7 +796,7 @@ void Endstops::home(axis_bitmap_t a)
     }
     THEROBOT->delta_move(delta, feed_rate, homing_axis.size());
     // wait until finished
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     // we did not complete movement the full distance if we hit the endstops
     // TODO Maybe only reset axis involved in the homing cycle
@@ -813,7 +813,7 @@ void Endstops::home(axis_bitmap_t a)
 void Endstops::process_home_command(Gcode* gcode)
 {
     // First wait for the queue to be empty
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     // turn off any compensation transform so Z does not move as XY home
     auto savect= THEROBOT->compensationTransform;
@@ -1049,7 +1049,7 @@ void Endstops::handle_park_g28()
 //    message.stream = &(StreamOutput::NullStream);
 //    THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     // Wait for above to finish
-    // THECONVEYOR->wait_for_idle();
+    // THECONVEYOR.wait_for_idle();
     // THEROBOT->pop_state();
 }
 

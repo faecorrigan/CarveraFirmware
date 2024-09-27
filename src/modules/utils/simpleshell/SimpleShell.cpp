@@ -758,7 +758,7 @@ void SimpleShell::save_command( string parameters, StreamOutput *stream )
         filename = THEKERNEL.config_override_filename();
     }
 
-    THECONVEYOR->wait_for_idle(); //just to be safe as it can take a while to run
+    THECONVEYOR.wait_for_idle(); //just to be safe as it can take a while to run
 
     //remove(filename.c_str()); // seems to cause a hang every now and then
     {
@@ -1322,7 +1322,7 @@ void SimpleShell::get_command( string parameters, StreamOutput *stream)
             message.stream = &(StreamOutput::NullStream);
             message.line = 0;
             THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
-            THECONVEYOR->wait_for_idle();
+            THECONVEYOR.wait_for_idle();
         }
 
    } else if (what == "pos") {
@@ -1745,7 +1745,7 @@ void SimpleShell::jog(string parameters, StreamOutput *stream)
 
     THEROBOT->delta_move(delta, rate_mm_s*scale, n_motors);
     // turn off queue delay and run it now
-    THECONVEYOR->force_queue();
+    THECONVEYOR.force_queue();
 }
 
 void SimpleShell::help_command( string parameters, StreamOutput *stream )
@@ -1944,7 +1944,7 @@ void SimpleShell::upload_command( string parameters, StreamOutput *stream )
     }
     THEKERNEL.set_uploading(true);
 
-    if (!THECONVEYOR->is_idle()) {
+    if (!THECONVEYOR.is_idle()) {
         stream->putc(EOT);
         if (stream->type() == 0) {
         	set_serial_rx_irq(true);
@@ -2176,7 +2176,7 @@ void SimpleShell::download_command( string parameters, StreamOutput *stream )
     }
     THEKERNEL.set_uploading(true);
 
-    if (!THECONVEYOR->is_idle()) {
+    if (!THECONVEYOR.is_idle()) {
         cancel_transfer(stream);
         if (stream->type() == 0) {
         	set_serial_rx_irq(true);

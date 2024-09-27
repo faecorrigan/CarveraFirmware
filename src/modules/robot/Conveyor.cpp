@@ -58,11 +58,11 @@
  */
 
 
-Conveyor::Conveyor()
+void Conveyor::init()
 {
     running = false;
     allow_fetch = false;
-    flush= false;
+    flush = false;
 }
 
 void Conveyor::on_module_loaded()

@@ -54,7 +54,7 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
 // bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors, float rate_mm_s, float distance, float *unit_vec, float acceleration, float *s_values, int s_count, bool g123, unsigned int _line)
 {
     // Create ( recycle ) a new block
-    Block* block = THECONVEYOR->queue.head_ref();
+    Block* block = THECONVEYOR.queue.head_ref();
     block->line = _line;
 
     // Direction bits
@@ -172,8 +172,8 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
     float vmax_junction = minimum_planner_speed; // Set default max junction speed
 
     // if unit_vec was null then it was not a primary axis move so we skip the junction deviation stuff
-    if (unit_vec != nullptr && !THECONVEYOR->is_queue_empty()) {
-        Block *prev_block = THECONVEYOR->queue.item_ref(THECONVEYOR->queue.prev(THECONVEYOR->queue.head_i));
+    if (unit_vec != nullptr && !THECONVEYOR.is_queue_empty()) {
+        Block *prev_block = THECONVEYOR.queue.item_ref(THECONVEYOR.queue.prev(THECONVEYOR.queue.head_i));
         float previous_nominal_speed = prev_block->primary_axis ? prev_block->nominal_speed : 0;
 
         if (junction_deviation > 0.0F && previous_nominal_speed > 0.0F) {
@@ -233,14 +233,14 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
     // The block can now be used
     block->ready();
 
-    THECONVEYOR->queue_head_block();
+    THECONVEYOR.queue_head_block();
 
     return true;
 }
 
 void Planner::recalculate()
 {
-    Conveyor::Queue_t &queue = THECONVEYOR->queue;
+    Conveyor::Queue_t &queue = THECONVEYOR.queue;
 
     unsigned int block_index;
 

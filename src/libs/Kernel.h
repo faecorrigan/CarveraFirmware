@@ -8,7 +8,6 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
-#define THECONVEYOR THEKERNEL.conveyor
 #define THEROBOT THEKERNEL.robot
 
 #include "Module.h"
@@ -179,7 +178,6 @@ class Kernel {
         Robot*            robot;
         Planner*          planner;
         Config*           config;
-        Conveyor*         conveyor;
         Configurator*     configurator;
 
         SlowTicker*       slow_ticker;
@@ -221,6 +219,7 @@ class Kernel {
 };
 
 extern Kernel THEKERNEL;
+extern Conveyor THECONVEYOR;
 extern SimpleShell simpleshell;
 
 #endif

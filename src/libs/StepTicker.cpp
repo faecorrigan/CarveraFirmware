@@ -138,7 +138,7 @@ void StepTicker::step_tick (void)
     // if nothing has been setup we ignore the ticks
     if(!running){
         // check if anything new available
-        if(THECONVEYOR->get_next_block(&current_block)) { // returns false if no new block is available
+        if(THECONVEYOR.get_next_block(&current_block)) { // returns false if no new block is available
             running= start_next_block(); // returns true if there is at least one motor with steps to issue
             if(!running) return;
         }else{
@@ -227,9 +227,9 @@ void StepTicker::step_tick (void)
 
         // get next block
         // do it here so there is no delay in ticks
-        THECONVEYOR->block_finished();
+        THECONVEYOR.block_finished();
 
-        if(THECONVEYOR->get_next_block(&current_block)) { // returns false if no new block is available
+        if(THECONVEYOR.get_next_block(&current_block)) { // returns false if no new block is available
             running= start_next_block(); // returns true if there is at least one motor with steps to issue
 
         }else{
@@ -271,7 +271,7 @@ bool StepTicker::start_next_block()
     }else{
         // this is an edge condition that should never happen, but we need to discard this block if it ever does
         // basically it is a block that has zero steps for all motors
-        THECONVEYOR->block_finished();
+        THECONVEYOR.block_finished();
     }
 
     return false;

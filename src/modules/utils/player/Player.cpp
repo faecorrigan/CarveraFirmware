@@ -500,7 +500,7 @@ void Player::abort_command( string parameters, StreamOutput *stream )
     THEKERNEL.set_waiting(true);
 
     // wait for queue to empty
-    THEKERNEL.conveyor->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     if(THEKERNEL.is_halted()) {
         printk("Aborted by halt\n");
@@ -522,7 +522,7 @@ void Player::abort_command( string parameters, StreamOutput *stream )
     if (parameters.empty()) {
         // clear out the block queue, will wait until queue is empty
         // MUST be called in on_main_loop to make sure there are no blocked main loops waiting to put something on the queue
-        THEKERNEL.conveyor->flush_queue();
+        THECONVEYOR.flush_queue();
 
         // now the position will think it is at the last received pos, so we need to do FK to get the actuator position and reset the current position
         THEROBOT->reset_position_from_current_actuator_position();
@@ -840,7 +840,7 @@ void Player::suspend_command(string parameters, StreamOutput *stream )
     THEKERNEL.set_waiting(true);
 
     // wait for queue to empty
-    THEKERNEL.conveyor->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     if(THEKERNEL.is_halted()) {
         printk("Suspend aborted by halt\n");

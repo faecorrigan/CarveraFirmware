@@ -558,7 +558,7 @@ uint32_t ATCHandler::countdown_probe_laser(uint32_t dummy)
 
 bool ATCHandler::laser_detect() {
     // First wait for the queue to be empty
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     // switch on detector
     bool switch_state = true;
@@ -577,19 +577,19 @@ bool ATCHandler::laser_detect() {
 	delta[Y_AXIS]= detector_info.detect_travel / 2;
 	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
-	THECONVEYOR->wait_for_idle();
+	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return false;
 
 	delta[Y_AXIS]= 0 - detector_info.detect_travel;
 	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
-	THECONVEYOR->wait_for_idle();
+	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return false;
 
 	delta[Y_AXIS]= detector_info.detect_travel / 2;
 	THEROBOT->delta_move(delta, detector_info.detect_rate, Y_AXIS + 1);
 	// wait for it
-	THECONVEYOR->wait_for_idle();
+	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return false;
 
 
@@ -610,7 +610,7 @@ bool ATCHandler::laser_detect() {
 
 bool ATCHandler::probe_detect() {
     // First wait for the queue to be empty
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     // get probe and calibrate states
     uint32_t probe_time;
@@ -628,7 +628,7 @@ void ATCHandler::home_clamp()
 {
 	printk("Homing atc...\n");
     // First wait for the queue to be empty
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
     atc_home_info.triggered = false;
     atc_home_info.clamp_status = UNHOMED;
@@ -641,7 +641,7 @@ void ATCHandler::home_clamp()
 	delta[ATC_AXIS]= atc_home_info.max_travel; // we go the max
 	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
-	THECONVEYOR->wait_for_idle();
+	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return;
 
 	atc_homing = false;
@@ -660,7 +660,7 @@ void ATCHandler::home_clamp()
 	delta[ATC_AXIS] = -atc_home_info.retract; // we go to retract position
 	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
-	THECONVEYOR->wait_for_idle();
+	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return;
 
 	atc_home_info.clamp_status = CLAMPED;
@@ -680,14 +680,14 @@ void ATCHandler::clamp_tool()
 	}
 
     // First wait for the queue to be empty
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
 	float delta[ATC_AXIS + 1];
 	for (size_t i = 0; i <= ATC_AXIS; i++) delta[i] = 0;
 	delta[4] = atc_home_info.action_dist;
 	THEROBOT->delta_move(delta, atc_home_info.homing_rate, ATC_AXIS + 1);
 	// wait for it
-	THECONVEYOR->wait_for_idle();
+	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return;
 
 	// change clamp status
@@ -706,14 +706,14 @@ void ATCHandler::loose_tool()
 	}
 
 	// First wait for the queue to be empty
-    THECONVEYOR->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
 	float delta[ATC_AXIS + 1];
 	for (size_t i = 0; i <= ATC_AXIS; i++) delta[i] = 0;
 	delta[4] = -atc_home_info.action_dist;
 	THEROBOT->delta_move(delta, atc_home_info.action_rate, ATC_AXIS + 1);
 	// wait for it
-	THECONVEYOR->wait_for_idle();
+	THECONVEYOR.wait_for_idle();
 	if(THEKERNEL.is_halted()) return;
 
 	// change clamp status
@@ -750,7 +750,7 @@ void ATCHandler::on_gcode_received(void *argument)
     			return;
     		}
 
-    		THECONVEYOR->wait_for_idle();
+    		THECONVEYOR.wait_for_idle();
 
     	    struct spindle_status ss;
     	    if (PublicData::get_value(pwm_spindle_control_checksum, get_spindle_status_checksum, &ss)) {
@@ -854,7 +854,7 @@ void ATCHandler::on_gcode_received(void *argument)
 				atc_status = CALI;
 				this->fill_cali_scripts(active_tool == 0, true);
 
-				THECONVEYOR->wait_for_idle();
+				THECONVEYOR.wait_for_idle();
 				// lift z to safe position with fast speed
 				snprintf(buff, sizeof(buff), "M5");
 				this->script_queue.push(buff);
@@ -869,7 +869,7 @@ void ATCHandler::on_gcode_received(void *argument)
 			}else if (gcode->subcode == 2){
 				float tlo = 0;
 				float tolerance = 0.1;
-				THECONVEYOR->wait_for_idle();
+				THECONVEYOR.wait_for_idle();
 				if (gcode->has_letter('H')) {
 		    		tolerance = gcode->get_value('H');
 					if (tolerance < 0.02) {
@@ -1088,7 +1088,7 @@ void ATCHandler::on_gcode_received(void *argument)
 
 		} else if (gcode->m == 497) {
 		    // wait for the queue to be empty
-		    THECONVEYOR->wait_for_idle();
+		    THECONVEYOR.wait_for_idle();
 			THEKERNEL.set_atc_state(gcode->subcode);
 		} else if (gcode->m == 498) {
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
@@ -1188,7 +1188,7 @@ void ATCHandler::on_main_loop(void *argument)
 		rapid_move(true, NAN, NAN, this->clearance_z);
 		// goto x and y clearance
 		rapid_move(true, this->clearance_x, this->clearance_y, NAN);
-		THECONVEYOR->wait_for_idle();
+		THECONVEYOR.wait_for_idle();
 		THEROBOT->pop_state();
 		g28_triggered = false;
     } else if (goto_position > -1) {
@@ -1258,7 +1258,7 @@ void ATCHandler::rapid_move(bool mc, float x, float y, float z)
     message.stream = &(StreamOutput::NullStream);
     message.line = 0;
     THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
-    THEKERNEL.conveyor->wait_for_idle();
+    THECONVEYOR.wait_for_idle();
 
 }
 

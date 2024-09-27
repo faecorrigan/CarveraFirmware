@@ -377,7 +377,7 @@ bool CartGridStrategy::handleGcode(Gcode *gcode)
     if(gcode->has_g) {
         if(gcode->g == 31 || gcode->g == 32) { // do a grid probe
             // first wait for an empty queue i.e. no moves left
-            THEKERNEL.conveyor->wait_for_idle();
+            THECONVEYOR.wait_for_idle();
 
             // home if needed
             if (do_home && !only_by_two_corners && !(gcode->has_letter('R') && gcode->get_int('R') == 1)){
@@ -406,7 +406,7 @@ bool CartGridStrategy::handleGcode(Gcode *gcode)
 
         }else if(gcode->g == 29) {
             // first wait for an empty queue i.e. no moves left
-            THEKERNEL.conveyor->wait_for_idle();
+            THECONVEYOR.wait_for_idle();
 
             // home if needed
             if (do_home && !only_by_two_corners && !(gcode->has_letter('R') && gcode->get_int('R') == 1)){

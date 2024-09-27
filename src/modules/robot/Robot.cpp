@@ -527,7 +527,7 @@ void Robot::on_gcode_received(void *argument)
                 }
                 if (delay_ms > 0) {
                     // drain queue
-                    THEKERNEL.conveyor->wait_for_idle();
+                    THECONVEYOR.wait_for_idle();
                     // wait for specified time
                     uint32_t start = us_ticker_read(); // mbed call
                     while ((us_ticker_read() - start) < delay_ms * 1000) {
@@ -647,7 +647,7 @@ void Robot::on_gcode_received(void *argument)
                     		delta[A_AXIS]= mb - ma; // we go the max
                     		THEROBOT->delta_move(delta, this->seek_rate, A_AXIS+1);
                     		// wait for A moving
-        					THECONVEYOR->wait_for_idle();
+        					THECONVEYOR.wait_for_idle();
                     		// third
                     		THEROBOT->reset_axis_position(gcode->get_value('A'), A_AXIS);                    		
                     		
@@ -751,13 +751,13 @@ void Robot::on_gcode_received(void *argument)
                         }
                     }
 
-                    THEKERNEL.conveyor->wait_for_idle();
+                    THECONVEYOR.wait_for_idle();
                     THEKERNEL.call_event(ON_ENABLE, (void *)bm);
                     break;
                 }
                 // fall through
             case 84:
-                THEKERNEL.conveyor->wait_for_idle();
+                THECONVEYOR.wait_for_idle();
                 THEKERNEL.call_event(ON_ENABLE, nullptr); // turn all enable pins off
                 break;
 
@@ -931,7 +931,7 @@ void Robot::on_gcode_received(void *argument)
                 break;
 
             case 400: // wait until all moves are done up to this point
-                THEKERNEL.conveyor->wait_for_idle();
+                THECONVEYOR.wait_for_idle();
                 break;
 
             case 500: // M500 saves some volatile settings to config override file

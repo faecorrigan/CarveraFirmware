@@ -15,7 +15,7 @@ class Block;
 class Conveyor : public Module
 {
 public:
-    Conveyor();
+    void init();
     void start(uint8_t n_actuators);
 
     void on_module_loaded(void);

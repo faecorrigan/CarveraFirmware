@@ -196,7 +196,6 @@ void Kernel::init()
     this->read_eeprom_data();
 
     // Core modules
-    this->add_module( this->conveyor       = new(AHB0) Conveyor()      );
     this->add_module( this->gcode_dispatch = new(AHB0) GcodeDispatch() );
     this->add_module( this->robot          = new(AHB0) Robot()         );
 
@@ -235,7 +234,7 @@ uint8_t Kernel::get_state()
     	return HOME;
     } else if (feed_hold) {
     	return HOLD;
-    } else if (this->conveyor->is_idle()) {
+    } else if (THECONVEYOR.is_idle()) {
     	return IDLE;
     } else {
     	return RUN;
@@ -331,7 +330,7 @@ std::string Kernel::get_query_string()
     }
 
     // current feedrate and requested fr and override
-    float fr= running ? robot->from_millimeters(conveyor->get_current_feedrate()*60.0F) : 0;
+    float fr= running ? robot->from_millimeters(THECONVEYOR.get_current_feedrate()*60.0F) : 0;
     float frr= robot->from_millimeters(robot->get_feed_rate());
     float fro= 6000.0F / robot->get_seconds_per_minute();
     n = snprintf(buf, sizeof(buf), "|F:%1.1f,%1.1f,%1.1f", fr, frr, fro);
@@ -558,7 +557,7 @@ void Kernel::call_event(_EVENT_ENUM id_event, void * argument)
     if(id_event == ON_HALT) {
         this->halted = (argument == nullptr);
         if(!this->halted && this->feed_hold) this->feed_hold= false; // also clear feed hold
-        was_idle = conveyor->is_idle(); // see if we were doing anything like printing
+        was_idle = THECONVEYOR.is_idle(); // see if we were doing anything like printing
     }
 
     // send to all registered modules

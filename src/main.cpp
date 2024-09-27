@@ -74,6 +74,7 @@ GPIO leds[4] = {
 };
 
 Kernel THEKERNEL;
+Conveyor THECONVEYOR;
 SimpleShell simpleshell;
 
 void init() {
@@ -84,6 +85,10 @@ void init() {
     }
 
     THEKERNEL.init();
+
+    THECONVEYOR.init();
+    THEKERNEL.add_module(&THECONVEYOR);
+
     THEKERNEL.add_module(&simpleshell);
 
     printk("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
@@ -198,7 +203,7 @@ void init() {
     }
 
     // start the timers and interrupts
-    THEKERNEL.conveyor->start(THEROBOT->get_number_registered_motors());
+    THECONVEYOR.start(THEROBOT->get_number_registered_motors());
     THEKERNEL.step_ticker->start();
     THEKERNEL.slow_ticker->start();
 }
