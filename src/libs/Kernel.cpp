@@ -19,7 +19,6 @@
 #include "libs/StepTicker.h"
 #include "libs/PublicData.h"
 #include "modules/communication/SerialConsole.h"
-#include "modules/communication/GcodeDispatch.h"
 #include "modules/robot/Planner.h"
 #include "modules/robot/Robot.h"
 #include "modules/robot/Conveyor.h"
@@ -196,7 +195,6 @@ void Kernel::init()
     this->read_eeprom_data();
 
     // Core modules
-    this->add_module( this->gcode_dispatch = new(AHB0) GcodeDispatch() );
     this->add_module( this->robot          = new(AHB0) Robot()         );
 
     this->planner = new(AHB0) Planner();

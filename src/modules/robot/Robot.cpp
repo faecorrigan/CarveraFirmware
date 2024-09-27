@@ -1951,7 +1951,7 @@ void Robot::clearLaserOffset() {
 
 float Robot::get_feed_rate() const
 {
-    return THEKERNEL.gcode_dispatch->get_modal_command() == 0 ? seek_rate : feed_rate;
+    return gcode_dispatch.get_modal_command() == 0 ? seek_rate : feed_rate;
 }
 
 bool Robot::is_homed(uint8_t i) const

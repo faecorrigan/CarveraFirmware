@@ -39,7 +39,7 @@ static bool is_allowed_mcode(int m) {
     return false;
 }
 
-GcodeDispatch::GcodeDispatch()
+void GcodeDispatch::init()
 {
     uploading = false;
     modal_group_1= 0;

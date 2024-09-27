@@ -174,7 +174,6 @@ class Kernel {
         // These modules are available to all other modules
         SerialConsole*    serial;
         StreamOutputPool* streams;
-        GcodeDispatch*    gcode_dispatch;
         Robot*            robot;
         Planner*          planner;
         Config*           config;
@@ -221,5 +220,6 @@ class Kernel {
 extern Kernel THEKERNEL;
 extern Conveyor THECONVEYOR;
 extern SimpleShell simpleshell;
+extern GcodeDispatch gcode_dispatch;    
 
 #endif

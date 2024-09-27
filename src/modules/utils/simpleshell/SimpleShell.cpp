@@ -1343,7 +1343,7 @@ void SimpleShell::get_command( string parameters, StreamOutput *stream)
         // also $G and $I
         // [G0 G54 G17 G21 G90 G94 M0 M5 M9 T0 F0.]
         stream->printf("[G%d %s G%d G%d G%d G94 M0 M%c M%c T%d F%1.4f S%1.4f]\n",
-            THEKERNEL.gcode_dispatch->get_modal_command(),
+            gcode_dispatch.get_modal_command(),
             wcs2gcode(THEROBOT->get_current_wcs()).c_str(),
             THEROBOT->plane_axis_0 == X_AXIS && THEROBOT->plane_axis_1 == Y_AXIS && THEROBOT->plane_axis_2 == Z_AXIS ? 17 :
               THEROBOT->plane_axis_0 == X_AXIS && THEROBOT->plane_axis_1 == Z_AXIS && THEROBOT->plane_axis_2 == Y_AXIS ? 18 :
