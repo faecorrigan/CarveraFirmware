@@ -28,7 +28,7 @@ using namespace std;
 class WifiProvider : public Module, public StreamOutput
 {
 public:
-	WifiProvider();
+	void init();
 
     void on_module_loaded();
     void on_gcode_received(void *argument);

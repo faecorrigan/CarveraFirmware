@@ -80,6 +80,8 @@ Conveyor THECONVEYOR;
 Robot THEROBOT;
 GcodeDispatch gcode_dispatch;
 SimpleShell simpleshell;
+WifiProvider wifi_provider;
+WebServer web_server(&wifi_provider);
 
 void init() {
     // Default pins to low status
@@ -117,12 +119,9 @@ void init() {
     THEKERNEL.add_module( new(AHB0) WirelessProbe() );
     THEKERNEL.add_module( new(AHB0) MainButton() );
 
-    // Instantiate WifiProvider and add to kernel
-    WifiProvider* wifi_provider = new(AHB0) WifiProvider();
-    THEKERNEL.add_module( wifi_provider );
-
-    // Instantiate WebServer with wifi_provider and add to kernel
-    THEKERNEL.add_module( new(AHB0) WebServer(wifi_provider) );
+    wifi_provider.init();
+    THEKERNEL.add_module(&wifi_provider);
+    THEKERNEL.add_module(&web_server);
 
     // these modules can be completely disabled in the Makefile by adding to EXCLUDE_MODULES
     #ifndef NO_TOOLS_SWITCH

@@ -46,7 +46,7 @@
 #define udp_recv_port_checksum          CHECKSUM("udp_recv_port")
 #define tcp_timeout_s_checksum          CHECKSUM("tcp_timeout_s")
 
-WifiProvider::WifiProvider()
+void WifiProvider::init()
 {
     udp_link_no = 0;
     tcp_link_no = 1;
