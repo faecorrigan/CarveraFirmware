@@ -288,7 +288,7 @@ void WifiProvider::on_main_loop(void* argument)
                 message.message = received;
                 message.stream = this;
                 THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
-                return;
+                break;
             } else {
                 received += c;
             }
@@ -881,7 +881,7 @@ bool WifiProvider::sendTcpDataToClient(const uint8_t* remote_ip, uint16_t remote
         to_send = std::min(static_cast<uint16_t>(length - sent_index), static_cast<uint16_t>(WIFI_DATA_MAX_SIZE));
 
         // Debug statement before sending
-        printk("WifiProvider::sendTcpDataToClient: Attempting to send %d bytes to %s:%d on link %d, sent_index: %d, status before sending: %d\n", 
+        printk("WifiProvider::sendTcpDataToClient: Attempting to send %d bytes to %s:%d on link %d, sent_index: %ld, status before sending: %d\n", 
                                     to_send, ip_str, remote_port, link_no, sent_index, status);
 
         memcpy(txData, data + sent_index, to_send);
@@ -904,7 +904,7 @@ bool WifiProvider::sendTcpDataToClient(const uint8_t* remote_ip, uint16_t remote
         }
 
         // Debug statement after successful send
-        printk("WifiProvider::sendTcpDataToClient: Successfully sent %d bytes to %s:%d on link %d, Total sent: %d/%d\n", sent, ip_str, remote_port, link_no, sent_index, length);
+        printk("WifiProvider::sendTcpDataToClient: Successfully sent %d bytes to %s:%d on link %d, Total sent: %ld/%d\n", sent, ip_str, remote_port, link_no, sent_index, length);
     }
 
     printk("WifiProvider::sendTcpDataToClient: Completed sending all data to %s:%d on link %d\n", ip_str, remote_port, link_no);

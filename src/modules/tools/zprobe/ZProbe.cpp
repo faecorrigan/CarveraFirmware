@@ -392,9 +392,8 @@ void ZProbe::on_gcode_received(void *argument)
             case 503: // print settings
                 gcode->stream->printf(";Probe feedrates Slow/fast(K)/Return (mm/sec) max_z (mm) height (mm) dwell (s):\nM670 S%1.2f K%1.2f R%1.2f Z%1.2f H%1.2f D%1.2f\n",
                     this->slow_feedrate, this->fast_feedrate, this->return_feedrate, this->max_z, this->probe_height, this->dwell_before_probing);
-
-                // fall through is intended so leveling strategies can handle m-codes too
-
+                
+                // fall through
             default:
                 for(auto s : strategies){
                     if(s->handleGcode(gcode)) {

@@ -75,7 +75,7 @@ extern unsigned int g_maximumHeapAddress;
 
 extern "C" uint32_t  __end__;
 extern "C" uint32_t  __malloc_free_list;
-extern "C" uint32_t  _sbrk(int size);
+extern "C" caddr_t   _sbrk(int size);
 
 unsigned char xbuff[8200] __attribute__((section("AHBSRAM1"))); /* 2 for data length, 8192 for XModem + 3 head chars + 2 crc + nul */
 unsigned char fbuff[4096] __attribute__((section("AHBSRAM1")));
@@ -141,7 +141,7 @@ static uint32_t heapWalk(StreamOutput *stream, bool verbose)
     // __malloc_free_list is the head pointer to newlib-nano's link list of free chunks.
     uint32_t freeCurr = __malloc_free_list;
     // Calling _sbrk() with 0 reserves no more memory but it returns the current top of heap.
-    uint32_t heapEnd = _sbrk(0);
+    uint32_t heapEnd = (uint32_t)_sbrk(0);
     // accumulate totals
     uint32_t freeSize = 0;
     uint32_t usedSize = 0;
@@ -832,7 +832,7 @@ void SimpleShell::time_command( string parameters, StreamOutput *stream)
     	set_time(new_time);
     } else {
     	time_t old_time = time(NULL);
-    	stream->printf("time = %ld\n", old_time);
+    	stream->printf("time = %lld\n", old_time);
     }
 }
 
