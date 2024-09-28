@@ -49,7 +49,7 @@
 
 extern SDFAT mounter;
 
-Player::Player()
+void Player::on_module_loaded()
 {
     this->playing_file = false;
     this->current_file_handler = nullptr;
@@ -58,10 +58,7 @@ Player::Player()
     this->reply_stream = nullptr;
     this->inner_playing = false;
     this->slope = 0.0;
-}
 
-void Player::on_module_loaded()
-{
     this->register_for_event(ON_CONSOLE_LINE_RECEIVED);
     this->register_for_event(ON_MAIN_LOOP);
     this->register_for_event(ON_SECOND_TICK);

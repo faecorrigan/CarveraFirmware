@@ -80,6 +80,8 @@ SimpleShell simpleshell __attribute__((section("AHBSRAM1")));
 WifiProvider wifi_provider __attribute__((section("AHBSRAM1")));
 WebServer web_server __attribute__((section("AHBSRAM1"))) (&wifi_provider);
 
+Player player __attribute__((section("AHBSRAM0")));
+
 void init() {
     // Default pins to low status
     for (int i = 0; i < 4; i++){
@@ -111,7 +113,7 @@ void init() {
     #endif
 
     // Create and add main modules
-    THEKERNEL.add_module( new(AHB0) Player() );
+    THEKERNEL.add_module(&player);
     THEKERNEL.add_module( new(AHB0) ATCHandler() );
     THEKERNEL.add_module( new(AHB0) WirelessProbe() );
     THEKERNEL.add_module( new(AHB0) MainButton() );
