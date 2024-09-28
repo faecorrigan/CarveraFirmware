@@ -6,7 +6,6 @@
 
 class MainButton : public Module {
     public:
-		MainButton();
         void on_module_loaded();
         void on_idle(void *argument);
         uint32_t button_tick(uint32_t dummy);

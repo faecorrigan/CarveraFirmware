@@ -44,7 +44,7 @@ using namespace std;
 #define sd_ok_checksum								CHECKSUM("sd_ok")
 
 
-MainButton::MainButton()
+void MainButton::on_module_loaded()
 {
 	this->sd_ok = false;
 	this->using_12v = false;
@@ -56,13 +56,9 @@ MainButton::MainButton()
     this->sleep_countdown_us = us_ticker_read();
     this->light_countdown_us = us_ticker_read();
     this->power_fan_countdown_us = us_ticker_read();
-}
 
-void MainButton::on_module_loaded()
-{
     bool main_button_enable = THEKERNEL.config->value( main_button_enable_checksum )->by_default(true)->as_bool(); // @deprecated
     if (!main_button_enable) {
-        delete this;
         return;
     }
 
