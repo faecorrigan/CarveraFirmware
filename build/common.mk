@@ -41,7 +41,7 @@ endif
 
 # Default variables.
 SRC ?= .
-BUILD_TYPE ?= Release
+BUILD_TYPE ?= Checked
 MRI_BREAK_ON_INIT ?= 1
 MRI_UART ?= MRI_UART_MBED_USB
 HEAP_TAGS ?= 0
@@ -148,7 +148,7 @@ MRI_DIR  = $(BUILD_DIR)/../mri
 # Include path which points to external library headers and to subdirectories of this project which contain headers.
 SUBDIRS = $(wildcard $(SRC)/* $(SRC)/*/* $(SRC)/*/*/* $(SRC)/*/*/*/* $(SRC)/*/*/*/*/* $(SRC)/*/*/*/*/*/*)
 PROJINCS = $(sort $(dir $(SUBDIRS)))
-INCDIRS += $(SRC) $(PROJINCS) $(MRI_DIR) $(MBED_DIR) $(MBED_DIR)/$(DEVICE)
+INCDIRS += $(SRC) $(PROJINCS) $(MRI_DIR)/core $(MBED_DIR) $(MBED_DIR)/$(DEVICE)
 
 # DEFINEs to be used when building C/C++ code
 DEFINES += -DTARGET_$(DEVICE)
@@ -167,7 +167,7 @@ SYS_LIBS = -specs=nano.specs -lstdc++ -lsupc++ -lm -lgcc -lc -lnosys
 LIBS = $(LIBS_PREFIX)
 
 ifeq "$(MRI_ENABLE)" "1"
-LIBS += $(MRI_DIR)/mri.ar
+LIBS += $(MRI_DIR)/lib/armv7-m/libmri_mbed1768.a
 endif
 
 LIBS += $(MBED_LIBS)

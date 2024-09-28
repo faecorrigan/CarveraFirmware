@@ -57,7 +57,7 @@ extern "C" void _start(void)
         enableMPU();
     }
     if (MRI_ENABLE) {
-        __mriInit(MRI_INIT_PARAMETERS);
+        mriInit(MRI_INIT_PARAMETERS);
         if (MRI_BREAK_ON_INIT)
             __debugbreak();
     }
@@ -151,7 +151,7 @@ extern "C" int __real__read(int file, char *ptr, int len);
 extern "C" int __wrap__read(int file, char *ptr, int len)
 {
     if (MRI_SEMIHOST_STDIO && file < 3)
-        return __mriNewlib_SemihostRead(file, ptr, len);
+        return mriNewlib_SemihostRead(file, ptr, len);
     return __real__read(file, ptr, len);
 }
 
@@ -160,7 +160,7 @@ extern "C" int __real__write(int file, char *ptr, int len);
 extern "C" int __wrap__write(int file, char *ptr, int len)
 {
     if (MRI_SEMIHOST_STDIO && file < 3)
-        return __mriNewlib_SemihostWrite(file, ptr, len);
+        return mriNewlib_SemihostRead(file, ptr, len);
     return __real__write(file, ptr, len);
 }
 

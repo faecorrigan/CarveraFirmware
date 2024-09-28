@@ -1,10 +1,11 @@
 #!/usr/bin/make
 
-DIRS = mbed src
+DIRS = mbed mri src
 DIRSCLEAN = $(addsuffix .clean,$(DIRS))
 
 all:
 	@ $(MAKE) -C mbed
+	@ $(MAKE) -C mri arm
 	@echo Building Smoothie
 	@ $(MAKE) -C src
 
