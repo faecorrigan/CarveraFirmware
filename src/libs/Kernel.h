@@ -12,6 +12,7 @@
 #include "StreamOutputPool.h"
 #include "StepTicker.h"
 #include "SlowTicker.h"
+#include "Planner.h"
 #include "Adc.h"
 #include "I2C.h" // mbed.h lib
 #include <array>
@@ -27,7 +28,6 @@ class Conveyor;
 class SerialConsole;
 class GcodeDispatch;
 class Robot;
-class Planner;
 class PublicData;
 class SimpleShell;
 class Configurator;
@@ -176,7 +176,7 @@ class Kernel {
         // These modules are available to all other modules
         SerialConsole*    serial;
         StreamOutputPool  streams;
-        Planner*          planner;
+        Planner           planner;
         Config*           config;
         Configurator*     configurator;
         SlowTicker        slow_ticker;

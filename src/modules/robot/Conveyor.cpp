@@ -13,7 +13,6 @@
 #include "wait_api.h" // mbed.h lib
 #include "Block.h"
 #include "Conveyor.h"
-#include "Planner.h"
 #include "mri.h"
 #include "checksumm.h"
 #include "Config.h"

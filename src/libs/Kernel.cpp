@@ -170,7 +170,7 @@ void Kernel::init()
     // read eeprom data
     this->read_eeprom_data();
 
-    this->planner = new(AHB0) Planner();
+    this->planner.init();
     this->configurator = new(AHB0) Configurator();
 }
 

@@ -14,7 +14,7 @@ class Block;
 class Planner
 {
 public:
-    Planner();
+    void init();
     float max_allowable_speed( float acceleration, float target_velocity, float distance);
 
     friend class Robot; // for acceleration, junction deviation, minimum_planner_speed

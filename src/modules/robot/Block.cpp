@@ -11,7 +11,6 @@
 #include <cmath>
 #include <string>
 #include "Block.h"
-#include "Planner.h"
 #include "Conveyor.h"
 #include "Gcode.h"
 #include "libs/Logging.h"

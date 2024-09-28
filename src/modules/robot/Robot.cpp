@@ -9,7 +9,6 @@
 #include "libs/Kernel.h"
 
 #include "Robot.h"
-#include "Planner.h"
 #include "Conveyor.h"
 #include "Pin.h"
 #include "StepperMotor.h"
@@ -872,21 +871,21 @@ void Robot::on_gcode_received(void *argument)
                     // enforce minimum
                     if (jd < 0.0F)
                         jd = 0.0F;
-                    THEKERNEL.planner->junction_deviation = jd;
+                    THEKERNEL.planner.junction_deviation = jd;
                 }
                 if (gcode->has_letter('Z')) {
                     float jd = gcode->get_value('Z');
                     // enforce minimum, -1 disables it and uses regular junction deviation
                     if (jd <= -1.0F)
                         jd = NAN;
-                    THEKERNEL.planner->z_junction_deviation = jd;
+                    THEKERNEL.planner.z_junction_deviation = jd;
                 }
                 if (gcode->has_letter('S')) {
                     float mps = gcode->get_value('S');
                     // enforce minimum
                     if (mps < 0.0F)
                         mps = 0.0F;
-                    THEKERNEL.planner->minimum_planner_speed = mps;
+                    THEKERNEL.planner.minimum_planner_speed = mps;
                 }
                 break;
 
@@ -952,7 +951,7 @@ void Robot::on_gcode_received(void *argument)
                 }
                 gcode->stream->printf("\n");
 
-                gcode->stream->printf(";X- Junction Deviation, Z- Z junction deviation, S - Minimum Planner speed mm/sec:\nM205 X%1.5f Z%1.5f S%1.5f\n", THEKERNEL.planner->junction_deviation, isnan(THEKERNEL.planner->z_junction_deviation)?-1:THEKERNEL.planner->z_junction_deviation, THEKERNEL.planner->minimum_planner_speed);
+                gcode->stream->printf(";X- Junction Deviation, Z- Z junction deviation, S - Minimum Planner speed mm/sec:\nM205 X%1.5f Z%1.5f S%1.5f\n", THEKERNEL.planner.junction_deviation, isnan(THEKERNEL.planner.z_junction_deviation)?-1:THEKERNEL.planner.z_junction_deviation, THEKERNEL.planner.minimum_planner_speed);
 
                 gcode->stream->printf(";Max cartesian feedrates in mm/sec:\nM203 X%1.5f Y%1.5f Z%1.5f S%1.5f\n", this->max_speeds[X_AXIS], this->max_speeds[Y_AXIS], this->max_speeds[Z_AXIS], this->max_speed);
 
@@ -1591,9 +1590,9 @@ bool Robot::append_milestone(const float target[], float rate_mm_s, unsigned int
     // Append the block to the planner
     // NOTE that distance here should be either the distance travelled by the XYZ axis, or the E mm travel if a solo E move
     // NOTE this call will bock until there is room in the block queue, on_idle will continue to be called
-    if(THEKERNEL.planner->append_block( actuator_pos, n_motors, rate_mm_s, distance, auxilliary_move ? nullptr : unit_vec, acceleration, s_value, is_g123, line)) {
+    if(THEKERNEL.planner.append_block( actuator_pos, n_motors, rate_mm_s, distance, auxilliary_move ? nullptr : unit_vec, acceleration, s_value, is_g123, line)) {
 // 2024
-//    if(THEKERNEL.planner->append_block( actuator_pos, n_motors, rate_mm_s, distance, auxilliary_move ? nullptr : unit_vec, acceleration, s_values, s_count, is_g123, line)) {
+//    if(THEKERNEL.planner.append_block( actuator_pos, n_motors, rate_mm_s, distance, auxilliary_move ? nullptr : unit_vec, acceleration, s_values, s_count, is_g123, line)) {
         // this is the new compensated machine position
         memcpy(this->compensated_machine_position, transformed_target, n_motors * sizeof(float));
         return true;

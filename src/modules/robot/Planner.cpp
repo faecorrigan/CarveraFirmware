@@ -33,7 +33,7 @@ using namespace std;
 // It makes sure the speed stays within the configured constraints ( acceleration, junction_deviation, etc )
 // It goes over the list in both direction, every time a block is added, re-doing the math to make sure everything is optimal
 
-Planner::Planner()
+void Planner::init()
 {
     memset(this->previous_unit_vec, 0, sizeof this->previous_unit_vec);
     config_load();

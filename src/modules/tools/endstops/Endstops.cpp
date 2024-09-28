@@ -17,7 +17,6 @@
 #include "wait_api.h" // mbed.h lib
 #include "Robot.h"
 #include "Config.h"
-#include "Planner.h"
 #include "checksumm.h"
 #include "utils.h"
 #include "ConfigValue.h"
