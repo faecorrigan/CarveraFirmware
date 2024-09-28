@@ -10,8 +10,6 @@ using namespace std;
 class ATCHandler : public Module
 {
 public:
-    ATCHandler();
-
     void on_module_loaded();
     void on_gcode_received(void *argument);
     void on_get_public_data(void *argument);

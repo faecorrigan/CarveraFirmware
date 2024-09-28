@@ -85,27 +85,6 @@
 #define clearance_y_checksum		CHECKSUM("clearance_y")
 #define clearance_z_checksum		CHECKSUM("clearance_z")
 
-ATCHandler::ATCHandler()
-{
-    atc_status = NONE;
-    atc_home_info.clamp_status = UNHOMED;
-    atc_home_info.triggered = false;
-    detector_info.triggered = false;
-    ref_tool_mz = 0.0;
-    cur_tool_mz = 0.0;
-    tool_offset = 0.0;
-    last_pos[0] = 0.0;
-    last_pos[1] = 0.0;
-    last_pos[2] = 0.0;
-    probe_laser_countdown = 0;
-    playing_file = false;
-    tool_number = 6;
-    g28_triggered = false;
-    goto_position = -1;
-    position_x = 8888;
-    position_y = 8888;
-}
-
 void ATCHandler::clear_script_queue(){
 	while (!this->script_queue.empty()) {
 		this->script_queue.pop();
@@ -409,6 +388,23 @@ void ATCHandler::fill_autolevel_scripts(float x_pos, float y_pos,
 
 void ATCHandler::on_module_loaded()
 {
+	atc_status = NONE;
+    atc_home_info.clamp_status = UNHOMED;
+    atc_home_info.triggered = false;
+    detector_info.triggered = false;
+    ref_tool_mz = 0.0;
+    cur_tool_mz = 0.0;
+    tool_offset = 0.0;
+    last_pos[0] = 0.0;
+    last_pos[1] = 0.0;
+    last_pos[2] = 0.0;
+    probe_laser_countdown = 0;
+    playing_file = false;
+    tool_number = 6;
+    g28_triggered = false;
+    goto_position = -1;
+    position_x = 8888;
+    position_y = 8888;
 
     this->register_for_event(ON_GCODE_RECEIVED);
     this->register_for_event(ON_GET_PUBLIC_DATA);
