@@ -34,12 +34,10 @@ using std::string;
 // Wireless probe serial reading module
 // Treats every received line as a command and passes it ( via event call ) to the command dispatcher.
 // The command dispatcher will then ask other modules if they can do something with it
-WirelessProbe::WirelessProbe() {
-    this->wp_voltage = 0.0;
-}
 
 // Called when the module has just been loaded
 void WirelessProbe::on_module_loaded() {
+    this->wp_voltage = 0.0;
 
 	this->serial = new mbed::Serial( USBTX, USBRX );
     this->serial->baud(THEKERNEL.config->value(uart_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());

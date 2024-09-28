@@ -23,8 +23,6 @@ using std::string;
 
 class WirelessProbe : public Module {
     public:
-        WirelessProbe();
-
         void on_module_loaded();
         void on_serial_char_received();
         void on_main_loop(void * argument);
