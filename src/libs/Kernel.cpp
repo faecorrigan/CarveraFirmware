@@ -9,7 +9,6 @@
 #include "libs/Module.h"
 #include "libs/Config.h"
 #include "libs/nuts_bolts.h"
-#include "libs/Adc.h"
 #include "libs/StreamOutputPool.h"
 #include <mri.h>
 #include "checksumm.h"
@@ -123,7 +122,7 @@ void Kernel::init()
 
     this->add_module( this->serial );
 
-    this->adc = new(AHB0) Adc();
+    this->adc.init();
 
     // TODO : These should go into platform-specific files
     // LPC17xx-specific

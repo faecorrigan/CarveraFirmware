@@ -20,15 +20,14 @@
 
 // This is an interface to the mbed.org ADC library you can find in libs/ADC/adc.h
 // TODO : Having the same name is confusing, should change that
+Adc* instance;
 
-Adc *Adc::instance;
-
-static void sample_isr(int chan, uint32_t value)
+void sample_isr(int chan, uint32_t value)
 {
-    Adc::instance->new_sample(chan, value);
+    instance->new_sample(chan, value);
 }
 
-Adc::Adc()
+void Adc::init()
 {
     instance = this;
     // ADC sample rate need to be fast enough to be able to read the enabled channels within the thermistor poll time

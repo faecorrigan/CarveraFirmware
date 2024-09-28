@@ -14,7 +14,6 @@ This is aprt of the Smoothie test framework, it generates a Mockable Kernl so ke
 #include "libs/Config.h"
 #include "libs/nuts_bolts.h"
 #include "libs/SlowTicker.h"
-#include "libs/Adc.h"
 #include "libs/Logging.h"
 #include <mri.h>
 #include "checksumm.h"
