@@ -76,12 +76,12 @@ GPIO leds[4] = {
 };
 
 Kernel THEKERNEL;
-Conveyor THECONVEYOR;
-Robot THEROBOT;
-GcodeDispatch gcode_dispatch;
-SimpleShell simpleshell;
-WifiProvider wifi_provider;
-WebServer web_server(&wifi_provider);
+Conveyor THECONVEYOR __attribute__((section("AHBSRAM1")));
+Robot THEROBOT __attribute__((section("AHBSRAM1")));
+GcodeDispatch gcode_dispatch __attribute__((section("AHBSRAM1")));
+SimpleShell simpleshell __attribute__((section("AHBSRAM1")));
+WifiProvider wifi_provider __attribute__((section("AHBSRAM1")));
+WebServer web_server __attribute__((section("AHBSRAM1"))) (&wifi_provider);
 
 void init() {
     // Default pins to low status
