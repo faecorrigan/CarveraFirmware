@@ -75,7 +75,7 @@ GPIO leds[4] = {
     GPIO(P1_17)
 };
 
-Kernel THEKERNEL;
+Kernel THEKERNEL __attribute__((section("AHBSRAM0")));
 Conveyor THECONVEYOR __attribute__((section("AHBSRAM1")));
 Robot THEROBOT __attribute__((section("AHBSRAM1")));
 GcodeDispatch gcode_dispatch __attribute__((section("AHBSRAM1")));
