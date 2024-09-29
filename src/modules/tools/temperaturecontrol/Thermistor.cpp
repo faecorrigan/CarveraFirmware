@@ -15,7 +15,6 @@
 #include "libs/Median.h"
 #include "utils.h"
 #include "Logging.h"
-#include "StreamOutputPool.h"
 
 // a const list of predefined thermistors
 #include "predefined_thermistors.h"

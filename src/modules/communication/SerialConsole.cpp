@@ -19,8 +19,6 @@ using std::string;
 #include "ATCHandlerPublicAccess.h"
 #include "PublicDataRequest.h"
 #include "PublicData.h"
-#include "StreamOutputPool.h"
-
 
 // Serial reading module
 // Treats every received line as a command and passes it ( via event call ) to the command dispatcher.
@@ -44,7 +42,7 @@ void SerialConsole::on_module_loaded() {
     this->register_for_event(ON_SET_PUBLIC_DATA);
 
     // Add to the pack of streams kernel can call to, for example for broadcasting
-    THEKERNEL.streams->append_stream(this);
+    THEKERNEL.streams.append_stream(this);
 }
 
 void SerialConsole::attach_irq(bool enable_irq) {

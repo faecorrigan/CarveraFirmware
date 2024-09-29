@@ -9,6 +9,7 @@
 #define KERNEL_H
 
 #include "Module.h"
+#include "StreamOutputPool.h"
 #include "I2C.h" // mbed.h lib
 #include <array>
 #include <vector>
@@ -22,7 +23,6 @@ class Module;
 class Conveyor;
 class SlowTicker;
 class SerialConsole;
-class StreamOutputPool;
 class GcodeDispatch;
 class Robot;
 class Planner;
@@ -171,7 +171,7 @@ class Kernel {
 
         // These modules are available to all other modules
         SerialConsole*    serial;
-        StreamOutputPool* streams;
+        StreamOutputPool  streams;
         Planner*          planner;
         Config*           config;
         Configurator*     configurator;

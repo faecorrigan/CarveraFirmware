@@ -23,7 +23,6 @@
 #include "Gcode.h"
 #include "PwmOut.h" // mbed.h lib
 #include "Conveyor.h"
-#include "StreamOutputPool.h"
 
 #include "libs/PublicData.h"
 #include "PublicDataRequest.h"

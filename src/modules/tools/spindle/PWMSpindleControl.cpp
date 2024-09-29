@@ -18,7 +18,6 @@
 #include "PublicDataRequest.h"
 #include "SpindlePublicAccess.h"
 #include "utils.h"
-#include "StreamOutputPool.h"
 
 #include "libs/Pin.h"
 #include "Gcode.h"

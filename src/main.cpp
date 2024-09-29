@@ -34,7 +34,6 @@
 #include "StepTicker.h"
 #include "SlowTicker.h"
 #include "Robot.h"
-#include "StreamOutputPool.h"
 
 // #include "libs/ChaNFSSD/SDFileSystem.h"
 #include "libs/nuts_bolts.h"
@@ -104,7 +103,7 @@ void init() {
     THEKERNEL.add_module(&simpleshell);
 
     printk("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
-    simpleshell.version_command("", THEKERNEL.streams);
+    simpleshell.version_command("", &THEKERNEL.streams);
 
     bool sdok = (sd.disk_initialize() == 0);
     if(!sdok) printk("SDCard failed to initialize\r\n");

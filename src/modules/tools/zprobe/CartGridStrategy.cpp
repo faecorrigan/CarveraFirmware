@@ -100,7 +100,6 @@
 #include "nuts_bolts.h"
 #include "utils.h"
 #include "platform_memory.h"
-#include "StreamOutputPool.h"
 
 #include <string>
 #include <algorithm>

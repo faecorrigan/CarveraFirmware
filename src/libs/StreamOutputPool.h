@@ -19,9 +19,6 @@ using namespace std;
 class StreamOutputPool : public StreamOutput {
 
 public:
-    StreamOutputPool(){
-    }
-
     int puts(const char* s, int size)
     {
         int r = 0;

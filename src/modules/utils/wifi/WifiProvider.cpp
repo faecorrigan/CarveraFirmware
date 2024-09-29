@@ -25,7 +25,6 @@
 #include "WifiPublicAccess.h"
 #include "libs/utils.h"
 #include "Logging.h"
-#include "StreamOutputPool.h"
 
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
@@ -92,7 +91,7 @@ void WifiProvider::on_module_loaded()
     delete smoothie_pin;
 
     // Add this stream to the kernel's stream pool for broadcasting
-    THEKERNEL.streams->append_stream(this);
+    THEKERNEL.streams.append_stream(this);
 
     // Register for events
     this->register_for_event(ON_IDLE);
@@ -692,7 +691,7 @@ void WifiProvider::init_wifi_module(bool reset)
         // Reset module: delete connections and remove stream
         M8266WIFI_SPI_Delete_Connection(udp_link_no, &status);
         M8266WIFI_SPI_Delete_Connection(tcp_link_no, &status);
-        THEKERNEL.streams->remove_stream(this);
+        THEKERNEL.streams.remove_stream(this);
     }
 
     // Initialize module via SPI
@@ -726,7 +725,7 @@ void WifiProvider::init_wifi_module(bool reset)
 
     if (reset) {
         // Re-append stream after reset
-        THEKERNEL.streams->append_stream(this);
+        THEKERNEL.streams.append_stream(this);
     }
 
     wifi_init_ok = true;

@@ -15,7 +15,6 @@
 #include "libs/SerialMessage.h"
 #include "libs/Logging.h"
 #include "libs/StreamOutput.h"
-#include "StreamOutputPool.h"
 #include "Gcode.h"
 #include "checksumm.h"
 #include "Config.h"
@@ -178,7 +177,7 @@ void Player::on_gcode_received(void *argument)
                 // this would be a problem if the stream goes away before the file has finished,
                 // so we attach it to the kernel stream, however network connections from pronterface
                 // do not connect to the kernel streams so won't see this FIXME
-                this->reply_stream = THEKERNEL.streams;
+                this->reply_stream = &THEKERNEL.streams;
             }
 
         } else if (gcode->m == 25) { // pause print
@@ -362,7 +361,7 @@ void Player::play_command( string parameters, StreamOutput *stream )
         this->current_stream = nullptr;
     } else {
         // we send to the kernels stream as it cannot go away
-        this->current_stream = THEKERNEL.streams;
+        this->current_stream = &THEKERNEL.streams;
     }
 
     // get size of file
@@ -514,7 +513,7 @@ void Player::abort_command( string parameters, StreamOutput *stream )
     {
 		struct SerialMessage message;
 		message.message = "M5";
-		message.stream = THEKERNEL.streams;
+		message.stream = &THEKERNEL.streams;
 		message.line = 0;
 		THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message);
     }
@@ -543,7 +542,7 @@ void Player::on_main_loop(void *argument)
         if (this->home_on_boot) {
     		struct SerialMessage message;
     		message.message = "$H";
-    		message.stream = THEKERNEL.streams;
+    		message.stream = &THEKERNEL.streams;
     		message.line = 0;
     		THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message);
         }
@@ -564,7 +563,7 @@ void Player::on_main_loop(void *argument)
         	printk("%s\r\n", this->buffered_queue.front().c_str());
 			struct SerialMessage message;
 			message.message = this->buffered_queue.front();
-			message.stream = THEKERNEL.streams;
+			message.stream = &THEKERNEL.streams;
 			message.line = 0;
 			this->buffered_queue.pop();
 

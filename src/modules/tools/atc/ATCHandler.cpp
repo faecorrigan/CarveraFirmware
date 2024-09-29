@@ -26,7 +26,6 @@
 #include "libs/StreamOutput.h"
 #include "SwitchPublicAccess.h"
 #include "libs/utils.h"
-#include "StreamOutputPool.h"
 
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
@@ -1153,7 +1152,7 @@ void ATCHandler::on_main_loop(void *argument)
         	printk("%s\r\n", this->script_queue.front().c_str());
 			struct SerialMessage message;
 			message.message = this->script_queue.front();
-			message.stream = THEKERNEL.streams;
+			message.stream = &THEKERNEL.streams;
 			message.line = 0;
 			this->script_queue.pop();
 

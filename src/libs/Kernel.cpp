@@ -95,8 +95,6 @@ void Kernel::init()
     delete this->serial;
     this->serial = NULL;
 
-    this->streams = new(AHB0) StreamOutputPool();
-
     this->current_path   = "/";
 
     // Configure UART depending on MRI config
@@ -186,9 +184,7 @@ void Kernel::printk(const char* format, ...) {
 }
 
 void Kernel::vprintk(const char* format, va_list args) {
-    if (this->streams != nullptr) {
-        this->streams->vprintf(format, args);
-    }
+    streams.vprintf(format, args);
 }
 
 // get current state
