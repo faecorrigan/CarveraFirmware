@@ -44,7 +44,7 @@
 #define udp_recv_port_checksum          CHECKSUM("udp_recv_port")
 #define tcp_timeout_s_checksum          CHECKSUM("tcp_timeout_s")
 
-void WifiProvider::init()
+void WifiProvider::on_module_loaded()
 {
     udp_link_no = 0;
     tcp_link_no = 1;
@@ -52,10 +52,7 @@ void WifiProvider::init()
     wifi_init_ok = false;
     has_data_flag = false;
     connection_fail_count = 0;
-}
 
-void WifiProvider::on_module_loaded()
-{
     // Check if WiFi is enabled in the configuration
     if (!THEKERNEL.config->value(wifi_checksum, wifi_enable)->by_default(true)->as_bool()) {
         // Not needed; free up resources

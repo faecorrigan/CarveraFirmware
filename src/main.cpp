@@ -120,8 +120,6 @@ void init() {
     THEKERNEL.add_module(&atc_handler);
     THEKERNEL.add_module(&wireless_probe);
     THEKERNEL.add_module(&mainbutton);
-
-    wifi_provider.init();
     THEKERNEL.add_module(&wifi_provider);
     THEKERNEL.add_module(&web_server);
 
