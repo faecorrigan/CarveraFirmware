@@ -1,6 +1,5 @@
 #include "PID_Autotuner.h"
 #include "Kernel.h"
-#include "SlowTicker.h"
 #include "Gcode.h"
 #include "TemperatureControl.h"
 #include "StreamOutput.h"
@@ -27,7 +26,7 @@ PID_Autotuner::PID_Autotuner()
 void PID_Autotuner::on_module_loaded()
 {
     tick = false;
-    THEKERNEL.slow_ticker->attach(20, this, &PID_Autotuner::on_tick );
+    THEKERNEL.slow_ticker_attach(20, this, &PID_Autotuner::on_tick );
     register_for_event(ON_IDLE);
     register_for_event(ON_GCODE_RECEIVED);
 }

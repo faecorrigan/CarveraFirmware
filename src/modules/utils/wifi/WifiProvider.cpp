@@ -12,7 +12,6 @@
 
 #include "libs/Module.h"
 #include "libs/Kernel.h"
-#include "SlowTicker.h"
 #include "PublicDataRequest.h"
 #include "Config.h"
 #include "ConfigValue.h"

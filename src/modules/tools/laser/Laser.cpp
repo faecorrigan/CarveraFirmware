@@ -15,7 +15,6 @@
 #include "checksumm.h"
 #include "ConfigValue.h"
 #include "Block.h"
-#include "SlowTicker.h"
 #include "Robot.h"
 #include "utils.h"
 #include "Pin.h"
@@ -118,9 +117,9 @@ void Laser::on_module_loaded()
     // no point in updating the power more than the PWM frequency, but not faster than 1KHz
     ms_per_tick = 1000 / std::min(1000UL, 1000000 / period);
     // 2024
-    THEKERNEL.slow_ticker->attach(std::min(1000UL, 1000000 / period), this, &Laser::set_proportional_power);
-    // THEKERNEL.slow_ticker->attach(std::min(4000UL, 1000000 / period), this, &Laser::set_proportional_power);
-    // THEKERNEL.slow_ticker->attach(1, this, &Laser::set_proportional_power);
+    THEKERNEL.slow_ticker_attach(std::min(1000UL, 1000000 / period), this, &Laser::set_proportional_power);
+    // THEKERNEL.slow_ticker_attach(std::min(4000UL, 1000000 / period), this, &Laser::set_proportional_power);
+    // THEKERNEL.slow_ticker_attach(1, this, &Laser::set_proportional_power);
 
 }
 

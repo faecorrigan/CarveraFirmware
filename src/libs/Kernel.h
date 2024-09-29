@@ -11,6 +11,7 @@
 #include "Module.h"
 #include "StreamOutputPool.h"
 #include "StepTicker.h"
+#include "SlowTicker.h"
 #include "I2C.h" // mbed.h lib
 #include <array>
 #include <vector>
@@ -22,7 +23,6 @@
 class Config;
 class Module;
 class Conveyor;
-class SlowTicker;
 class SerialConsole;
 class GcodeDispatch;
 class Robot;
@@ -112,6 +112,10 @@ class Kernel {
         void register_for_event(_EVENT_ENUM id_event, Module *module);
         void call_event(_EVENT_ENUM id_event, void * argument= nullptr);
 
+        template<typename T> Hook* slow_ticker_attach(uint32_t frequency, T *optr, uint32_t (T::*fptr)(uint32_t)) {
+            return this->slow_ticker.attach(frequency, optr, fptr);
+        }
+
         bool kernel_has_event(_EVENT_ENUM id_event, Module *module);
         void unregister_for_event(_EVENT_ENUM id_event, Module *module);
 
@@ -175,8 +179,7 @@ class Kernel {
         Planner*          planner;
         Config*           config;
         Configurator*     configurator;
-
-        SlowTicker*       slow_ticker;
+        SlowTicker        slow_ticker;
         StepTicker        step_ticker;
         Adc*              adc;
         std::string       current_path;

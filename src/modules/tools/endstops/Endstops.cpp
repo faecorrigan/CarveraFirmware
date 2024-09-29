@@ -17,7 +17,6 @@
 #include "wait_api.h" // mbed.h lib
 #include "Robot.h"
 #include "Config.h"
-#include "SlowTicker.h"
 #include "Planner.h"
 #include "checksumm.h"
 #include "utils.h"
@@ -134,7 +133,7 @@ void Endstops::on_module_loaded()
     register_for_event(ON_SET_PUBLIC_DATA);
 
 
-    THEKERNEL.slow_ticker->attach(1000, this, &Endstops::read_endstops);
+    THEKERNEL.slow_ticker_attach(1000, this, &Endstops::read_endstops);
 
     // load g28 data from eeprom
 //    this->g28_position[0] = THEKERNEL.eeprom_data->G28[0];

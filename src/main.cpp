@@ -31,7 +31,6 @@
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "SlowTicker.h"
 #include "Robot.h"
 
 // #include "libs/ChaNFSSD/SDFileSystem.h"
@@ -213,7 +212,7 @@ void init() {
     THECONVEYOR.start(THEROBOT.get_number_registered_motors());
     
     THEKERNEL.step_ticker.start();
-    THEKERNEL.slow_ticker->start();
+    THEKERNEL.slow_ticker.start();
 }
 
 int main()

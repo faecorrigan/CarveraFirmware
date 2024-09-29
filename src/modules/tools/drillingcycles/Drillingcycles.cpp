@@ -13,7 +13,6 @@
 #include "Gcode.h"
 #include "Robot.h"
 #include "Conveyor.h"
-#include "SlowTicker.h"
 #include "StepperMotor.h"
 #include "Logging.h"
 #include "nuts_bolts.h"

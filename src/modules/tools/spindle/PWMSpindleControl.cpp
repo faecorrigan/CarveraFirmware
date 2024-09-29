@@ -124,7 +124,7 @@ void PWMSpindleControl::on_module_loaded()
         delete smoothie_pin;
     }
     
-    THEKERNEL.slow_ticker->attach(UPDATE_FREQ, this, &PWMSpindleControl::on_update_speed);
+    THEKERNEL.slow_ticker_attach(UPDATE_FREQ, this, &PWMSpindleControl::on_update_speed);
 }
 
 void PWMSpindleControl::on_pin_rise()

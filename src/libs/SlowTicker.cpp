@@ -18,10 +18,17 @@
 // This module uses a Timer to periodically call hooks
 // Modules register with a function ( callback ) and a frequency, and we then call that function at the given frequency.
 
-SlowTicker* global_slow_ticker;
+SlowTicker *SlowTicker::instance;
 
-SlowTicker::SlowTicker(){
-    global_slow_ticker = this;
+void SlowTicker::start()
+{
+    LPC_TIM2->TCR = 1;              // Enable interrupt
+    NVIC_SetVector(TIMER2_IRQn, (uint32_t)&_isr);
+    NVIC_EnableIRQ(TIMER2_IRQn);    // Enable interrupt handler
+}
+
+void SlowTicker::on_module_loaded(){
+    instance = this;
 
     // ISP button FIXME: WHy is this here?
     ispbtn.from_string("2.10")->as_input()->pull_up();
@@ -34,15 +41,7 @@ SlowTicker::SlowTicker(){
     max_frequency = 5;  // initial max frequency is set to 5Hz
     set_frequency(max_frequency);
     flag_1s_flag = 0;
-}
 
-void SlowTicker::start()
-{
-    LPC_TIM2->TCR = 1;              // Enable interrupt
-    NVIC_EnableIRQ(TIMER2_IRQn);    // Enable interrupt handler
-}
-
-void SlowTicker::on_module_loaded(){
     register_for_event(ON_IDLE);
 }
 
@@ -121,10 +120,9 @@ void SlowTicker::on_idle(void*)
         THEKERNEL.call_event(ON_SECOND_TICK);
 }
 
-extern "C" void TIMER2_IRQHandler (void){
+void SlowTicker::_isr() {
     if((LPC_TIM2->IR >> 0) & 1){  // If interrupt register set for MR0
         LPC_TIM2->IR |= 1 << 0;   // Reset it
     }
-    global_slow_ticker->tick();
+    instance->tick();
 }
-

@@ -16,16 +16,14 @@
 
 #include "system_LPC17xx.h" // for SystemCoreClock
 #include <math.h>
+#include <vector>
 
-class SlowTicker : public Module{
+class SlowTicker : public Module {
     public:
-        SlowTicker();
-
         void on_module_loaded(void);
         void on_idle(void*);
         void start();
         void set_frequency( int frequency );
-        void tick();
         // For some reason this can't go in the .cpp, see :  http://mbed.org/forum/mbed/topic/2774/?page=1#comment-14221
         // TODO replace this with std::function()
         template<typename T> Hook* attach( uint32_t frequency, T *optr, uint32_t ( T::*fptr )( uint32_t ) ){
@@ -46,6 +44,11 @@ class SlowTicker : public Module{
         }
 
     private:
+        static SlowTicker *instance;
+
+        static void _isr();
+        void tick();
+
         bool flag_1s();
 
         std::vector<Hook*> hooks;
@@ -57,9 +60,5 @@ protected:
     int flag_1s_count;
     volatile int flag_1s_flag;
 };
-
-
-
-
 
 #endif

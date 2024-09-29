@@ -3,7 +3,6 @@
 #include "libs/nuts_bolts.h"
 #include "libs/utils.h"
 #include "Config.h"
-#include "SlowTicker.h"
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
 #include "checksumm.h"
@@ -104,7 +103,7 @@ void MainButton::on_module_loaded()
     this->main_button_LED_G.set(0);
     this->main_button_LED_B.set(0);
 
-    THEKERNEL.slow_ticker->attach( this->poll_frequency, this, &MainButton::button_tick );
+    THEKERNEL.slow_ticker_attach( this->poll_frequency, this, &MainButton::button_tick );
 
 	mbed::InterruptIn *e_stop_interrupt_in = this->e_stop.interrupt_pin();
 

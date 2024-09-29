@@ -9,7 +9,6 @@
 #include "libs/Module.h"
 #include "libs/Config.h"
 #include "libs/nuts_bolts.h"
-#include "libs/SlowTicker.h"
 #include "libs/Adc.h"
 #include "libs/StreamOutputPool.h"
 #include <mri.h>
@@ -124,9 +123,6 @@ void Kernel::init()
 
     this->add_module( this->serial );
 
-    // HAL stuff
-    add_module( this->slow_ticker = new(AHB0) SlowTicker());
-
     this->adc = new(AHB0) Adc();
 
     // TODO : These should go into platform-specific files
@@ -163,6 +159,9 @@ void Kernel::init()
     step_ticker.init();
     step_ticker.set_frequency(this->base_stepping_frequency);
     step_ticker.set_unstep_time(microseconds_per_step_pulse);
+
+    // Initialize slow ticker
+    this->add_module(&slow_ticker);
 
     // init EEPROM data
     this->i2c = new mbed::I2C(P0_27, P0_28);

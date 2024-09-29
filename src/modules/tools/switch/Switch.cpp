@@ -14,7 +14,6 @@
 #include "modules/robot/Conveyor.h"
 #include "PublicDataRequest.h"
 #include "SwitchPublicAccess.h"
-#include "SlowTicker.h"
 #include "Config.h"
 #include "Gcode.h"
 #include "checksumm.h"
@@ -227,7 +226,7 @@ void Switch::on_config_reload(void *argument)
         // set to initial state
         this->input_pin_state = this->input_pin->get();
         // input pin polling
-        THEKERNEL.slow_ticker->attach( 100, this, &Switch::pinpoll_tick);
+        THEKERNEL.slow_ticker_attach( 100, this, &Switch::pinpoll_tick);
     }
 
     if(!is_input) {
@@ -320,7 +319,7 @@ void Switch::on_config_reload(void *argument)
 
     if(this->output_type == SIGMADELTA) {
         // SIGMADELTA
-        THEKERNEL.slow_ticker->attach(1000, this->sigmadelta_pin, &Pwm::on_tick);
+        THEKERNEL.slow_ticker_attach(1000, this->sigmadelta_pin, &Pwm::on_tick);
     }
 
     // for commands we need to replace _ for space

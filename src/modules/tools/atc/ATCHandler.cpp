@@ -10,7 +10,6 @@
 #include "libs/Module.h"
 #include "libs/Kernel.h"
 #include "ATCHandler.h"
-#include "SlowTicker.h"
 #include "Tool.h"
 #include "PublicDataRequest.h"
 #include "Config.h"
@@ -420,8 +419,8 @@ void ATCHandler::on_module_loaded()
 
     this->on_config_reload(this);
 
-    THEKERNEL.slow_ticker->attach(1000, this, &ATCHandler::read_endstop);
-    THEKERNEL.slow_ticker->attach(1000, this, &ATCHandler::read_detector);
+    THEKERNEL.slow_ticker_attach(1000, this, &ATCHandler::read_endstop);
+    THEKERNEL.slow_ticker_attach(1000, this, &ATCHandler::read_detector);
 
     // load data from eeprom
     this->active_tool = THEKERNEL.eeprom_data->TOOL;
