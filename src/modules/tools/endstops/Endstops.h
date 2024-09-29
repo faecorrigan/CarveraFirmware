@@ -20,7 +20,6 @@ class Pin;
 
 class Endstops : public Module{
     public:
-        Endstops();
         void on_module_loaded();
         void on_gcode_received(void* argument);
 

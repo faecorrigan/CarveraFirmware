@@ -105,24 +105,19 @@ enum STATES {
     LIMIT_TRIGGERED
 };
 
-Endstops::Endstops()
-{
-    this->status = NOT_HOMING;
-}
-
 void Endstops::on_module_loaded()
 {
+    this->status = NOT_HOMING;
+
     // Do not do anything if not enabled or if no pins are defined
     if (THEKERNEL.config->value( endstops_module_enable_checksum )->by_default(true)->as_bool()) {
         if(!load_old_config()) {
-            delete this;
             return;
         }
 
     }else{
         // check for new config syntax
         if(!load_config()) {
-            delete this;
             return;
         }
     }

@@ -41,28 +41,17 @@ Author: Michael Hackney, mhackney@eclecticangler.com
 #define temperatureswitch_switch_checksum               CHECKSUM("switch")
 #define designator_checksum                             CHECKSUM("designator")
 
-TemperatureSwitch::TemperatureSwitch()
-{
-}
-
-TemperatureSwitch::~TemperatureSwitch()
-{
-    THEKERNEL.unregister_for_event(ON_SECOND_TICK, this);
-    THEKERNEL.unregister_for_event(ON_GCODE_RECEIVED, this);
-}
-
 // Load module
 void TemperatureSwitch::on_module_loaded()
 {
     vector<uint16_t> modulist;
+
     // allow for multiple temperature switches
     THEKERNEL.config->get_module_list(&modulist, temperatureswitch_checksum);
+
     for (auto m : modulist) {
         load_config(m);
     }
-
-    // no longer need this instance as it is just used to load the other instances
-    delete this;
 }
 
 TemperatureSwitch* TemperatureSwitch::load_config(uint16_t modcs)
@@ -81,9 +70,9 @@ TemperatureSwitch* TemperatureSwitch::load_config(uint16_t modcs)
     }
 
     // create a new temperature switch module
-    TemperatureSwitch *ts= new TemperatureSwitch();
+    TemperatureSwitch *ts = new TemperatureSwitch();
 
-    ts->temperatureswitch_switch_cs= get_checksum(switchname); // checksum of the switch to use
+    ts->temperatureswitch_switch_cs = get_checksum(switchname); // checksum of the switch to use
 
     ts->temperatureswitch_threshold_temp = THEKERNEL.config->value(temperatureswitch_checksum, modcs, temperatureswitch_threshold_temp_checksum)->by_default(35.0f)->as_number();
     ts->temperatureswitch_cooldown_power_init = THEKERNEL.config->value(temperatureswitch_checksum, modcs, temperatureswitch_cooldown_power_init_checksum)->by_default(50.0f)->as_number();
@@ -97,10 +86,6 @@ TemperatureSwitch* TemperatureSwitch::load_config(uint16_t modcs)
     ts->register_for_event(ON_SECOND_TICK);
 
     return ts;
-}
-
-void TemperatureSwitch::on_gcode_received(void *argument)
-{
 }
 
 // Called once a second but we only need to service on the cooldown and heatup poll intervals

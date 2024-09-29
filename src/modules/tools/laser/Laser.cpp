@@ -42,18 +42,13 @@
 #define laser_module_max_power_checksum         CHECKSUM("laser_module_max_power")
 #define laser_module_maximum_s_value_checksum   CHECKSUM("laser_module_maximum_s_value")
 
-Laser::Laser()
+void Laser::on_module_loaded()
 {
     laser_on = false;
     scale = 1;
     testing = false;
-}
 
-void Laser::on_module_loaded()
-{
     if( !THEKERNEL.config->value( laser_module_enable_checksum )->by_default(true)->as_bool() ) {
-        // as not needed free up resource
-        delete this;
         return;
     }
 
@@ -63,7 +58,6 @@ void Laser::on_module_loaded()
     if (!this->laser_pin->connected()) {
         delete this->laser_pin;
         this->laser_pin= nullptr;
-        delete this;
         return;
 	}
 
@@ -73,7 +67,6 @@ void Laser::on_module_loaded()
     if (pwm_pin == NULL) {
         printk("Error: Laser cannot use P%d.%d (P2.0 - P2.5, P1.18, P1.20, P1.21, P1.23, P1.24, P1.26, P3.25, P3.26 only). Laser module disabled.\n", dummy_pin->port_number, dummy_pin->pin);
         delete dummy_pin;
-        delete this;
         return;
     }
 

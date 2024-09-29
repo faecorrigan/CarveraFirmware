@@ -19,8 +19,6 @@ class Block;
 
 class Laser : public Module{
     public:
-        Laser();
-        virtual ~Laser() {};
         void on_module_loaded();
         void on_halt(void* argument);
         void on_gcode_received(void *argument);

@@ -18,8 +18,7 @@ void RotaryDeltaCalibration::on_module_loaded()
 {
     // if the module is disabled -> do nothing
     if(!THEKERNEL.config->value( rotarydelta_checksum, enable_checksum )->by_default(false)->as_bool()) {
-        // as this module is not needed free up the resource
-        delete this;
+        // this module is not needed
         return;
     }
 

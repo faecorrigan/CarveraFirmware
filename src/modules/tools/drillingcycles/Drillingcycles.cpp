@@ -35,14 +35,11 @@
 #define enable_checksum         CHECKSUM("enable")
 #define dwell_units_checksum    CHECKSUM("dwell_units")
 
-Drillingcycles::Drillingcycles() {}
-
 void Drillingcycles::on_module_loaded()
 {
     // if the module is disabled -> do nothing
     if(! THEKERNEL.config->value(drillingcycles_checksum, enable_checksum)->by_default(false)->as_bool()) {
         // as this module is not needed free up the resource
-        delete this;
         return;
     }
 

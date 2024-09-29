@@ -15,8 +15,6 @@ class Gcode;
 class Drillingcycles : public Module
 {
     public:
-        Drillingcycles();
-        virtual ~Drillingcycles() {};
         void on_module_loaded();
 
     private:

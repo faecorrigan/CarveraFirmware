@@ -84,6 +84,12 @@ Player player __attribute__((section("AHBSRAM0")));
 WirelessProbe wireless_probe __attribute__((section("AHBSRAM0")));
 MainButton mainbutton __attribute__((section("AHBSRAM0")));
 ATCHandler atc_handler __attribute__((section("AHBSRAM0")));
+Endstops endstops __attribute__((section("AHBSRAM0")));
+Laser laser __attribute__((section("AHBSRAM0")));
+ZProbe zprobe __attribute__((section("AHBSRAM0")));
+RotaryDeltaCalibration rotary_delta_calibration __attribute__((section("AHBSRAM1")));
+TemperatureSwitch temperature_switch __attribute__((section("AHBSRAM1")));
+Drillingcycles drilling_cycles __attribute__((section("AHBSRAM0")));
 
 void init() {
     // Default pins to low status
@@ -132,38 +138,38 @@ void init() {
 
     // #ifndef NO_TOOLS_TEMPERATURECONTROL
     // Note order is important here must be after extruder so Tn as a parameter will get executed first
-    TemperatureControlPool *tp= new(AHB0) TemperatureControlPool();
+    TemperatureControlPool *tp= new TemperatureControlPool();
     tp->load_tools();
     delete tp;
 
     // #endif
     #ifndef NO_TOOLS_ENDSTOPS
-    THEKERNEL.add_module( new(AHB0) Endstops() );
+    THEKERNEL.add_module(&endstops);
     #endif
     #ifndef NO_TOOLS_LASER
-    THEKERNEL.add_module( new(AHB0) Laser() );
+    THEKERNEL.add_module(&laser);
     #endif
 
     #ifndef NO_TOOLS_SPINDLE
-    SpindleMaker *sm = new(AHB0) SpindleMaker();
+    SpindleMaker *sm = new SpindleMaker();
     sm->load_spindle();
     delete sm;
     #endif
     #ifndef NO_TOOLS_ZPROBE
-    THEKERNEL.add_module( new(AHB0) ZProbe() );
+    THEKERNEL.add_module(&zprobe);
     #endif
     #ifndef NO_TOOLS_SCARACAL
-    THEKERNEL.add_module( new(AHB0) SCARAcal() );
+    THEKERNEL.add_module( new SCARAcal() );
     #endif
     #ifndef NO_TOOLS_ROTARYDELTACALIBRATION
-    THEKERNEL.add_module( new(AHB0) RotaryDeltaCalibration() );
+    THEKERNEL.add_module(&rotary_delta_calibration);
     #endif
     #ifndef NO_TOOLS_TEMPERATURESWITCH
     // Must be loaded after TemperatureControl
-    THEKERNEL.add_module( new(AHB0) TemperatureSwitch() );
+    THEKERNEL.add_module(&temperature_switch);
     #endif
     #ifndef NO_TOOLS_DRILLINGCYCLES
-    THEKERNEL.add_module( new(AHB0) Drillingcycles() );
+    THEKERNEL.add_module(&drilling_cycles);
     #endif
 
 

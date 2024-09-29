@@ -56,10 +56,11 @@
 
 void ZProbe::on_module_loaded()
 {
+    invert_override = false;
+    invert_probe = false;
+    
     // if the module is disabled -> do nothing
     if(!THEKERNEL.config->value( zprobe_checksum, enable_checksum )->by_default(true)->as_bool()) {
-        // as this module is not needed free up the resource
-        delete this;
         return;
     }
 
