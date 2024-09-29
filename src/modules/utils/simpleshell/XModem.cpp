@@ -13,12 +13,6 @@
 
 using namespace std;
 
-// Initialize static buffer
-unsigned char xbuff[8200] __attribute__((section("AHBSRAM1"))); /* 2 for data length, 8192 for XModem + 3 head chars + 2 crc + nul */
-unsigned char fbuff[4096] __attribute__((section("AHBSRAM1")));
-
-char info_msg[64] __attribute__((section("AHBSRAM1")));
-
 int XModem::inbyte(unsigned int timeout_ms, StreamOutput* stream) {
     uint32_t tick_us = us_ticker_read();
     while (us_ticker_read() - tick_us < timeout_ms * 1000) {

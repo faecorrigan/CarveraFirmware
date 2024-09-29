@@ -11,6 +11,11 @@ public:
     bool download(const std::string& filename, StreamOutput* stream);
 
 private:
+    // Buffers
+    unsigned char xbuff[8200];
+    unsigned char fbuff[4096];
+    char info_msg[64];
+
     // Constants
     static const unsigned char SOH = 0x01;
     static const unsigned char STX = 0x02;
