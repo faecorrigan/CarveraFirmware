@@ -61,7 +61,6 @@ void WifiProvider::on_module_loaded()
     // Check if WiFi is enabled in the configuration
     if (!THEKERNEL.config->value(wifi_checksum, wifi_enable)->by_default(true)->as_bool()) {
         // Not needed; free up resources
-        delete this;
         return;
     }
 
@@ -88,7 +87,6 @@ void WifiProvider::on_module_loaded()
         NVIC_SetPriority(EINT3_IRQn, 16);
     } else {
         printk("Error: WiFi interrupt pin must be on P0 or P2.\n");
-        delete this;
         return;
     }
     delete smoothie_pin;
