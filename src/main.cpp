@@ -23,7 +23,6 @@
 #include "modules/robot/Conveyor.h"
 #include "modules/robot/Robot.h"
 #include "modules/utils/simpleshell/SimpleShell.h"
-#include "modules/utils/configurator/Configurator.h"
 #include "modules/utils/player/Player.h"
 #include "modules/utils/mainbutton/MainButton.h"
 #include "modules/communication/GcodeDispatch.h"

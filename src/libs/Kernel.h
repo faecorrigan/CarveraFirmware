@@ -30,7 +30,6 @@ class GcodeDispatch;
 class Robot;
 class PublicData;
 class SimpleShell;
-class Configurator;
 
 enum STATE {
 	IDLE    = 0,
@@ -178,7 +177,6 @@ class Kernel {
         StreamOutputPool  streams;
         Planner           planner;
         Config*           config;
-        Configurator*     configurator;
         SlowTicker        slow_ticker;
         StepTicker        step_ticker;
         Adc               adc;

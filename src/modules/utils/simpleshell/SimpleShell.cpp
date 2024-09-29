@@ -336,13 +336,13 @@ void SimpleShell::on_console_line_received( void *argument )
 
         // Configurator commands
         if (cmd == "config-get"){
-            THEKERNEL.configurator->config_get_command(  possible_command, new_message.stream );
+            configurator.config_get_command(  possible_command, new_message.stream );
 
         } else if (cmd == "config-set"){
-            THEKERNEL.configurator->config_set_command(  possible_command, new_message.stream );
+            configurator.config_set_command(  possible_command, new_message.stream );
 
         } else if (cmd == "config-load"){
-            THEKERNEL.configurator->config_load_command(  possible_command, new_message.stream );
+            configurator.config_load_command(  possible_command, new_message.stream );
 
         } else if (cmd == "config-get-all"){
             config_get_all_command(  possible_command, new_message.stream );

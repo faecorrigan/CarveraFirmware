@@ -9,6 +9,7 @@
 
 #include "Module.h"
 #include "XModem.h"
+#include "Configurator.h"
 
 #include <functional>
 #include <string>
@@ -94,6 +95,7 @@ private:
     static int reset_delay_secs;
 
     XModem xmodem;
+    Configurator      configurator;
 
     char md5_str[64];
 };

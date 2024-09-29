@@ -23,7 +23,6 @@
 #include "StepperMotor.h"
 #include "BaseSolution.h"
 #include "EndstopsPublicAccess.h"
-#include "Configurator.h"
 #include "SimpleShell.h"
 #include "TemperatureControlPublicAccess.h"
 #include "LaserPublicAccess.h"
@@ -171,7 +170,6 @@ void Kernel::init()
     this->read_eeprom_data();
 
     this->planner.init();
-    this->configurator = new(AHB0) Configurator();
 }
 
 void Kernel::printk(const char* format, ...) {
