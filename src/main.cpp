@@ -72,6 +72,7 @@ GPIO leds[4] = {
     GPIO(P1_17)
 };
 
+Watchdog watchdog __attribute__((section("AHBSRAM1"))) (10000, WDT_RESET);  // 10 seconds default, WDT_RESET
 Kernel THEKERNEL __attribute__((section("AHBSRAM0")));
 Conveyor THECONVEYOR __attribute__((section("AHBSRAM1")));
 Robot THEROBOT __attribute__((section("AHBSRAM1")));
@@ -172,14 +173,15 @@ void init() {
     THEKERNEL.add_module(&drilling_cycles);
     #endif
 
-
     // 10 second watchdog timeout (or config as seconds)
     float t= THEKERNEL.config->value( watchdog_timeout_checksum )->by_default(10.0F)->as_number();
-    if(t > 0.1F) {
+    if (t > 0.1F) {
+        watchdog.configure(t * 1000000, WDT_RESET);
+        watchdog.arm();
         // NOTE setting WDT_RESET with the current bootloader would leave it in DFU mode which would be suboptimal
-        THEKERNEL.add_module( new(AHB0) Watchdog(t * 1000000, WDT_RESET )); // WDT_RESET));
+        THEKERNEL.add_module(&watchdog);
         printk("Watchdog enabled for %1.3f seconds\n", t);
-    }else{
+    } else {
         printk("WARNING Watchdog is disabled\n");
     }
 

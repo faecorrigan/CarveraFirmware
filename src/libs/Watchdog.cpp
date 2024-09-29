@@ -10,9 +10,7 @@ extern GPIO leds[];
 
 // TODO : comment this
 // Basically, when stuff stop answering, reset, or enter MRI mode, or something
-
-Watchdog::Watchdog(uint32_t timeout, WDT_ACTION action)
-{
+void Watchdog::arm() {
     WDT_Init(WDT_CLKSRC_IRC, (action == WDT_MRI)?WDT_MODE_INT_ONLY:WDT_MODE_RESET);
     WDT_Start(timeout);
     WDT_Feed();
