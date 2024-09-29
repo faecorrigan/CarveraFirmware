@@ -165,7 +165,6 @@ void Kernel::init()
     this->i2c = new mbed::I2C(P0_27, P0_28);
     this->i2c->frequency(200000);
 
-    this->eeprom_data = new(AHB0) EEPROM_data();
     // read eeprom data
     this->read_eeprom_data();
 
@@ -586,7 +585,7 @@ void Kernel::read_eeprom_data()
 
     wait(0.05);
 
-    memcpy(this->eeprom_data, i2c_buffer, size);
+    memcpy(&this->eeprom_data, i2c_buffer, size);
 }
 
 void Kernel::write_eeprom_data()
@@ -600,7 +599,7 @@ void Kernel::write_eeprom_data()
 	unsigned char * writeptr = 0;
 	unsigned int u8Pagebegin=EEPROM_DATA_STARTPAGE;
 
-	memcpy(Data_buffer, this->eeprom_data, size);
+	memcpy(Data_buffer, &this->eeprom_data, size);
 
 	writeptr = (unsigned char *)Data_buffer;
 	while(writenum < size)

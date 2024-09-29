@@ -419,10 +419,10 @@ void ATCHandler::on_module_loaded()
     THEKERNEL.slow_ticker_attach(1000, this, &ATCHandler::read_detector);
 
     // load data from eeprom
-    this->active_tool = THEKERNEL.eeprom_data->TOOL;
-    this->ref_tool_mz = THEKERNEL.eeprom_data->REFMZ;
-    this->cur_tool_mz = THEKERNEL.eeprom_data->TOOLMZ;
-    this->tool_offset = THEKERNEL.eeprom_data->TLO;
+    this->active_tool = THEKERNEL.eeprom_data.TOOL;
+    this->ref_tool_mz = THEKERNEL.eeprom_data.REFMZ;
+    this->cur_tool_mz = THEKERNEL.eeprom_data.TOOLMZ;
+    this->tool_offset = THEKERNEL.eeprom_data.TLO;
 }
 
 void ATCHandler::on_config_reload(void *argument)
@@ -837,7 +837,7 @@ void ATCHandler::on_gcode_received(void *argument)
 
 				}
 				//store current TLO
-				float tlo = THEKERNEL.eeprom_data->TLO;
+				float tlo = THEKERNEL.eeprom_data.TLO;
 
 				// do calibrate to find new TLO
 				THEROBOT.push_state();
@@ -882,7 +882,7 @@ void ATCHandler::on_gcode_received(void *argument)
 					}
 
 				}
-				float new_tlo = THEKERNEL.eeprom_data->TLO;
+				float new_tlo = THEKERNEL.eeprom_data.TLO;
 				printk("Old: %.3f , new: %.3f\n",tlo,new_tlo);
 				//test for breakage
 				if (fabs(tlo - new_tlo) > tolerance) {
@@ -934,8 +934,8 @@ void ATCHandler::on_gcode_received(void *argument)
 				if (gcode->has_letter('T')) {
 		    		this->active_tool = gcode->get_value('T');
 		    		// save current tool data to eeprom
-		    		if (THEKERNEL.eeprom_data->TOOL != this->active_tool) {
-		        	    THEKERNEL.eeprom_data->TOOL = this->active_tool;
+		    		if (THEKERNEL.eeprom_data.TOOL != this->active_tool) {
+		        	    THEKERNEL.eeprom_data.TOOL = this->active_tool;
 		        	    THEKERNEL.write_eeprom_data();
 		    		}
 
@@ -1086,11 +1086,11 @@ void ATCHandler::on_gcode_received(void *argument)
 			THEKERNEL.set_atc_state(gcode->subcode);
 		} else if (gcode->m == 498) {
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
-				printk("EEPRROM Data: TOOL:%d\n", THEKERNEL.eeprom_data->TOOL);
-				printk("EEPRROM Data: TLO:%1.3f\n", THEKERNEL.eeprom_data->TLO);
-				printk("EEPRROM Data: TOOLMZ:%1.3f\n", THEKERNEL.eeprom_data->TOOLMZ);
-				printk("EEPRROM Data: REFMZ:%1.3f\n", THEKERNEL.eeprom_data->REFMZ);
-				printk("EEPRROM Data: G54: %1.3f, %1.3f, %1.3f\n", THEKERNEL.eeprom_data->G54[0], THEKERNEL.eeprom_data->G54[1], THEKERNEL.eeprom_data->G54[2]);
+				printk("EEPRROM Data: TOOL:%d\n", THEKERNEL.eeprom_data.TOOL);
+				printk("EEPRROM Data: TLO:%1.3f\n", THEKERNEL.eeprom_data.TLO);
+				printk("EEPRROM Data: TOOLMZ:%1.3f\n", THEKERNEL.eeprom_data.TOOLMZ);
+				printk("EEPRROM Data: REFMZ:%1.3f\n", THEKERNEL.eeprom_data.REFMZ);
+				printk("EEPRROM Data: G54: %1.3f, %1.3f, %1.3f\n", THEKERNEL.eeprom_data.G54[0], THEKERNEL.eeprom_data.G54[1], THEKERNEL.eeprom_data.G54[2]);
 			} else if (gcode->subcode == 2) {
 				// Show EEPROM DATA
 				THEKERNEL.erase_eeprom_data();
@@ -1289,8 +1289,8 @@ void ATCHandler::on_set_public_data(void* argument)
     if(pdr->second_element_is(set_ref_tool_mz_checksum)) {
         this->ref_tool_mz = cur_tool_mz;
         // update eeprom data if needed
-        if (this->ref_tool_mz != THEKERNEL.eeprom_data->REFMZ) {
-        	THEKERNEL.eeprom_data->REFMZ = this->ref_tool_mz;
+        if (this->ref_tool_mz != THEKERNEL.eeprom_data.REFMZ) {
+        	THEKERNEL.eeprom_data.REFMZ = this->ref_tool_mz;
 		    THEKERNEL.write_eeprom_data();
         }
         this->tool_offset = 0.0;
