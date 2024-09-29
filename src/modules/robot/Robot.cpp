@@ -24,7 +24,6 @@
 #include "arm_solutions/HBotSolution.h"
 #include "arm_solutions/CoreXZSolution.h"
 #include "arm_solutions/MorganSCARASolution.h"
-#include "StepTicker.h"
 #include "checksumm.h"
 #include "utils.h"
 #include "ConfigValue.h"
@@ -330,7 +329,7 @@ void Robot::load_config()
 uint8_t Robot::register_motor(StepperMotor *motor)
 {
     // register this motor with the step ticker
-    THEKERNEL.step_ticker->register_motor(motor);
+    THEKERNEL.step_ticker.register_motor(motor);
     if(n_motors >= k_max_actuators) {
         // this is a fatal error
         printk("FATAL: too many motors, increase k_max_actuators\n");

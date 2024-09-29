@@ -26,7 +26,6 @@
 #include "PublicDataRequest.h"
 #include "EndstopsPublicAccess.h"
 #include "Logging.h"
-#include "StepTicker.h"
 #include "BaseSolution.h"
 #include "SerialMessage.h"
 

@@ -8,7 +8,6 @@
 
 #include "Kernel.h"
 #include "MRI_Hooks.h"
-#include "StepTicker.h"
 
 #include <math.h>
 #include "mbed.h"

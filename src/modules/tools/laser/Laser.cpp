@@ -14,7 +14,6 @@
 #include "SerialMessage.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StepTicker.h"
 #include "Block.h"
 #include "SlowTicker.h"
 #include "Robot.h"
@@ -303,7 +302,7 @@ float Laser::current_speed_ratio(const Block *block) const
 // get laser power for the currently executing block, returns false if nothing running or a G0
 bool Laser::get_laser_power(float& power) const
 {
-    const Block *block = StepTicker::getInstance()->get_current_block();
+    const Block *block = THEKERNEL.step_ticker.get_current_block();
 
     // Note to avoid a race condition where the block is being cleared we check the is_ready flag which gets cleared first,
     // as this is an interrupt if that flag is not clear then it cannot be cleared while this is running and the block will still be valid (albeit it may have finished)

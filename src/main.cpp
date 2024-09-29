@@ -31,7 +31,6 @@
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StepTicker.h"
 #include "SlowTicker.h"
 #include "Robot.h"
 
@@ -212,7 +211,8 @@ void init() {
 
     // start the timers and interrupts
     THECONVEYOR.start(THEROBOT.get_number_registered_motors());
-    THEKERNEL.step_ticker->start();
+    
+    THEKERNEL.step_ticker.start();
     THEKERNEL.slow_ticker->start();
 }
 

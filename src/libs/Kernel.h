@@ -10,6 +10,7 @@
 
 #include "Module.h"
 #include "StreamOutputPool.h"
+#include "StepTicker.h"
 #include "I2C.h" // mbed.h lib
 #include <array>
 #include <vector>
@@ -26,7 +27,6 @@ class SerialConsole;
 class GcodeDispatch;
 class Robot;
 class Planner;
-class StepTicker;
 class Adc;
 class PublicData;
 class SimpleShell;
@@ -177,7 +177,7 @@ class Kernel {
         Configurator*     configurator;
 
         SlowTicker*       slow_ticker;
-        StepTicker*       step_ticker;
+        StepTicker        step_ticker;
         Adc*              adc;
         std::string       current_path;
         uint32_t          base_stepping_frequency;

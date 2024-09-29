@@ -31,10 +31,9 @@ GPIO stepticker_debug_pin(STEPTICKER_DEBUG_PIN);
 
 StepTicker *StepTicker::instance;
 
-StepTicker::StepTicker()
+void StepTicker::init()
 {
-    instance = this; // setup the Singleton instance of the stepticker
-
+    instance = this;
     // Configure the timer
     LPC_TIM0->MR0 = 10000000;       // Initial dummy value for Match Register
     LPC_TIM0->MCR = 3;              // Match on MR0, reset on MR0
@@ -62,13 +61,12 @@ StepTicker::StepTicker()
     #endif
 }
 
-StepTicker::~StepTicker()
-{
-}
-
 //called when everything is setup and interrupts can start
 void StepTicker::start()
 {
+    NVIC_SetVector(TIMER0_IRQn, (uint32_t)&_TIMER0_isr);
+    NVIC_SetVector(TIMER1_IRQn, (uint32_t)&_TIMER1_isr);
+
     NVIC_EnableIRQ(TIMER0_IRQn);     // Enable interrupt handler
     NVIC_EnableIRQ(TIMER1_IRQn);     // Enable interrupt handler
     current_tick= 0;
@@ -104,23 +102,23 @@ void StepTicker::unstep_tick()
     this->unstep.reset();
 }
 
-extern "C" void TIMER1_IRQHandler (void)
-{
-    LPC_TIM1->IR |= 1 << 0;
-    StepTicker::getInstance()->unstep_tick();
-}
-
 // The actual interrupt handler where we do all the work
-extern "C" void TIMER0_IRQHandler (void)
+void StepTicker::_TIMER0_isr(void)
 {
     // Reset interrupt register
     LPC_TIM0->IR |= 1 << 0;
-    StepTicker::getInstance()->step_tick();
+    instance->step_tick();
 }
 
-extern "C" void PendSV_Handler(void)
+void StepTicker::_TIMER1_isr(void)
 {
-    StepTicker::getInstance()->handle_finish();
+    LPC_TIM1->IR |= 1 << 0;
+    instance->unstep_tick();
+}
+
+void StepTicker::_PendSV_isr(void)
+{
+    instance->handle_finish();
 }
 
 // slightly lower priority than TIMER0, the whole end of block/start of block is done here allowing the timer to continue ticking
@@ -239,6 +237,7 @@ void StepTicker::step_tick (void)
 
         // all moves finished
         // we delegate the slow stuff to the pendsv handler which will run as soon as this interrupt exits
+        //NVIC_SetVector(PendSV_IRQn, (uint32_t)&_PendSV_isr);
         //NVIC_SetPendingIRQ(PendSV_IRQn); this doesn't work
         //SCB->ICSR = 0x10000000; // SCB_ICSR_PENDSVSET_Msk;
     }

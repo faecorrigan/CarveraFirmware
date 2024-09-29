@@ -29,7 +29,6 @@
 #include "PlayerPublicAccess.h"
 #include "TemperatureControlPublicAccess.h"
 #include "TemperatureControlPool.h"
-#include "StepTicker.h"
 #include "Block.h"
 
 #include <math.h>
@@ -762,7 +761,7 @@ void Player::on_get_public_data(void *argument)
         static struct pad_progress p;
         if(file_size > 0 && playing_file) {
         	if (!this->inner_playing) {
-                const Block *block = StepTicker::getInstance()->get_current_block();
+                const Block *block = THEKERNEL.step_ticker.get_current_block();
                 // Note to avoid a race condition where the block is being cleared we check the is_ready flag which gets cleared first,
                 // as this is an interrupt if that flag is not clear then it cannot be cleared while this is running and the block will still be valid (albeit it may have finished)
                 if (block != nullptr && block->is_ready && block->is_g123) {

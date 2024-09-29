@@ -127,7 +127,6 @@ void Kernel::init()
     // HAL stuff
     add_module( this->slow_ticker = new(AHB0) SlowTicker());
 
-    this->step_ticker = new(AHB0) StepTicker();
     this->adc = new(AHB0) Adc();
 
     // TODO : These should go into platform-specific files
@@ -161,8 +160,9 @@ void Kernel::init()
     float microseconds_per_step_pulse = this->config->value(microseconds_per_step_pulse_checksum)->by_default(1)->as_number();
 
     // Configure the step ticker
-    this->step_ticker->set_frequency( this->base_stepping_frequency );
-    this->step_ticker->set_unstep_time( microseconds_per_step_pulse );
+    step_ticker.init();
+    step_ticker.set_frequency(this->base_stepping_frequency);
+    step_ticker.set_unstep_time(microseconds_per_step_pulse);
 
     // init EEPROM data
     this->i2c = new mbed::I2C(P0_27, P0_28);

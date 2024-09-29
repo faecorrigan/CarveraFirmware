@@ -9,7 +9,6 @@
 #include "libs/Module.h"
 #include "libs/Kernel.h"
 #include "SlowTicker.h"
-#include "StepTicker.h"
 #include "libs/Hook.h"
 #include "modules/robot/Conveyor.h"
 #include "Gcode.h"

@@ -19,7 +19,6 @@
 #include "Config.h"
 #include "Logging.h"
 #include "ConfigValue.h"
-#include "StepTicker.h"
 #include "Robot.h"
 #include "StepperMotor.h"
 
@@ -71,7 +70,7 @@ void Conveyor::on_module_loaded()
     register_for_event(ON_HALT);
 
     // Attach to the end_of_move stepper event
-    //THEKERNEL.step_ticker->finished_fnc = std::bind( &Conveyor::all_moves_finished, this);
+    //THEKERNEL.step_ticker.finished_fnc = std::bind( &Conveyor::all_moves_finished, this);
     queue_size = THEKERNEL.config->value(planner_queue_size_checksum)->by_default(32)->as_number();
     queue_delay_time_ms = THEKERNEL.config->value(queue_delay_time_ms_checksum)->by_default(100)->as_number();
 }
