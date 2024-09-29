@@ -130,13 +130,6 @@ void init() {
     delete sp;
     #endif
 
-    #ifndef NO_TOOLS_EXTRUDER
-    // NOTE this must be done first before Temperature control so ToolManager can handle Tn before temperaturecontrol module does
-    ExtruderMaker *em= new(AHB0) ExtruderMaker();
-    em->load_tools();
-    delete em;
-    #endif
-
     // #ifndef NO_TOOLS_TEMPERATURECONTROL
     // Note order is important here must be after extruder so Tn as a parameter will get executed first
     TemperatureControlPool *tp= new(AHB0) TemperatureControlPool();
