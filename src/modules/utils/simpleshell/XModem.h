@@ -5,6 +5,8 @@
 #include <cstdint>
 #include "StreamOutput.h"
 
+#include "quicklz.h"
+
 class XModem {
 public:
     bool upload(const std::string& filename, StreamOutput* stream);
@@ -13,7 +15,7 @@ public:
 private:
     // Buffers
     unsigned char xbuff[8200];
-    unsigned char fbuff[4096];
+    unsigned char lzbuff[DCOMPRESS_BUFFER_SIZE];
     char info_msg[64];
 
     // Constants

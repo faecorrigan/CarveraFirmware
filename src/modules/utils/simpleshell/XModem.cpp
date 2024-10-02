@@ -132,6 +132,8 @@ bool XModem::decompress(const std::string& sfilename, const std::string& dfilena
 		goto _exit;
     }
 
+	memset(&s_stDecompressState, 0x00, sizeof(qlz_state_decompress));
+
     for (i = 0; i < sfilesize - 2; i += BLOCK_HEADER_SIZE + u32BlockSize) {
         fread(u8ReadBuffer_hdr, sizeof(char), BLOCK_HEADER_SIZE, f_in);
         u32BlockSize = u8ReadBuffer_hdr[0] * (1 << 24) + u8ReadBuffer_hdr[1] * (1 << 16) + u8ReadBuffer_hdr[2] * (1 << 8) + u8ReadBuffer_hdr[3];
@@ -141,18 +143,16 @@ bool XModem::decompress(const std::string& sfilename, const std::string& dfilena
         }
 
         fread(xbuff, sizeof(char), u32BlockSize, f_in);
-        u32DcmprsSize = qlz_decompress((const char*)xbuff, fbuff, &s_stDecompressState);
+        u32DcmprsSize = qlz_decompress((const char*)xbuff, lzbuff, &s_stDecompressState);
         if (!u32DcmprsSize) {
             goto _exit;
         }
 
         for (j = 0; j < u32DcmprsSize; j++) {
-            u16Sum += fbuff[j];
+            u16Sum += lzbuff[j];
         }
 
-        // Set the file write system buffer 4096 Byte
-        setvbuf(f_out, (char*)&fbuff[0], _IOFBF, 4096);
-        fwrite(fbuff, sizeof(char), u32DcmprsSize, f_out);
+        fwrite(lzbuff, sizeof(char), u32DcmprsSize, f_out);
         u32TotalDcmprsSize += u32DcmprsSize;
         u32BlockNum += 1;
         if (++k > 10) {
@@ -162,9 +162,9 @@ bool XModem::decompress(const std::string& sfilename, const std::string& dfilena
         }
     }
 
-    fread(fbuff, sizeof(char), 2, f_in);
+    fread(xbuff, sizeof(char), 2, f_in);
 
-    if (u16Sum != ((fbuff[0] << 8) + fbuff[1])) {
+    if (u16Sum != ((xbuff[0] << 8) + xbuff[1])) {
         goto _exit;
     }
 
@@ -335,8 +335,6 @@ bool XModem::upload(const std::string& filename, StreamOutput* stream) {
         } else if (xbuff[1] == (unsigned char)(~xbuff[2]) &&
         		xbuff[1] == packetno && check_crc(crc, &xbuff[3], bufsz + 1 + is_stx)) {
 
-            // Set the file write system buffer 4096 Byte
-        	setvbuf(fd, (char*)fbuff, _IOFBF, 4096);
 			fwrite(&xbuff[4 + is_stx], sizeof(char), len, fd);
 			u32filesize += len;
 			++ packetno;
@@ -455,8 +453,8 @@ bool XModem::download(const std::string& filename, StreamOutput* stream) {
 		
 		MD5 md5;
 		do {
-			size_t n = fread(fbuff, 1, sizeof(fbuff), fd);
-			if (n > 0) md5.update(fbuff, n);
+			size_t n = fread(xbuff, 1, sizeof(xbuff), fd);
+			if (n > 0) md5.update(xbuff, n);
 			THEKERNEL.call_event(ON_IDLE);
 		} while (!feof(fd));
 		strcpy(md5_str, md5.finalize().hexdigest().c_str());
