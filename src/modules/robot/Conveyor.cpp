@@ -25,7 +25,6 @@
 
 #include "mbed.h"
 
-#define planner_queue_size_checksum CHECKSUM("planner_queue_size")
 #define queue_delay_time_ms_checksum CHECKSUM("queue_delay_time_ms")
 
 /*
@@ -69,16 +68,13 @@ void Conveyor::on_module_loaded()
     register_for_event(ON_HALT);
 
     // Attach to the end_of_move stepper event
-    //THEKERNEL.step_ticker.finished_fnc = std::bind( &Conveyor::all_moves_finished, this);
-    queue_size = THEKERNEL.config->value(planner_queue_size_checksum)->by_default(32)->as_number();
     queue_delay_time_ms = THEKERNEL.config->value(queue_delay_time_ms_checksum)->by_default(100)->as_number();
 }
 
 // we allocate the queue here after config is completed so we do not run out of memory during config
-void Conveyor::start(uint8_t n)
+void Conveyor::start(uint8_t n_actuators)
 {
-    Block::init(n); // set the number of motors which determines how big the tick info vector is
-    queue.resize(queue_size);
+    Block::init(n_actuators);
     running = true;
 }
 
