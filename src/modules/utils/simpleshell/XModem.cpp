@@ -314,9 +314,10 @@ bool XModem::upload(const std::string& filename, StreamOutput* stream) {
         		}
         	} else {
         		timeouts = MAXRETRANS;
-            	for (int i = 0; i < c; i ++) {
-            		*p++ = recv_buff[i];
-            	}
+				
+        		memcpy(p, recv_buff, c);
+        		p += c;
+
             	recv_count -= c;
         	}
         }
