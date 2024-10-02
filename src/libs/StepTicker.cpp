@@ -116,11 +116,6 @@ void StepTicker::_TIMER1_isr(void)
     instance->unstep_tick();
 }
 
-void StepTicker::_PendSV_isr(void)
-{
-    instance->handle_finish();
-}
-
 // slightly lower priority than TIMER0, the whole end of block/start of block is done here allowing the timer to continue ticking
 void StepTicker::handle_finish (void)
 {
@@ -234,12 +229,6 @@ void StepTicker::step_tick (void)
             current_block= nullptr;
             running= false;
         }
-
-        // all moves finished
-        // we delegate the slow stuff to the pendsv handler which will run as soon as this interrupt exits
-        //NVIC_SetVector(PendSV_IRQn, (uint32_t)&_PendSV_isr);
-        //NVIC_SetPendingIRQ(PendSV_IRQn); this doesn't work
-        //SCB->ICSR = 0x10000000; // SCB_ICSR_PENDSVSET_Msk;
     }
 }
 

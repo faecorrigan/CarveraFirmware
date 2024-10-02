@@ -46,7 +46,6 @@ class StepTicker{
         static StepTicker *instance;
         static void _TIMER0_isr(void);
         static void _TIMER1_isr(void);
-        static void _PendSV_isr(void);
 
         bool start_next_block();
 
