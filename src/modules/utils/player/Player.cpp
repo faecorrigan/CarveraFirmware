@@ -259,6 +259,9 @@ void Player::on_gcode_received(void *argument)
             this->playing_lines = 0;
             this->goto_line = 0;
 
+        } else if (gcode->m == 118) { // print remainder of string to console
+            gcode->stream->printf("%s \n", gcode->get_command() + 4);
+
         } else if (gcode->m == 600) { // suspend print, Not entirely Marlin compliant, M600.1 will leave the heaters on
             this->suspend_command((gcode->subcode == 1)?"h":"", gcode->stream);
 
