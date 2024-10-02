@@ -158,8 +158,8 @@ bool XModem::decompress(const std::string& sfilename, const std::string& dfilena
         if (++k > 10) {
             k = 0;
             THEKERNEL.call_event(ON_IDLE);
-            stream->printf(info_msg, "#Info: decompressed blocks = %u\r\n", u32BlockNum);
         }
+		stream->printf("#Info: decompart = %lu\r\n", u32BlockNum);
     }
 
     fread(xbuff, sizeof(char), 2, f_in);
@@ -171,7 +171,7 @@ bool XModem::decompress(const std::string& sfilename, const std::string& dfilena
 	if (f_in != NULL) fclose(f_in);
     if (f_out != NULL) fclose(f_out);
 
-    stream->printf(info_msg, "#Info: decompressed blocks = %u\r\n", u32BlockNum);
+    stream->printf("#Info: decompart = %lu\r\n", u32BlockNum);
 
 	return true;
 
