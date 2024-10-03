@@ -104,7 +104,7 @@ DeltaGridStrategy::DeltaGridStrategy(ZProbe *zprobe) : LevelingStrategy(zprobe)
 
 DeltaGridStrategy::~DeltaGridStrategy()
 {
-    if(grid != nullptr) AHB.dealloc(grid);
+    if(grid != nullptr) free(grid);
 }
 
 bool DeltaGridStrategy::handleConfig()
@@ -129,8 +129,7 @@ bool DeltaGridStrategy::handleConfig()
         }
     }
 
-    // allocate in AHB
-    grid = (float *)AHB.alloc(grid_size * grid_size * sizeof(float));
+    grid = (float *)malloc(grid_size * grid_size * sizeof(float));
 
     if(grid == nullptr) {
         printk("Error: Not enough memory\n");

@@ -136,7 +136,7 @@ CartGridStrategy::CartGridStrategy(ZProbe *zprobe) : LevelingStrategy(zprobe)
 
 CartGridStrategy::~CartGridStrategy()
 {
-    if(grid != nullptr) AHB.dealloc(grid);
+    if(grid != nullptr) free(grid);
 }
 
 bool CartGridStrategy::handleConfig()
@@ -214,8 +214,7 @@ bool CartGridStrategy::handleConfig()
     std::replace(before_probe.begin(), before_probe.end(), '_', ' '); // replace _ with space
     std::replace(after_probe.begin(), after_probe.end(), '_', ' '); // replace _ with space
 
-    // allocate in AHB
-    grid = (float *)AHB.alloc(configured_grid_x_size * configured_grid_y_size * sizeof(float));
+    grid = (float *)malloc(configured_grid_x_size * configured_grid_y_size * sizeof(float));
 
     if(grid == nullptr) {
         printk("Error: Not enough memory\n");
