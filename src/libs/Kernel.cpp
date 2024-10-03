@@ -48,6 +48,7 @@
 #include <malloc.h>
 #include <array>
 #include <string>
+#include "Kernel.h"
 
 #define laser_checksum CHECKSUM("laser")
 #define baud_rate_setting_checksum CHECKSUM("baud_rate")

@@ -18,6 +18,8 @@ class StreamOutput;
 // Object to represent a Gcode command
 class Gcode {
     public:
+        using wcs_t= std::tuple<float, float, float>;
+
         Gcode(const string&, StreamOutput*, bool strip = true, unsigned int line = 0);
         Gcode(const Gcode& to_copy);
         Gcode& operator= (const Gcode& to_copy);
@@ -25,7 +27,12 @@ class Gcode {
 
         const char* get_command() const { return command; }
         bool has_letter ( char letter ) const;
-        // 2024
+
+// 2024
+        float get_variable_value(const char * expr, char ** endptr) const;
+        float set_variable_value() const;
+
+        float evaluate_expression(const char * expr, char ** endptr) const;
         // int  index_of_letter( char letter, int start = 0) const;
         float get_value ( char letter, char **ptr= nullptr ) const;
         // 2024

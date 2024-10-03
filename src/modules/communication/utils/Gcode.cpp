@@ -12,6 +12,15 @@
 #include <stdlib.h>
 #include <algorithm>
 
+
+//required for system variables
+#include <cctype>
+#include "libs/Kernel.h"
+#include "Robot.h"
+#include "PublicData.h"
+#include "SpindlePublicAccess.h"
+#include "StepperMotor.h"
+
 // This is a gcode object. It represents a GCode string/command, and caches some important values about that command for the sake of performance.
 // It gets passed around in events, and attached to the queue ( that'll change )
 Gcode::Gcode(const string &command, StreamOutput *stream, bool strip, unsigned int line)
@@ -92,21 +101,283 @@ int Gcode::index_of_letter( char letter, int start ) const
 }
 */
 
+float Gcode::set_variable_value() const{
+    // Expecting a number after the `#` from 1-20, like #12
+    const char* expr = this->get_command();
+    if (*expr == '#') {
+        char* endptr;
+        float value = 0;
+        int var_num = strtol(expr + 1, &endptr, 10); 
+        
+        while (*endptr == ' ')
+        {
+            endptr++;
+        }
+
+        if (*endptr == '=')
+        {
+            endptr++;
+            while (*endptr == ' ') //skip whitespace
+            {
+                endptr++;
+            }
+            value = evaluate_expression(endptr, &endptr);
+        }
+        else
+        {  
+            const char* temp_expr = expr;  // Temporary variable for safe parsing
+            value = this->get_variable_value(expr, (char**)&temp_expr);
+            
+            if (value > -100000){
+                this->stream->printf("variable %d = %.4f \n", var_num , value);
+            }
+            else
+            {
+                this->stream->printf("variable %d not set \n", var_num);
+                THEKERNEL->call_event(ON_HALT, nullptr);
+                THEKERNEL->set_halt_reason(MANUAL);
+                return 0;
+                
+            }
+            return 0;
+        }
+
+        if (var_num >= 1 && var_num <= 20) {
+            THEKERNEL->local_vars[var_num -1] = value;
+            this->stream->printf("Variable %d set %.4f \n", var_num,value);
+            return value;
+        } else if(var_num >= 501 && var_num <= 520)
+        {
+            THEKERNEL->eeprom_data->perm_vars[var_num - 501] = value;
+            THEKERNEL->write_eeprom_data();
+            this->stream->printf("Variable %d set  %.4f \n", var_num , value);
+            return value;
+        }else //system variables
+        {
+        }
+    }
+    this->stream->printf("Variable not found \n");
+    return 0;
+    
+}
+
+
+//get the value of a particular variable stored in EEPROM
+float Gcode::get_variable_value(const char* expr, char** endptr) const{
+    // Expecting a number after the `#` from 1-20, like #12
+    if (*expr == '#') {
+        int var_num = strtol(expr + 1, endptr, 10);         
+        if (var_num >= 1 && var_num <= 20) {
+            if (THEKERNEL->local_vars[var_num -1] > -100000)
+            {
+                return THEKERNEL->local_vars[var_num -1];
+            }
+            this->stream->printf("Variable %d not set \n", var_num);
+            THEKERNEL->call_event(ON_HALT, nullptr);
+            THEKERNEL->set_halt_reason(MANUAL);
+            return 0;
+        } else if(var_num >= 501 && var_num <= 520)
+        {
+            if (THEKERNEL->eeprom_data->perm_vars[var_num - 501] > -100000)
+            {
+                return THEKERNEL->eeprom_data->perm_vars[var_num - 501]; // return permanent variables
+            }
+            this->stream->printf("Variable %d not set \n", var_num);
+            THEKERNEL->call_event(ON_HALT, nullptr);
+            THEKERNEL->set_halt_reason(MANUAL);
+            return 0;
+        }else //system variables
+        {
+            float mpos[3];
+            bool ok;
+            wcs_t pos;
+            switch (var_num){
+                case 2000: //stored tool length offset
+                    return THEKERNEL->eeprom_data->TLO;
+                    break;
+                case 2500: //root WCS x position in relation to machine 0
+                    return 0;
+                    break;
+                case 2600: //root WCS y position in relation to machine 0
+                    return 0;
+                    break;
+                case 2700: //root WCS z position in relation to machine 0
+                    return 0;
+                    break;
+                case 2800: //root WCS a position in relation to machine 0
+                    return 0;
+                    break;
+                case 2501: //root G54 WCS x position in relation to machine 0
+                    return 0;
+                    break;
+                case 2601: //root G54 WCS y position in relation to machine 0
+                    return 0;
+                    break;
+                case 2701: //root G54 WCS z position in relation to machine 0
+                    return 0;
+                    break;
+                case 2801: //root G54 WCS a position in relation to machine 0
+                    return 0;
+                    break;
+                //add rest of WCS eventually
+
+                case 3026: //tool in spindle
+                    return THEKERNEL->eeprom_data->TOOL;
+                    break;
+                case 3027: //current spindle RPM
+                    struct spindle_status ss;
+                    ok = PublicData::get_value(pwm_spindle_control_checksum, get_spindle_status_checksum, &ss);
+                    if (ok) {
+                        return ss.current_rpm;
+                        break;
+                    }
+                    return 0;
+                    break;
+                case 3033: //Op Stop Enabled
+                    return THEKERNEL->get_optional_stop_mode();
+                    break;
+                case 5021: //current machine X position
+                    THEROBOT->get_current_machine_position(mpos);
+                    // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
+                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    return mpos[X_AXIS];
+                    break;
+                case 5022: //current machine Y position
+                    THEROBOT->get_current_machine_position(mpos);
+                    // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
+                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    return mpos[Y_AXIS];
+                    break;
+                case 5023: //current machine Z position
+                    THEROBOT->get_current_machine_position(mpos);
+                    // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
+                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    return mpos[Z_AXIS];
+                    break;
+
+                #if MAX_ROBOT_ACTUATORS > 3
+                case 5024: //current machine A position
+                    return THEROBOT->actuators[A_AXIS]->get_current_position();
+                    break;
+                #endif
+                case 5041: //current WCS X position
+                     THEROBOT->get_current_machine_position(mpos);
+                    // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
+                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    pos= THEROBOT->mcs2wcs(mpos);
+                    return THEROBOT->from_millimeters(std::get<X_AXIS>(pos));
+                    return 0;
+                    break;
+                case 5042: //current WCS Y position
+                     THEROBOT->get_current_machine_position(mpos);
+                    // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
+                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    pos= THEROBOT->mcs2wcs(mpos);
+                    return THEROBOT->from_millimeters(std::get<Y_AXIS>(pos));
+                    return 0;
+                    break;
+                case 5043: //current WCS A position
+                     THEROBOT->get_current_machine_position(mpos);
+                    // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
+                    if(THEROBOT->compensationTransform) THEROBOT->compensationTransform(mpos, true, false); // get inverse compensation transform
+                    pos= THEROBOT->mcs2wcs(mpos);
+                    return THEROBOT->from_millimeters(std::get<Z_AXIS>(pos));
+                    return 0;
+                    break;
+                #if MAX_ROBOT_ACTUATORS > 3
+                case 5044: //current machine A position
+                    return THEROBOT->actuators[A_AXIS]->get_current_position();
+                    break;
+                #endif
+
+                default:
+                    this->stream->printf("Variable %d not found \n", var_num);
+                    THEKERNEL->call_event(ON_HALT, nullptr);
+                    THEKERNEL->set_halt_reason(MANUAL);
+                    return 0;
+                    break;
+            }
+        }
+    }
+    return 0;
+}
+
+// Evaluate gcode values containing math and variable calls
+float Gcode::evaluate_expression(const char* expr, char** endptr) const {
+    while (isspace(*expr)) expr++;  // Skip leading whitespace
+
+    float result;
+    if (*expr == '#') {  // if the line starts with #, get variable value
+        result = this->get_variable_value(expr, endptr);
+    } else {
+        result = strtof(expr, endptr);
+    }
+
+    while (*endptr && **endptr) {
+        // Skip any whitespace between numbers/operators
+        while (isspace(**endptr)) (*endptr)++;
+							
+					 
+
+        char op = **endptr;  // Get the operator
+        (*endptr)++;         // Move past the operator
+
+        // Skip any whitespace after the operator
+        while (isspace(**endptr)) (*endptr)++;
+
+        float next_val;
+        if (**endptr == '#') {
+            next_val = this->get_variable_value(*endptr, endptr);
+        } else {
+            // Handle negative numbers or numbers with a leading sign
+            next_val = strtof(*endptr, endptr);
+        }
+
+        // Perform the operation
+        switch (op) {
+            case '+':
+                result += next_val;
+                break;
+            case '-':
+                result -= next_val;
+                break;
+            case '*':
+                result *= next_val;
+                break;
+            case '/':
+                if (next_val != 0)  // Avoid division by zero
+                    result /= next_val;
+                break;
+					 
+					  
+            default:
+                // If it's an unrecognized operator, stop parsing
+                return result;
+        }
+		
+    }
+    return result;
+}
+
+
 // Retrieve the value for a given letter
 float Gcode::get_value( char letter, char **ptr ) const
 {
     const char *cs = command;
     char *cn = NULL;
     for (; *cs; cs++) {
-        if( letter == *cs ) {
+        if (letter == *cs) {
             cs++;
-            float r = strtof(cs, &cn);
-            if(ptr != nullptr) *ptr= cn;
+            float result = this->evaluate_expression(cs, &cn);
+            if(ptr != nullptr) *ptr = cn;
+            
+            // If a valid expression was found, return the result
             if (cn > cs)
-                return r;
+                return result;
         }
     }
-    if(ptr != nullptr) *ptr= nullptr;
+    // If no valid number or expression is found, return 0
+    if (ptr != nullptr) *ptr = nullptr;
     return 0;
 }
 
