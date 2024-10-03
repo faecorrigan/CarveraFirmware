@@ -60,9 +60,9 @@
 #define second_usb_serial_enable_checksum  CHECKSUM("second_usb_serial_enable")
 #define watchdog_timeout_checksum  CHECKSUM("watchdog_timeout")
 
-SDFileSystem sd __attribute__ ((section ("AHBSRAM0"))) (P0_18, P0_17, P0_15, P0_16, 12000000);
+SDFileSystem sd __attribute__ ((section ("AHBSRAM"))) (P0_18, P0_17, P0_15, P0_16, 12000000);
 
-SDFAT mounter __attribute__ ((section ("AHBSRAM0"))) ("sd", &sd);
+SDFAT mounter __attribute__ ((section ("AHBSRAM"))) ("sd", &sd);
 
 GPIO leds[4] = {
     GPIO(P4_29),
@@ -71,25 +71,25 @@ GPIO leds[4] = {
     GPIO(P1_17)
 };
 
-Watchdog watchdog __attribute__((section("AHBSRAM0"))) (10000, WDT_RESET);  // 10 seconds default, WDT_RESET
-Kernel THEKERNEL __attribute__((section("AHBSRAM0")));
-Conveyor THECONVEYOR __attribute__((section("AHBSRAM1")));
-Robot THEROBOT __attribute__((section("AHBSRAM1")));
-GcodeDispatch gcode_dispatch __attribute__((section("AHBSRAM1")));
-SimpleShell simpleshell __attribute__((section("AHBSRAM0")));
-WifiProvider wifi_provider __attribute__((section("AHBSRAM1")));
-WebServer web_server __attribute__((section("AHBSRAM0"))) (&wifi_provider);
+Watchdog watchdog __attribute__((section("AHBSRAM"))) (10000, WDT_RESET);  // 10 seconds default, WDT_RESET
+Kernel THEKERNEL __attribute__((section("AHBSRAM")));
+Conveyor THECONVEYOR __attribute__((section("AHBSRAM")));
+Robot THEROBOT __attribute__((section("AHBSRAM")));
+GcodeDispatch gcode_dispatch __attribute__((section("AHBSRAM")));
+SimpleShell simpleshell __attribute__((section("AHBSRAM")));
+WifiProvider wifi_provider __attribute__((section("AHBSRAM")));
+WebServer web_server __attribute__((section("AHBSRAM"))) (&wifi_provider);
 
-Player player __attribute__((section("AHBSRAM0")));
-WirelessProbe wireless_probe __attribute__((section("AHBSRAM1")));
-MainButton mainbutton __attribute__((section("AHBSRAM1")));
-ATCHandler atc_handler __attribute__((section("AHBSRAM1")));
-Endstops endstops __attribute__((section("AHBSRAM1")));
-Laser laser __attribute__((section("AHBSRAM0")));
-ZProbe zprobe __attribute__((section("AHBSRAM1")));
-RotaryDeltaCalibration rotary_delta_calibration __attribute__((section("AHBSRAM1")));
-TemperatureSwitch temperature_switch __attribute__((section("AHBSRAM0")));
-Drillingcycles drilling_cycles __attribute__((section("AHBSRAM1")));
+Player player __attribute__((section("AHBSRAM")));
+WirelessProbe wireless_probe __attribute__((section("AHBSRAM")));
+MainButton mainbutton __attribute__((section("AHBSRAM")));
+ATCHandler atc_handler __attribute__((section("AHBSRAM")));
+Endstops endstops __attribute__((section("AHBSRAM")));
+Laser laser __attribute__((section("AHBSRAM")));
+ZProbe zprobe __attribute__((section("AHBSRAM")));
+RotaryDeltaCalibration rotary_delta_calibration __attribute__((section("AHBSRAM")));
+TemperatureSwitch temperature_switch __attribute__((section("AHBSRAM")));
+Drillingcycles drilling_cycles __attribute__((section("AHBSRAM")));
 
 void init() {
     // Default pins to low status

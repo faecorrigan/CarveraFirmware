@@ -777,10 +777,9 @@ void SimpleShell::mem_command( string parameters, StreamOutput *stream)
     uint32_t f = heapWalk(stream, verbose);
     stream->printf("Total Free RAM: %lu bytes\r\n", m + f);
 
-    stream->printf("Free AHB0: %lu, AHB1: %lu\r\n", AHB0.free(), AHB1.free());
+    stream->printf("Free AHB: %lu\r\n", AHB.free());
     if (verbose) {
-        AHB0.debug(stream);
-        AHB1.debug(stream);
+        AHB.debug(stream);
     }
 
     stream->printf("Block size: %u bytes, Tickinfo size: %u bytes\n", sizeof(Block), sizeof(Block::tickinfo_t) * Block::n_actuators);

@@ -65,23 +65,17 @@ extern "C" void _start(void)
 
     // MemoryPool stuff - needs to be initialised before __libc_init_array
     // so static ctors can use them
-    extern uint8_t __AHB0_block_start;
-    extern uint8_t __AHB0_dyn_start;
-    extern uint8_t __AHB0_end;
-    extern uint8_t __AHB1_block_start;
-    extern uint8_t __AHB1_dyn_start;
-    extern uint8_t __AHB1_end;
+    extern uint8_t __AHB_block_start;
+    extern uint8_t __AHB_dyn_start;
+    extern uint8_t __AHB_end;
 
-    // zero the data sections in AHB0 and AHB1
-    memset(&__AHB0_block_start, 0, &__AHB0_dyn_start - &__AHB0_block_start);
-    memset(&__AHB1_block_start, 0, &__AHB1_dyn_start - &__AHB1_block_start);
+    // zero the data sections in AHB
+    memset(&__AHB_block_start, 0, &__AHB_dyn_start - &__AHB_block_start);
 
-    MemoryPool _AHB0_stack(&__AHB0_dyn_start, &__AHB0_end - &__AHB0_dyn_start);
-    MemoryPool _AHB1_stack(&__AHB1_dyn_start, &__AHB1_end - &__AHB1_dyn_start);
+    MemoryPool _AHB_stack(&__AHB_dyn_start, &__AHB_end - &__AHB_dyn_start);
 
 
-    _AHB0 = &_AHB0_stack;
-    _AHB1 = &_AHB1_stack;
+    _AHB = &_AHB_stack;
     // MemoryPool init done
 
     __libc_init_array();
