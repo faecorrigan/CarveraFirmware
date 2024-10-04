@@ -51,8 +51,12 @@
 #include "LPC17xx.h"
 #include "WifiPublicAccess.h"
 #include "XModem.h"
+#include "utils.h"
 
 #include "mbed.h" // for wait_ms()
+
+#include "FreeRTOS.h"
+#include "task.h"
 
 extern unsigned int g_maximumHeapAddress;
 
@@ -1631,12 +1635,17 @@ void SimpleShell::test_command( string parameters, StreamOutput *stream)
         sps= std::max(sps, 1UL);
 
         uint32_t delayus= 1000000.0F / sps;
+        
+        vTaskSuspendAll();
         for(int s= 0;s<steps;s++) {
             if(THEKERNEL.is_halted()) break;
             THEROBOT.actuators[a]->manual_step(dir);
-            // delay but call on_idle
-            safe_delay_us(delayus);
+
+            uint32_t start = us_ticker_read();
+            while ((us_ticker_read() - start) < delayus) 
+                ;
         }
+        xTaskResumeAll();
 
         // reset the position based on current actuator position
         THEROBOT.reset_position_from_current_actuator_position();

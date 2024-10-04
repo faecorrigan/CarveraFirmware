@@ -51,7 +51,6 @@ public:
 
 
 private:
-    void M8266WIFI_Module_delay_ms(u16 nms);
     void set_wifi_op_mode(u8 op_mode);
 
     void M8266WIFI_Module_Hardware_Reset(void);

@@ -11,6 +11,9 @@
 #include <cstdio>
 #include <cstring>
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 using namespace std;
 
 int XModem::inbyte(unsigned int timeout_ms, StreamOutput* stream) {
@@ -18,7 +21,7 @@ int XModem::inbyte(unsigned int timeout_ms, StreamOutput* stream) {
     while (us_ticker_read() - tick_us < timeout_ms * 1000) {
         if (stream->ready())
             return stream->getc();
-        safe_delay_us(100);
+        vTaskDelay(0);
     }
     return -1;
 }
@@ -28,7 +31,7 @@ int XModem::inbytes(char **buf, int size, unsigned int timeout_ms, StreamOutput*
     while (us_ticker_read() - tick_us < timeout_ms * 1000) {
         if (stream->ready())
             return stream->gets(buf, size);
-        safe_delay_us(100);
+        vTaskDelay(0);
     }
     return -1;
 }

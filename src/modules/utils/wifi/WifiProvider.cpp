@@ -24,6 +24,7 @@
 #include "WifiPublicAccess.h"
 #include "libs/utils.h"
 #include "Logging.h"
+#include "utils.h"
 
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
@@ -508,7 +509,7 @@ void WifiProvider::on_get_public_data(void* argument)
             if ((status & 0xff) == 0x26) {
                 // Still scanning; wait
                 THEKERNEL.call_event(ON_IDLE, this);
-                M8266WIFI_Module_delay_ms(1);
+                safe_delay_ms(1);
                 continue;
             } else {
                 // Scan failed
@@ -586,7 +587,7 @@ void WifiProvider::on_set_public_data(void* argument)
                 if (connection_status == 1) {
                     // Connecting; wait
                     THEKERNEL.call_event(ON_IDLE, this);
-                    M8266WIFI_Module_delay_ms(1);
+                    safe_delay_ms(1);
                     continue;
                 } else if (connection_status == 5) {
                     // Connection successful
@@ -727,36 +728,27 @@ void WifiProvider::init_wifi_module(bool reset)
     wifi_init_ok = true;
 }
 
-void WifiProvider::M8266WIFI_Module_delay_ms(u16 nms)
-{
-    // Delay function for module initialization
-    u16 i, j;
-    for (i = 0; i < nms; i++)
-        for (j = 0; j < 4; j++)
-            M8266HostIf_delay_us(250);
-}
-
 void WifiProvider::M8266WIFI_Module_Hardware_Reset(void) // total 800ms  (Chinese: 本例子中这个函数的总共执行时间大约800毫秒)
 {
 	M8266HostIf_Set_SPI_nCS_Pin(0);   			// Module nCS==ESP8266 GPIO15 as well, Low during reset in order for a normal reset (Chinese: 为了实现正常复位，模块的片选信号nCS在复位期间需要保持拉低)
-	M8266WIFI_Module_delay_ms(1); 	    		// delay 1ms, adequate for nCS stable (Chinese: 延迟1毫秒，确保片选nCS设置后有足够的时间来稳定)
+	safe_delay_ms(1); 	    		// delay 1ms, adequate for nCS stable (Chinese: 延迟1毫秒，确保片选nCS设置后有足够的时间来稳定)
 
 	M8266HostIf_Set_nRESET_Pin(0);					// Pull low the nReset Pin to bring the module into reset state (Chinese: 拉低nReset管脚让模组进入复位状态)
-	M8266WIFI_Module_delay_ms(5);      		// delay 5ms, adequate for nRESET stable(Chinese: 延迟5毫秒，确保片选nRESER设置后有足够的时间来稳定，也确保nCS和nRESET有足够的时间同时处于低电平状态)
+	safe_delay_ms(5);      		// delay 5ms, adequate for nRESET stable(Chinese: 延迟5毫秒，确保片选nRESER设置后有足够的时间来稳定，也确保nCS和nRESET有足够的时间同时处于低电平状态)
 	                                        // give more time especially for some board not good enough
 	                                        //(Chinese: 如果主板不是很好，导致上升下降过渡时间较长，或者因为失配存在较长的振荡时间，所以信号到轨稳定的时间较长，那么在这里可以多给一些延时)
 
 	M8266HostIf_Set_nRESET_Pin(1);					// Pull high again the nReset Pin to bring the module exiting reset state (Chinese: 拉高nReset管脚让模组退出复位状态)
-	M8266WIFI_Module_delay_ms(300); 	  		// at least 18ms required for reset-out-boot sampling boottrap pin (Chinese: 至少需要18ms的延时来确保退出复位时足够的boottrap管脚采样时间)
+	safe_delay_ms(300); 	  		// at least 18ms required for reset-out-boot sampling boottrap pin (Chinese: 至少需要18ms的延时来确保退出复位时足够的boottrap管脚采样时间)
 	                                        // Here, we use 300ms for adequate abundance, since some board GPIO, (Chinese: 在这里我们使用了300ms的延时来确保足够的富裕量，这是因为在某些主板上，)
 																					// needs more time for stable(especially for nRESET) (Chinese: 他们的GPIO可能需要较多的时间来输出稳定，特别是对于nRESET所对应的GPIO输出)
 																					// You may shorten the time or give more time here according your board v.s. effiency
 																					// (Chinese: 如果你的主机板在这里足够好，你可以缩短这里的延时来缩短复位周期；反之则需要加长这里的延时。
 																					//           总之，你可以调整这里的时间在你们的主机板上充分测试，找到一个合适的延时，确保每次复位都能成功。并适当保持一些富裕量，来兼容批量化时主板的个体性差异)
 	M8266HostIf_Set_SPI_nCS_Pin(1);         // release/pull-high(defualt) nCS upon reset completed (Chinese: 释放/拉高(缺省)片选信号
-	//M8266WIFI_Module_delay_ms(1); 	    		// delay 1ms, adequate for nCS stable (Chinese: 延迟1毫秒，确保片选nCS设置后有足够的时间来稳定)
+	//safe_delay_ms(1); 	    		// delay 1ms, adequate for nCS stable (Chinese: 延迟1毫秒，确保片选nCS设置后有足够的时间来稳定)
 
-	M8266WIFI_Module_delay_ms(800-300-5-2); // Delay more than around 500ms for M8266WIFI module bootup and initialization，including bootup information print。No influence to host interface communication. Could be shorten upon necessary. But test for verification required if adjusted.
+	safe_delay_ms(800-300-5-2); // Delay more than around 500ms for M8266WIFI module bootup and initialization，including bootup information print。No influence to host interface communication. Could be shorten upon necessary. But test for verification required if adjusted.
 	                                        // (Chinese: 延迟大约500毫秒，来等待模组成功复位后完成自己的启动过程和自身初始化，包括串口信息打印。但是此时不影响模组和单片主机之间的通信，这里的时间可以根据需要适当调整.如果调整缩短了这里的时间，建议充分测试，以确保系统(时序关系上的)可靠性)
 }
 
@@ -782,7 +774,7 @@ u8 WifiProvider::M8266WIFI_Module_Init_Via_SPI()
 	#endif	
     M8266HostIf_SPI_SetSpeed(SPI_BaudRatePrescaler_4);
     spi_clk = 24000000;
-    M8266WIFI_Module_delay_ms(1);
+    safe_delay_ms(1);
 
     // Step 3: Select SPI interface
     if (M8266HostIf_SPI_Select((uint32_t)M8266WIFI_INTERFACE_SPI, spi_clk, &status) == 0) {

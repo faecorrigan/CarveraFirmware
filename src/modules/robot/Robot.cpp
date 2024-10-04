@@ -526,12 +526,7 @@ void Robot::on_gcode_received(void *argument)
                 if (delay_ms > 0) {
                     // drain queue
                     THECONVEYOR.wait_for_idle();
-                    // wait for specified time
-                    uint32_t start = us_ticker_read(); // mbed call
-                    while ((us_ticker_read() - start) < delay_ms * 1000) {
-                        THEKERNEL.call_event(ON_IDLE, this);
-                        if(THEKERNEL.is_halted()) return;
-                    }
+                    safe_delay_ms(delay_ms);
                 }
             }
             break;

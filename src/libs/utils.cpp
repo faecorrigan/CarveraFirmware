@@ -18,6 +18,9 @@
 
 #include "mbed.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 using std::string;
 
 uint16_t get_checksum(const string &to_check)
@@ -354,15 +357,7 @@ string wcs2gcode(int wcs) {
 
 void safe_delay_ms(uint32_t delay)
 {
-    safe_delay_us(delay*1000);
-}
-
-void safe_delay_us(uint32_t dus)
-{
-    uint32_t start = us_ticker_read();
-    while ((us_ticker_read() - start) < dus) {
-        THEKERNEL.call_event(ON_IDLE);
-    }
+    vTaskDelay(pdMS_TO_TICKS(delay));
 }
 
 struct tm *get_fftime(unsigned short t_date, unsigned short t_time, struct tm *timeinfo) {
