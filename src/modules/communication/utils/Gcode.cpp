@@ -142,8 +142,8 @@ float Gcode::set_variable_value() const{
             return 0;
         }
 
-        if (var_num >= 1 && var_num <= 20) {
-            THEKERNEL->local_vars[var_num -1] = value;
+        if (var_num >= 101 && var_num <= 120) {
+            THEKERNEL->local_vars[var_num -101] = value;
             this->stream->printf("Variable %d set %.4f \n", var_num,value);
             return value;
         } else if(var_num >= 501 && var_num <= 520)
@@ -167,10 +167,10 @@ float Gcode::get_variable_value(const char* expr, char** endptr) const{
     // Expecting a number after the `#` from 1-20, like #12
     if (*expr == '#') {
         int var_num = strtol(expr + 1, endptr, 10);         
-        if (var_num >= 1 && var_num <= 20) {
-            if (THEKERNEL->local_vars[var_num -1] > -100000)
+        if (var_num >= 101 && var_num <= 120) {
+            if (THEKERNEL->local_vars[var_num -101] > -100000)
             {
-                return THEKERNEL->local_vars[var_num -1];
+                return THEKERNEL->local_vars[var_num -101];
             }
             this->stream->printf("Variable %d not set \n", var_num);
             THEKERNEL->call_event(ON_HALT, nullptr);
