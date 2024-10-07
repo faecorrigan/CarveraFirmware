@@ -1,3 +1,7 @@
 [submodule "mri"]
 	path = mri
 	url = git@github.com:tcatm/mri.git
+[submodule "freertos"]
+	path = freertos
+	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+	branch = V11.1.0

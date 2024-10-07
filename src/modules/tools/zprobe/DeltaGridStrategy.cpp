@@ -77,7 +77,6 @@
 #include "ZProbe.h"
 #include "nuts_bolts.h"
 #include "utils.h"
-#include "platform_memory.h"
 #include "StreamOutput.h"
 
 #include <string>

@@ -14,7 +14,6 @@
 #include "Conveyor.h"
 #include "Gcode.h"
 #include "libs/Logging.h"
-#include "platform_memory.h"
 
 #include "mri.h"
 #include <inttypes.h>

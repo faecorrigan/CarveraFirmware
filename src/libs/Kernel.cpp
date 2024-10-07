@@ -39,8 +39,6 @@
 #include "Laser.h"
 #endif
 
-#include "platform_memory.h"
-
 #include <malloc.h>
 #include <array>
 #include <string>

@@ -32,6 +32,12 @@
 #include "ConfigValue.h"
 #include "Robot.h"
 
+// FreeRTOS
+#include "FreeRTOS.h"
+#include "task.h"
+
+#include <mri.h>
+
 // #include "libs/ChaNFSSD/SDFileSystem.h"
 #include "libs/nuts_bolts.h"
 #include "libs/utils.h"
@@ -51,7 +57,6 @@
 
 #include "version.h"
 #include "system_LPC17xx.h"
-#include "platform_memory.h"
 
 #include "mbed.h"
 
@@ -59,6 +64,10 @@
 #define DISABLEMSD
 #define second_usb_serial_enable_checksum  CHECKSUM("second_usb_serial_enable")
 #define watchdog_timeout_checksum  CHECKSUM("watchdog_timeout")
+
+extern "C" void vPortSVCHandler(void);
+extern "C" void xPortPendSVHandler(void);
+extern "C" void xPortSysTickHandler(void);
 
 SDFileSystem sd __attribute__ ((section ("AHBSRAM"))) (P0_18, P0_17, P0_15, P0_16, 12000000);
 
@@ -90,6 +99,8 @@ ZProbe zprobe __attribute__((section("AHBSRAM")));
 RotaryDeltaCalibration rotary_delta_calibration __attribute__((section("AHBSRAM")));
 TemperatureSwitch temperature_switch __attribute__((section("AHBSRAM")));
 Drillingcycles drilling_cycles __attribute__((section("AHBSRAM")));
+
+serial_t console;
 
 void init() {
     // Default pins to low status
@@ -218,18 +229,68 @@ void init() {
     THEKERNEL.slow_ticker.start();
 }
 
-int main()
-{
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
+    /* Log or print the overflow information */
+    printk("Stack overflow detected in task: %s\n", pcTaskName);
+
+    /* Trigger MRI abort */
+    abort();
+}
+
+void vTaskMainLoop(void *pvParameters) {
+    uint16_t cnt = 0;
+
     init();
 
-    uint16_t cnt= 0;
-    // Main loop
-    while(1){
+    __debugbreak();
+
+    printk("Mainloop started\n");
+
+    while (true) {
         if(THEKERNEL.is_using_leds()) {
             // flash led 2 to show we are alive
             leds[1]= (cnt++ & 0x1000) ? 1 : 0;
         }
+
         THEKERNEL.call_event(ON_MAIN_LOOP);
         THEKERNEL.call_event(ON_IDLE);
+
+        vTaskDelay(1);
     }
+}
+
+#define MAINLOOP_STACK_SIZE 768
+
+StackType_t mainLoopStackBuffer[MAINLOOP_STACK_SIZE];
+StaticTask_t mainLoopTaskBuffer __attribute__((section("AHBSRAM")));
+
+int main() {
+    serial_init(&console, P2_8, P2_9);
+    serial_baud(&console, DEFAULT_SERIAL_BAUD_RATE);
+
+    __debugbreak();
+
+    NVIC_SetVector(SVCall_IRQn, (uint32_t)vPortSVCHandler);
+    NVIC_SetVector(PendSV_IRQn, (uint32_t)xPortPendSVHandler);
+    NVIC_SetVector(SysTick_IRQn, (uint32_t)xPortSysTickHandler);
+
+    // Create a FreeRTOS task main loop
+    TaskHandle_t xHandle = xTaskCreateStatic(
+        vTaskMainLoop,        // Task function
+        "MainLoop",           // Task name (for debugging)
+        MAINLOOP_STACK_SIZE,  // Stack size (in words, not bytes)
+        NULL,                 // Task parameters (none)
+        1,                    // Task priority
+        mainLoopStackBuffer,
+        &mainLoopTaskBuffer
+    );
+
+    // Start the FreeRTOS scheduler
+    vTaskStartScheduler();
+
+    // The program should never reach this point
+    // This is only reached if there is insufficient memory to start the scheduler
+    abort();
+
+    return 0;
 }

@@ -40,7 +40,6 @@
 #include "EndstopsPublicAccess.h"
 #include "ATCHandlerPublicAccess.h"
 // #include "NetworkPublicAccess.h"
-#include "platform_memory.h"
 #include "SwitchPublicAccess.h"
 #include "SDFAT.h"
 #include "Thermistor.h"
@@ -776,11 +775,6 @@ void SimpleShell::mem_command( string parameters, StreamOutput *stream)
 
     uint32_t f = heapWalk(stream, verbose);
     stream->printf("Total Free RAM: %lu bytes\r\n", m + f);
-
-    stream->printf("Free AHB: %lu\r\n", AHB.free());
-    if (verbose) {
-        AHB.debug(stream);
-    }
 
     stream->printf("Block size: %u bytes, Tickinfo size: %u bytes\n", sizeof(Block), sizeof(Block::tickinfo_t) * Block::n_actuators);
 }

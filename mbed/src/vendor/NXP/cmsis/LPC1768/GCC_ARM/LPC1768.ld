@@ -154,7 +154,7 @@ SECTIONS
 
 
     /* Code can explicitly ask for data to be 
-        laced in these higher RAM banks where
+        placed in these higher RAM banks where
         they will be left uninitialized.
     */
 
