@@ -46,9 +46,6 @@
 
 #define UPDATE_FREQ 100
 
-PWMSpindleControl::PWMSpindleControl()
-{
-}
 
 void PWMSpindleControl::on_module_loaded()
 {
@@ -123,8 +120,9 @@ void PWMSpindleControl::on_module_loaded()
         }
         delete smoothie_pin;
     }
-    
-    THEKERNEL.slow_ticker_attach(UPDATE_FREQ, this, &PWMSpindleControl::on_update_speed);
+
+    spindle_speed_timer.setFrequency(UPDATE_FREQ);
+	spindle_speed_timer.start();
 }
 
 void PWMSpindleControl::on_pin_rise()
@@ -140,7 +138,7 @@ void PWMSpindleControl::on_pin_rise()
 	irq_count ++;
 }
 
-uint32_t PWMSpindleControl::on_update_speed(uint32_t dummy)
+void PWMSpindleControl::on_update_speed()
 {
     // If we don't get any interrupts for 1 second, set current RPM to 0
     if (++time_since_update > UPDATE_FREQ)
@@ -202,8 +200,6 @@ uint32_t PWMSpindleControl::on_update_speed(uint32_t dummy)
         pwm_pin->write(1.0f - current_pwm_value);
     else
         pwm_pin->write(current_pwm_value);
-    
-    return 0;
 }
 
 void PWMSpindleControl::turn_on() {

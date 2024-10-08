@@ -35,6 +35,7 @@
 // FreeRTOS
 #include "FreeRTOS.h"
 #include "task.h"
+#include "timers.h"
 
 #include <mri.h>
 
@@ -68,6 +69,44 @@
 extern "C" void vPortSVCHandler(void);
 extern "C" void xPortPendSVHandler(void);
 extern "C" void xPortSysTickHandler(void);
+
+#if (configSUPPORT_STATIC_ALLOCATION == 1)
+
+// Static allocation for the Idle Task
+static StaticTask_t xIdleTaskTCBBuffer;
+static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+
+// Static allocation for the Timer Task
+#if (configUSE_TIMERS == 1)
+static StaticTask_t xTimerTaskTCBBuffer;
+static StackType_t xTimerStack[configTIMER_TASK_STACK_DEPTH];
+#endif
+
+extern "C" {
+
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
+                                    StackType_t **ppxIdleTaskStackBuffer,
+                                    uint32_t *pulIdleTaskStackSize ) {
+    *ppxIdleTaskTCBBuffer   = &xIdleTaskTCBBuffer;
+    *ppxIdleTaskStackBuffer = xIdleStack;
+    *pulIdleTaskStackSize   = configMINIMAL_STACK_SIZE;
+}
+
+#if (configUSE_TIMERS == 1)
+
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer,
+                                     StackType_t **ppxTimerTaskStackBuffer,
+                                     uint32_t *pulTimerTaskStackSize ) {
+    *ppxTimerTaskTCBBuffer   = &xTimerTaskTCBBuffer;
+    *ppxTimerTaskStackBuffer = xTimerStack;
+    *pulTimerTaskStackSize   = configTIMER_TASK_STACK_DEPTH;
+}
+
+#endif // configUSE_TIMERS
+
+} // extern "C"
+
+#endif // configSUPPORT_STATIC_ALLOCATION
 
 SDFileSystem sd __attribute__ ((section ("AHBSRAM"))) (P0_18, P0_17, P0_15, P0_16, 12000000);
 
@@ -242,8 +281,6 @@ void vTaskMainLoop(void *pvParameters) {
 
     init();
 
-    __debugbreak();
-
     printk("Mainloop started\n");
 
     while (true) {
@@ -267,8 +304,6 @@ StaticTask_t mainLoopTaskBuffer __attribute__((section("AHBSRAM")));
 int main() {
     serial_init(&console, P2_8, P2_9);
     serial_baud(&console, DEFAULT_SERIAL_BAUD_RATE);
-
-    __debugbreak();
 
     NVIC_SetVector(SVCall_IRQn, (uint32_t)vPortSVCHandler);
     NVIC_SetVector(PendSV_IRQn, (uint32_t)xPortPendSVHandler);

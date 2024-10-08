@@ -13,20 +13,13 @@
 //#define DEBUG_PRINTF s->printf
 #define DEBUG_PRINTF(...)
 
-PID_Autotuner::PID_Autotuner()
-{
-    temp_control = NULL;
-    lastInputs = NULL;
-    peaks = NULL;
-    tick = false;
-    tickCnt = 0;
-    nLookBack = 10 * 20; // 10 seconds of lookback (fixed 20ms tick period)
-}
 
 void PID_Autotuner::on_module_loaded()
 {
     tick = false;
-    THEKERNEL.slow_ticker_attach(20, this, &PID_Autotuner::on_tick );
+
+    timer.start();
+
     register_for_event(ON_IDLE);
     register_for_event(ON_GCODE_RECEIVED);
 }
@@ -135,13 +128,13 @@ void PID_Autotuner::on_gcode_received(void *argument)
     }
 }
 
-uint32_t PID_Autotuner::on_tick(uint32_t dummy)
+void PID_Autotuner::on_tick()
 {
     if (temp_control != NULL)
         tick = true;
 
     tickCnt += (1000 / 20); // millisecond tick count
-    return 0;
+    return;
 }
 
 /**

@@ -19,6 +19,9 @@
 #include <vector>
 #include <string>
 
+#include "FreeRTOS.h"
+#include "timers.h"
+
 // 9 WCS offsets
 #define MAX_WCS 9UL
 //Module manager
@@ -109,10 +112,6 @@ class Kernel {
         void add_module(Module* module);
         void register_for_event(_EVENT_ENUM id_event, Module *module);
         void call_event(_EVENT_ENUM id_event, void * argument= nullptr);
-
-        template<typename T> Hook* slow_ticker_attach(uint32_t frequency, T *optr, uint32_t (T::*fptr)(uint32_t)) {
-            return this->slow_ticker.attach(frequency, optr, fptr);
-        }
 
         bool kernel_has_event(_EVENT_ENUM id_event, Module *module);
         void unregister_for_event(_EVENT_ENUM id_event, Module *module);

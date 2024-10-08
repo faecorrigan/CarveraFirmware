@@ -1,7 +1,7 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-extern uint32_t SystemCoreClock;
+#include "system_LPC17xx.h"
 
 #define configUSE_NEWLIB_REENTRANT      1
 #define configUSE_PREEMPTION            1
@@ -15,14 +15,16 @@ extern uint32_t SystemCoreClock;
 #define configTICK_RATE_HZ              ( ( portTickType ) 1000 )
 #define configMINIMAL_STACK_SIZE        ( ( unsigned short ) 80 )
 #define configMAX_TASK_NAME_LEN	        ( 12 )
-#define configUSE_TRACE_FACILITY        1 /* This is set to one so each task is given a unique number, which is then used to generate the logic analyzer output. */
-#define configUSE_16_BIT_TICKS          0
+#define configUSE_TRACE_FACILITY        0
 #define configIDLE_SHOULD_YIELD         0
 #define configUSE_CO_ROUTINES           0
-#define configUSE_MUTEXES               0
+#define configUSE_MUTEXES               1
 #define configUSE_RECURSIVE_MUTEXES     0
 #define configCHECK_FOR_STACK_OVERFLOW  1
+#define configTICK_TYPE_WIDTH_IN_BITS   TICK_TYPE_WIDTH_32_BITS
+#define configSUPPORT_STATIC_ALLOCATION 1
 
+#define configTIMER_TASK_PRIORITY       4
 #define configMAX_PRIORITIES			( 5 )
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 #define configQUEUE_REGISTRY_SIZE		0

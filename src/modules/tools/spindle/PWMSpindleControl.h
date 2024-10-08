@@ -11,6 +11,7 @@
 #include "SpindleControl.h"
 #include <stdint.h>
 #include "Pin.h"
+#include "SoftTimer.h"
 
 namespace mbed {
     class PwmOut;
@@ -20,7 +21,10 @@ namespace mbed {
 // This module implements closed loop PID control for spindle RPM.
 class PWMSpindleControl: public SpindleControl {
     public:
-        PWMSpindleControl();
+        PWMSpindleControl()
+        : spindle_speed_timer("SpindleSpeed", 1, true, this, &PWMSpindleControl::on_update_speed)
+        {}
+
         virtual ~PWMSpindleControl() {};
         void on_module_loaded();
         void on_get_public_data(void* argument);
@@ -30,7 +34,9 @@ class PWMSpindleControl: public SpindleControl {
     private:
         
         void on_pin_rise();
-        uint32_t on_update_speed(uint32_t dummy);
+        void on_update_speed();
+
+        SoftTimer spindle_speed_timer;
         
         mbed::PwmOut *pwm_pin; // PWM output for spindle speed control
         mbed::InterruptIn *feedback_pin; // Interrupt pin for measuring speed

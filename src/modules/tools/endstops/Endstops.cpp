@@ -126,8 +126,7 @@ void Endstops::on_module_loaded()
     register_for_event(ON_GET_PUBLIC_DATA);
     register_for_event(ON_SET_PUBLIC_DATA);
 
-
-    THEKERNEL.slow_ticker_attach(1000, this, &Endstops::read_endstops);
+	read_endstops_timer.start();
 
     // load g28 data from eeprom
 //    this->g28_position[0] = THEKERNEL.eeprom_data.G28[0];
@@ -604,9 +603,9 @@ void Endstops::move_to_origin(axis_bitmap_t axis)
 }
 
 // Called every millisecond in an ISR
-uint32_t Endstops::read_endstops(uint32_t dummy)
+void Endstops::read_endstops()
 {
-    if(this->status != MOVING_TO_ENDSTOP_SLOW && this->status != MOVING_TO_ENDSTOP_FAST) return 0; // not doing anything we need to monitor for
+    if(this->status != MOVING_TO_ENDSTOP_SLOW && this->status != MOVING_TO_ENDSTOP_FAST) return; // not doing anything we need to monitor for
 
     // check each homing endstop
     for(auto& e : homing_axis) { // check all axis homing endstops
@@ -642,7 +641,7 @@ uint32_t Endstops::read_endstops(uint32_t dummy)
         }
     }
 
-    return 0;
+    return;
 }
 
 void Endstops::home_xy()

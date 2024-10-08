@@ -51,14 +51,6 @@
 
 #define ROUND2DP(x) (roundf(x * 1e2F) / 1e2F)
 
-Switch::Switch() {}
-
-Switch::Switch(uint16_t name)
-{
-    this->name_checksum = name;
-    //this->dummy_stream = &(StreamOutput::NullStream);
-}
-
 // set the pin to the fail safe value on halt
 void Switch::on_halt(void *arg)
 {
@@ -226,7 +218,8 @@ void Switch::on_config_reload(void *argument)
         // set to initial state
         this->input_pin_state = this->input_pin->get();
         // input pin polling
-        THEKERNEL.slow_ticker_attach( 100, this, &Switch::pinpoll_tick);
+
+	    pinpoll_timer.start();
     }
 
     if(!is_input) {
@@ -319,7 +312,7 @@ void Switch::on_config_reload(void *argument)
 
     if(this->output_type == SIGMADELTA) {
         // SIGMADELTA
-        THEKERNEL.slow_ticker_attach(1000, this->sigmadelta_pin, &Pwm::on_tick);
+	    pwm_timer.start();
     }
 
     // for commands we need to replace _ for space
@@ -546,7 +539,7 @@ void Switch::on_main_loop(void *argument)
 
 // TODO Make this use InterruptIn
 // Check the state of the button and act accordingly
-uint32_t Switch::pinpoll_tick(uint32_t dummy)
+void Switch::pinpoll_tick()
 {
     // If pin changed
     bool current_state = this->input_pin->get();
@@ -572,7 +565,7 @@ uint32_t Switch::pinpoll_tick(uint32_t dummy)
             }
         }
     }
-    return 0;
+    return;
 }
 
 void Switch::flip()

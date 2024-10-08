@@ -398,25 +398,24 @@ void ATCHandler::on_module_loaded()
     last_pos[0] = 0.0;
     last_pos[1] = 0.0;
     last_pos[2] = 0.0;
-    probe_laser_countdown = 0;
-    playing_file = false;
+	playing_file = false;
     tool_number = 6;
     g28_triggered = false;
     goto_position = -1;
     position_x = 8888;
     position_y = 8888;
 
+
     this->register_for_event(ON_GCODE_RECEIVED);
     this->register_for_event(ON_GET_PUBLIC_DATA);
     this->register_for_event(ON_SET_PUBLIC_DATA);
     this->register_for_event(ON_MAIN_LOOP);
     this->register_for_event(ON_HALT);
-    this->register_for_event(ON_SECOND_TICK);
 
     this->on_config_reload(this);
 
-    THEKERNEL.slow_ticker_attach(1000, this, &ATCHandler::read_endstop);
-    THEKERNEL.slow_ticker_attach(1000, this, &ATCHandler::read_detector);
+	read_endstop_timer.start();
+	read_detector_timer.start();
 
     // load data from eeprom
     this->active_tool = THEKERNEL.eeprom_data.TOOL;
@@ -498,10 +497,10 @@ void ATCHandler::on_halt(void* argument)
 }
 
 // Called every millisecond in an ISR
-uint32_t ATCHandler::read_endstop(uint32_t dummy)
+void ATCHandler::read_endstop()
 {
 
-	if(!atc_homing || atc_home_info.triggered) return 0;
+	if(!atc_homing || atc_home_info.triggered) return;
 
     if(STEPPER[ATC_AXIS]->is_moving()) {
         // if it is moving then we check the probe, and debounce it
@@ -520,34 +519,30 @@ uint32_t ATCHandler::read_endstop(uint32_t dummy)
         }
     }
 
-    return 0;
+    return;
 }
 
 // Called every millisecond in an ISR
-uint32_t ATCHandler::read_detector(uint32_t dummy)
+void ATCHandler::read_detector()
 {
 
-    if(!detecting || detector_info.triggered) return 0;
+    if(!detecting || detector_info.triggered) return;
 
     if (detector_info.detect_pin.get()) {
     	detector_info.triggered = true;
     }
 
-    return 0;
+    return;
 }
 
-void ATCHandler::on_second_tick(void *argument) {
-	this->countdown_probe_laser(0);
-}
-
-// Called every second in an ISR
-uint32_t ATCHandler::countdown_probe_laser(uint32_t dummy)
+void ATCHandler::countdown_probe_laser()
 {
 	if (this->probe_laser_countdown > 0) {
 		this->probe_laser_countdown--;
 		PublicData::set_value(atc_handler_checksum, set_wp_laser_checksum, nullptr);
+	} else {
+		probe_laser_timer.stop();
 	}
-    return 0;
 }
 
 bool ATCHandler::laser_detect() {
@@ -950,10 +945,11 @@ void ATCHandler::on_gcode_received(void *argument)
 			// control probe laser
 			if (gcode->subcode == 0 || gcode->subcode == 1) {
 				// open probe laser
-				this->probe_laser_countdown = 120;
+				probe_laser_countdown = 120;
+				probe_laser_timer.start();
 			} else if (gcode->subcode == 2) {
 				// close probe laser
-				this->probe_laser_countdown = 0;
+				probe_laser_timer.stop();
 			}
 		} else if (gcode->m == 495) {
 			if (gcode->subcode == 3) {

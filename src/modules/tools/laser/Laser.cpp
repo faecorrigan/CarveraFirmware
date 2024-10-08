@@ -110,9 +110,10 @@ void Laser::on_module_loaded()
     // no point in updating the power more than the PWM frequency, but not faster than 1KHz
     ms_per_tick = 1000 / std::min(1000UL, 1000000 / period);
     // 2024
-    THEKERNEL.slow_ticker_attach(std::min(1000UL, 1000000 / period), this, &Laser::set_proportional_power);
-    // THEKERNEL.slow_ticker_attach(std::min(4000UL, 1000000 / period), this, &Laser::set_proportional_power);
-    // THEKERNEL.slow_ticker_attach(1, this, &Laser::set_proportional_power);
+    laser_power_timer.setFrequency(std::min(1000UL, 1000000 / period));
+	laser_power_timer.start();
+    // THEKERNEL.attach_periodic_timer(std::min(4000UL, 1000000 / period), this, &Laser::set_proportional_power);
+    // THEKERNEL.attach_periodic_timer(1, this, &Laser::set_proportional_power);
 
 }
 
@@ -322,14 +323,14 @@ bool Laser::get_laser_power(float& power) const
 }
 
 // called every millisecond from timer ISR
-uint32_t Laser::set_proportional_power(uint32_t dummy)
+void Laser::set_proportional_power()
 {
 	if (!THEKERNEL.get_laser_mode()) {
-		return 0;
+		return;
 	}
     if (this->testing) {
         set_laser_power(this->laser_test_power * scale);
-        return 0;
+        return;
     }
 
     if (laser_on) {
@@ -348,7 +349,7 @@ uint32_t Laser::set_proportional_power(uint32_t dummy)
         set_laser_power(0);
     }
 
-    return 0;
+    return;
 }
 
 bool Laser::set_laser_power(float power)

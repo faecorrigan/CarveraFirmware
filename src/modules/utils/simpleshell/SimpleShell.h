@@ -10,10 +10,14 @@
 #include "Module.h"
 #include "XModem.h"
 #include "Configurator.h"
+#include "SoftTimer.h"
 
 #include <functional>
 #include <string>
 #include <cstdint>
+
+#include "FreeRTOS.h"
+#include "timers.h"
 
 using std::string;
 
@@ -22,12 +26,13 @@ class StreamOutput;
 class SimpleShell : public Module
 {
 public:
-    SimpleShell() {}
+    SimpleShell()
+    : resetTimer("SimpleShell::resetTimer", 3000, false, this, &SimpleShell::system_reset_callback)
+    {}
 
     void on_module_loaded();
     void on_console_line_received( void *argument );
     void on_gcode_received(void *argument);
-    void on_second_tick(void *);
     bool parse_command(const char *cmd, string args, StreamOutput *stream);
     void print_mem(StreamOutput *stream) { mem_command("", stream); }
     void version_command(string parameters, StreamOutput *stream );
@@ -85,6 +90,8 @@ private:
 
     void config_default_command(string parameters, StreamOutput *stream );
 
+    void system_reset_callback();
+
     typedef void (*PFUNC)(string parameters, StreamOutput *stream);
     typedef struct {
         const char* name;
@@ -92,10 +99,11 @@ private:
     } ptentry_t;
 
     static const ptentry_t commands_table[];
-    static int reset_delay_secs;
 
     XModem xmodem;
     Configurator      configurator;
 
     char md5_str[64];
+
+    SoftTimer resetTimer;
 };

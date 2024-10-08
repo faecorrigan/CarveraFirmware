@@ -68,16 +68,6 @@
 #define runaway_cooling_timeout_checksum   CHECKSUM("runaway_cooling_timeout")
 #define runaway_error_range_checksum       CHECKSUM("runaway_error_range")
 
-TemperatureControl::TemperatureControl(uint16_t name, int index)
-{
-    name_checksum= name;
-    pool_index= index;
-    waiting= false;
-    temp_violated= false;
-    sensor= nullptr;
-    readonly= false;
-    tick= 0;
-}
 
 TemperatureControl::~TemperatureControl()
 {
@@ -210,12 +200,16 @@ void TemperatureControl::load_config()
         this->heater_pin.set(0);
         set_low_on_debug(heater_pin.port_number, heater_pin.pin);
         // activate SD-DAC timer
-        THEKERNEL.slow_ticker_attach( THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, pwm_frequency_checksum)->by_default(2000)->as_number(), &heater_pin, &Pwm::on_tick);
+        tempcontrol_timer.setFrequency(
+            THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, pwm_frequency_checksum)->by_default(2000)->as_number()
+        );
+        tempcontrol_timer.start();
     }
 
-
     // reading tick
-    THEKERNEL.slow_ticker_attach( this->readings_per_second, this, &TemperatureControl::thermistor_read_tick );
+    thermistor_timer.setFrequency(this->readings_per_second);
+    thermistor_timer.start();
+
     this->PIDdt = 1.0 / this->readings_per_second;
 
     // PID
@@ -473,7 +467,7 @@ float TemperatureControl::get_temperature()
     return last_reading;
 }
 
-uint32_t TemperatureControl::thermistor_read_tick(uint32_t dummy)
+void TemperatureControl::thermistor_read_tick()
 {
     float temperature = sensor->get_temperature();
     if(!this->readonly && target_temperature > 2) {
@@ -487,7 +481,6 @@ uint32_t TemperatureControl::thermistor_read_tick(uint32_t dummy)
     }
 
     last_reading = temperature;
-    return 0;
 }
 
 /**

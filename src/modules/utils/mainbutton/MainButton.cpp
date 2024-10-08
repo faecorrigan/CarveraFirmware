@@ -99,7 +99,8 @@ void MainButton::on_module_loaded()
     this->main_button_LED_G.set(0);
     this->main_button_LED_B.set(0);
 
-    THEKERNEL.slow_ticker_attach( this->poll_frequency, this, &MainButton::button_tick );
+	timer.setFrequency(this->poll_frequency);
+	timer.start();
 
 	mbed::InterruptIn *e_stop_interrupt_in = this->e_stop.interrupt_pin();
 
@@ -351,7 +352,7 @@ void MainButton::on_idle(void *argument)
 // Note this is ISR so don't do anything nasty in here
 // If in toggle mode (locking estop) then button down will kill, and button up will unkill if unkill is enabled
 // otherwise it will look for a 2 second press on the kill button to unkill if unkill is set
-uint32_t MainButton::button_tick(uint32_t dummy)
+void MainButton::button_tick()
 {
 	if (this->main_button.get()) {
 		if (!this->button_pressed) {
@@ -375,7 +376,6 @@ uint32_t MainButton::button_tick(uint32_t dummy)
             }
 		}
 	}
-    return 0;
 }
 
 void MainButton::on_get_public_data(void* argument)

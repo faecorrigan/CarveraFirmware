@@ -57,6 +57,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "timers.h"
 
 extern unsigned int g_maximumHeapAddress;
 
@@ -121,8 +122,6 @@ const SimpleShell::ptentry_t SimpleShell::commands_table[] = {
     {NULL, NULL}
 };
 
-int SimpleShell::reset_delay_secs = 0;
-
 // Adam Greens heap walk from http://mbed.org/forum/mbed/topic/2701/?page=4#comment-22556
 static uint32_t heapWalk(StreamOutput *stream, bool verbose)
 {
@@ -178,24 +177,15 @@ static uint32_t heapWalk(StreamOutput *stream, bool verbose)
     return freeSize;
 }
 
+void SimpleShell::system_reset_callback()
+{
+    system_reset(false);
+}
 
 void SimpleShell::on_module_loaded()
 {
     this->register_for_event(ON_CONSOLE_LINE_RECEIVED);
     this->register_for_event(ON_GCODE_RECEIVED);
-    this->register_for_event(ON_SECOND_TICK);
-
-    reset_delay_secs = 0;
-}
-
-void SimpleShell::on_second_tick(void *)
-{
-    // we are timing out for the reset
-    if (reset_delay_secs > 0) {
-        if (--reset_delay_secs == 0) {
-            system_reset(false);
-        }
-    }
 }
 
 void SimpleShell::on_gcode_received(void *argument)
@@ -1123,7 +1113,8 @@ void SimpleShell::version_command( string parameters, StreamOutput *stream )
 void SimpleShell::reset_command( string parameters, StreamOutput *stream)
 {
     stream->printf("Rebooting machine in 3 seconds...\r\n");
-    reset_delay_secs = 3; // reboot in 3 seconds
+
+    resetTimer.start();
 }
 
 // go into dfu boot mode
