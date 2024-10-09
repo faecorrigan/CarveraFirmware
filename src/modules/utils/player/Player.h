@@ -16,6 +16,9 @@
 #include <map>
 #include <vector>
 #include <queue>
+
+#include "FreeRTOS.h"
+
 using std::string;
 
 class StreamOutput;
@@ -25,7 +28,6 @@ class Player : public Module {
         void on_module_loaded();
         void on_console_line_received( void* argument );
         void on_main_loop( void* argument );
-        void on_second_tick(void* argument);
         void on_get_public_data(void* argument);
         void on_set_public_data(void* argument);
         void on_gcode_received(void *argument);
@@ -40,6 +42,8 @@ class Player : public Module {
         void goto_command( string parameters, StreamOutput* stream );
         void buffer_command( string parameters, StreamOutput* stream );
         void test_command(string parameters, StreamOutput* stream );
+
+        unsigned long calculate_elapsed_secs();
         string extract_options(string& args);
 		
         // 2024
@@ -60,7 +64,7 @@ class Player : public Module {
         // FILE* temp_file_handler;
         long file_size;
         unsigned long played_cnt;
-        unsigned long elapsed_secs;
+        TickType_t start_time;
         unsigned long played_lines;
         unsigned long goto_line;
         unsigned int playing_lines;

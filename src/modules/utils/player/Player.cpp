@@ -54,14 +54,13 @@ void Player::on_module_loaded()
     this->playing_file = false;
     this->current_file_handler = nullptr;
     this->booted = false;
-    this->elapsed_secs = 0;
+    this->start_time = xTaskGetTickCount();
     this->reply_stream = nullptr;
     this->inner_playing = false;
     this->slope = 0.0;
 
     this->register_for_event(ON_CONSOLE_LINE_RECEIVED);
     this->register_for_event(ON_MAIN_LOOP);
-    this->register_for_event(ON_SECOND_TICK);
     this->register_for_event(ON_GET_PUBLIC_DATA);
     this->register_for_event(ON_SET_PUBLIC_DATA);
     this->register_for_event(ON_GCODE_RECEIVED);
@@ -81,6 +80,16 @@ void Player::on_module_loaded()
     this->laser_clustering = THEKERNEL.config->value(laser_module_clustering_checksum)->by_default(false)->as_bool();
 }
 
+unsigned long Player::calculate_elapsed_secs()
+{
+    TickType_t now = xTaskGetTickCount();
+
+    // Handle tick count overflow
+    TickType_t elapsedTicks = (now >= start_time) ? (now - start_time) : (now + (portMAX_DELAY - start_time + 1));
+
+    return (pdTICKS_TO_MS(elapsedTicks) + 500) / 1000;
+}
+
 void Player::on_halt(void* argument)
 {
     this->clear_buffered_queue();
@@ -96,11 +105,6 @@ void Player::on_halt(void* argument)
 		THEROBOT.pop_state();
 		printk("Suspend cleared\n");
 	}
-}
-
-void Player::on_second_tick(void *)
-{
-    if(this->playing_file) this->elapsed_secs++;
 }
 
 // extract any options found on line, terminates args at the space before the first option (-v)
@@ -163,7 +167,7 @@ void Player::on_gcode_received(void *argument)
 
             this->played_cnt = 0;
             this->played_lines = 0;
-            this->elapsed_secs = 0;
+            this->start_time = xTaskGetTickCount();
             this->playing_lines = 0;
             this->goto_line = 0;
 
@@ -234,7 +238,7 @@ void Player::on_gcode_received(void *argument)
 
             this->played_cnt = 0;
             this->played_lines = 0;
-            this->elapsed_secs = 0;
+            this->start_time = xTaskGetTickCount();
             this->playing_lines = 0;
             this->goto_line = 0;
 
@@ -372,7 +376,7 @@ void Player::play_command( string parameters, StreamOutput *stream )
     }
     this->played_cnt = 0;
     this->played_lines = 0;
-    this->elapsed_secs = 0;
+    this->start_time = xTaskGetTickCount();
     this->playing_lines = 0;
     this->goto_line = 0;
 
@@ -448,8 +452,9 @@ void Player::progress_command( string parameters, StreamOutput *stream )
 
     if(file_size > 0) {
         unsigned long est = 0;
-        if(this->elapsed_secs > 10) {
-            unsigned long bytespersec = played_cnt / this->elapsed_secs;
+        unsigned long elapsed_secs = calculate_elapsed_secs();
+        if(elapsed_secs > 10) {
+            unsigned long bytespersec = played_cnt / elapsed_secs;
             if(bytespersec > 0)
                 est = (file_size - played_cnt) / bytespersec;
         }
@@ -457,7 +462,7 @@ void Player::progress_command( string parameters, StreamOutput *stream )
         float pcnt = (((float)file_size - (file_size - played_cnt)) * 100.0F) / file_size;
         // If -b or -B is passed, report in the format used by Marlin and the others.
         if (!sdprinting) {
-            stream->printf("file: %s, %u %% complete, elapsed time: %02lu:%02lu:%02lu", this->filename.c_str(), (unsigned int)roundf(pcnt), this->elapsed_secs / 3600, (this->elapsed_secs % 3600) / 60, this->elapsed_secs % 60);
+            stream->printf("file: %s, %u %% complete, elapsed time: %02lu:%02lu:%02lu", this->filename.c_str(), (unsigned int)roundf(pcnt), elapsed_secs / 3600, (elapsed_secs % 3600) / 60, elapsed_secs % 60);
             if(est > 0) {
                 stream->printf(", est time: %02lu:%02lu:%02lu",  est / 3600, (est % 3600) / 60, est % 60);
             }
@@ -770,7 +775,7 @@ void Player::on_get_public_data(void *argument)
         	} else {
         		p.played_lines = this->played_lines;
         	}
-            p.elapsed_secs = this->elapsed_secs;
+            p.elapsed_secs = this->calculate_elapsed_secs();
             float pcnt = (((float)file_size - (file_size - played_cnt)) * 100.0F) / file_size;
             p.percent_complete = roundf(pcnt);
             p.filename = this->filename;
