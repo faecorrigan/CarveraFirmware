@@ -157,7 +157,7 @@ void Modbus::delay(unsigned int value) {
     
     uint32_t start = us_ticker_read(); // mbed call
     while ((us_ticker_read() - start) < value*1000) {
-        THEKERNEL->call_event(ON_IDLE, this);
+        THEKERNEL.call_event(ON_IDLE, this);
     }
 
 }

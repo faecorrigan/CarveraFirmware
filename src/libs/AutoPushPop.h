@@ -5,6 +5,6 @@
 class AutoPushPop
 {
 public:
-    AutoPushPop(){ THEROBOT->push_state(); }
-    ~AutoPushPop(){ THEROBOT->pop_state(); }
+    AutoPushPop(){ THEROBOT.push_state(); }
+    ~AutoPushPop(){ THEROBOT.pop_state(); }
 };

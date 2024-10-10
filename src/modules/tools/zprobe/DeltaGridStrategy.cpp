@@ -67,7 +67,7 @@
 #include "Kernel.h"
 #include "Config.h"
 #include "Robot.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Gcode.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -77,7 +77,7 @@
 #include "ZProbe.h"
 #include "nuts_bolts.h"
 #include "utils.h"
-#include "platform_memory.h"
+#include "StreamOutput.h"
 
 #include <string>
 #include <algorithm>
@@ -103,36 +103,35 @@ DeltaGridStrategy::DeltaGridStrategy(ZProbe *zprobe) : LevelingStrategy(zprobe)
 
 DeltaGridStrategy::~DeltaGridStrategy()
 {
-    if(grid != nullptr) AHB0.dealloc(grid);
+    if(grid != nullptr) free(grid);
 }
 
 bool DeltaGridStrategy::handleConfig()
 {
-    grid_size = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, grid_size_checksum)->by_default(7)->as_number();
-    tolerance = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, tolerance_checksum)->by_default(0.03F)->as_number();
-    save = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, save_checksum)->by_default(false)->as_bool();
-    do_home = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, do_home_checksum)->by_default(true)->as_bool();
-    is_square = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, is_square_checksum)->by_default(false)->as_bool();
-    grid_radius = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, grid_radius_checksum)->by_default(50.0F)->as_number();
+    grid_size = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, grid_size_checksum)->by_default(7)->as_number();
+    tolerance = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, tolerance_checksum)->by_default(0.03F)->as_number();
+    save = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, save_checksum)->by_default(false)->as_bool();
+    do_home = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, do_home_checksum)->by_default(true)->as_bool();
+    is_square = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, is_square_checksum)->by_default(false)->as_bool();
+    grid_radius = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, grid_radius_checksum)->by_default(50.0F)->as_number();
 
     // the initial height above the bed we stop the intial move down after home to find the bed
     // this should be a height that is enough that the probe will not hit the bed and is an offset from max_z (can be set to 0 if max_z takes into account the probe offset)
-    this->initial_height = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, initial_height_checksum)->by_default(10)->as_number();
+    this->initial_height = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, initial_height_checksum)->by_default(10)->as_number();
 
     // Probe offsets xxx,yyy,zzz
     {
-        std::string po = THEKERNEL->config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, probe_offsets_checksum)->by_default("0,0,0")->as_string();
+        std::string po = THEKERNEL.config->value(leveling_strategy_checksum, delta_grid_leveling_strategy_checksum, probe_offsets_checksum)->by_default("0,0,0")->as_string();
         std::vector<float> v = parse_number_list(po.c_str());
         if(v.size() >= 3) {
             this->probe_offsets = std::make_tuple(v[0], v[1], v[2]);
         }
     }
 
-    // allocate in AHB0
-    grid = (float *)AHB0.alloc(grid_size * grid_size * sizeof(float));
+    grid = (float *)malloc(grid_size * grid_size * sizeof(float));
 
     if(grid == nullptr) {
-        THEKERNEL->streams->printf("Error: Not enough memory\n");
+        printk("Error: Not enough memory\n");
         return false;
     }
 
@@ -297,7 +296,7 @@ bool DeltaGridStrategy::handleGcode(Gcode *gcode)
     if(gcode->has_g) {
         if (gcode->g == 29) { // do a probe to test flatness
             // first wait for an empty queue i.e. no moves left
-            THEKERNEL->conveyor->wait_for_idle();
+            THECONVEYOR.wait_for_idle();
 
             int n = gcode->has_letter('I') ? gcode->get_value('I') : 0;
             float radius = grid_radius;
@@ -321,7 +320,7 @@ bool DeltaGridStrategy::handleGcode(Gcode *gcode)
             }
 
             // first wait for an empty queue i.e. no moves left
-            THEKERNEL->conveyor->wait_for_idle();
+            THECONVEYOR.wait_for_idle();
 
             if(!doProbe(gcode)) {
                 gcode->stream->printf("Probe failed to complete, check the initial probe height and/or initial_height settings\n");
@@ -403,10 +402,10 @@ void DeltaGridStrategy::setAdjustFunction(bool on)
         // set the compensationTransform in robot
         using std::placeholders::_1;
         using std::placeholders::_2;
-        THEROBOT->compensationTransform = std::bind(&DeltaGridStrategy::doCompensation, this, _1, _2); // [this](float *target, bool inverse) { doCompensation(target, inverse); };
+        THEROBOT.compensationTransform = std::bind(&DeltaGridStrategy::doCompensation, this, _1, _2); // [this](float *target, bool inverse) { doCompensation(target, inverse); };
     } else {
         // clear it
-        THEROBOT->compensationTransform = nullptr;
+        THEROBOT.compensationTransform = nullptr;
     }
 }
 
@@ -548,20 +547,20 @@ void DeltaGridStrategy::doCompensation(float *target, bool inverse)
 
 
     /*
-        THEKERNEL->streams->printf("//DEBUG: TARGET: %f, %f, %f\n", target[0], target[1], target[2]);
-        THEKERNEL->streams->printf("//DEBUG: grid_x= %f\n", grid_x);
-        THEKERNEL->streams->printf("//DEBUG: grid_y= %f\n", grid_y);
-        THEKERNEL->streams->printf("//DEBUG: floor_x= %d\n", floor_x);
-        THEKERNEL->streams->printf("//DEBUG: floor_y= %d\n", floor_y);
-        THEKERNEL->streams->printf("//DEBUG: ratio_x= %f\n", ratio_x);
-        THEKERNEL->streams->printf("//DEBUG: ratio_y= %f\n", ratio_y);
-        THEKERNEL->streams->printf("//DEBUG: z1= %f\n", z1);
-        THEKERNEL->streams->printf("//DEBUG: z2= %f\n", z2);
-        THEKERNEL->streams->printf("//DEBUG: z3= %f\n", z3);
-        THEKERNEL->streams->printf("//DEBUG: z4= %f\n", z4);
-        THEKERNEL->streams->printf("//DEBUG: left= %f\n", left);
-        THEKERNEL->streams->printf("//DEBUG: right= %f\n", right);
-        THEKERNEL->streams->printf("//DEBUG: offset= %f\n", offset);
+        printk("//DEBUG: TARGET: %f, %f, %f\n", target[0], target[1], target[2]);
+        printk("//DEBUG: grid_x= %f\n", grid_x);
+        printk("//DEBUG: grid_y= %f\n", grid_y);
+        printk("//DEBUG: floor_x= %d\n", floor_x);
+        printk("//DEBUG: floor_y= %d\n", floor_y);
+        printk("//DEBUG: ratio_x= %f\n", ratio_x);
+        printk("//DEBUG: ratio_y= %f\n", ratio_y);
+        printk("//DEBUG: z1= %f\n", z1);
+        printk("//DEBUG: z2= %f\n", z2);
+        printk("//DEBUG: z3= %f\n", z3);
+        printk("//DEBUG: z4= %f\n", z4);
+        printk("//DEBUG: left= %f\n", left);
+        printk("//DEBUG: right= %f\n", right);
+        printk("//DEBUG: offset= %f\n", offset);
     */
 }
 

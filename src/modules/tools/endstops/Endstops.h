@@ -9,6 +9,7 @@
 
 #include "libs/Module.h"
 #include "Pin.h"
+#include "SoftTimer.h"
 
 #include <bitset>
 #include <array>
@@ -20,7 +21,10 @@ class Pin;
 
 class Endstops : public Module{
     public:
-        Endstops();
+        Endstops()
+        : read_endstops_timer("Endstops", 1, true, this, &Endstops::read_endstops)
+        {}
+
         void on_module_loaded();
         void on_gcode_received(void* argument);
 
@@ -39,8 +43,10 @@ class Endstops : public Module{
         bool debounced_get(Pin *pin);
         void process_home_command(Gcode* gcode);
         void set_homing_offset(Gcode* gcode);
-        uint32_t read_endstops(uint32_t dummy);
+        void read_endstops();
         void handle_park_g28();
+
+        SoftTimer read_endstops_timer;
 
         // global settings
         float g28_position[3]{0}; // save G28 (in grbl mode)

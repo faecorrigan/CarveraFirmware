@@ -16,15 +16,15 @@
 
 #include "PublicData.h"
 #include "ToolManagerPublicAccess.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Config.h"
 #include "checksumm.h"
 #include "Gcode.h"
-#include "SlowTicker.h"
 #include "ConfigValue.h"
 #include "PID_Autotuner.h"
 #include "SerialMessage.h"
 #include "utils.h"
+#include "StreamOutput.h"
 
 // Temp sensor implementations:
 #include "Thermistor.h"
@@ -68,16 +68,6 @@
 #define runaway_cooling_timeout_checksum   CHECKSUM("runaway_cooling_timeout")
 #define runaway_error_range_checksum       CHECKSUM("runaway_error_range")
 
-TemperatureControl::TemperatureControl(uint16_t name, int index)
-{
-    name_checksum= name;
-    pool_index= index;
-    waiting= false;
-    temp_violated= false;
-    sensor= nullptr;
-    readonly= false;
-    tick= 0;
-}
 
 TemperatureControl::~TemperatureControl()
 {
@@ -125,12 +115,12 @@ void TemperatureControl::on_idle(void *arg)
 
 void TemperatureControl::on_main_loop(void *argument)
 {
-	if(THEKERNEL->is_halted()) return;
+	if(THEKERNEL.is_halted()) return;
     if (this->temp_violated) {
         this->temp_violated = false;
-        THEKERNEL->streams->printf("ERROR: Spindle overheated, max - %f°C, current - %f°C !\n", max_temp, get_temperature());
-        THEKERNEL->call_event(ON_HALT, nullptr);
-        THEKERNEL->set_halt_reason(SPINDLE_OVERHEATED);
+        printk("ERROR: Spindle overheated, max - %f°C, current - %f°C !\n", max_temp, get_temperature());
+        THEKERNEL.call_event(ON_HALT, nullptr);
+        THEKERNEL.set_halt_reason(SPINDLE_OVERHEATED);
     }
 }
 
@@ -139,34 +129,34 @@ void TemperatureControl::load_config()
 {
 
     // General config
-    this->set_m_code          = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, set_m_code_checksum)->by_default(104)->as_number();
-    this->set_and_wait_m_code = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, set_and_wait_m_code_checksum)->by_default(109)->as_number();
-    this->get_m_code          = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, get_m_code_checksum)->by_default(105)->as_number();
-    this->readings_per_second = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, readings_per_second_checksum)->by_default(20)->as_number();
+    this->set_m_code          = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, set_m_code_checksum)->by_default(104)->as_number();
+    this->set_and_wait_m_code = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, set_and_wait_m_code_checksum)->by_default(109)->as_number();
+    this->get_m_code          = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, get_m_code_checksum)->by_default(105)->as_number();
+    this->readings_per_second = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, readings_per_second_checksum)->by_default(20)->as_number();
 
-    this->designator          = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, designator_checksum)->by_default(string("T"))->as_string();
+    this->designator          = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, designator_checksum)->by_default(string("T"))->as_string();
 
     // Runaway parameters
-    uint32_t n= THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, runaway_range_checksum)->by_default(20)->as_number();
+    uint32_t n= THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, runaway_range_checksum)->by_default(20)->as_number();
     if(n > 63) n= 63;
     this->runaway_range= n;
 
     // these need to fit in 9 bits after dividing by 8 so max is 4088 secs or 68 minutes
-    n= THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, runaway_heating_timeout_checksum)->by_default(900)->as_number();
+    n= THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, runaway_heating_timeout_checksum)->by_default(900)->as_number();
     if(n > 4088) n= 4088;
     this->runaway_heating_timeout = n/8; // we have 8 second ticks
-    n= THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, runaway_cooling_timeout_checksum)->by_default(0)->as_number(); // disable by default
+    n= THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, runaway_cooling_timeout_checksum)->by_default(0)->as_number(); // disable by default
     if(n > 4088) n= 4088;
     this->runaway_cooling_timeout = n/8;
 
-    this->runaway_error_range= THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, runaway_error_range_checksum)->by_default(1.0F)->as_number();
+    this->runaway_error_range= THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, runaway_error_range_checksum)->by_default(1.0F)->as_number();
 
     // Max and min temperatures we are not allowed to get over (Safety)
-    this->max_temp = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, max_temp_checksum)->by_default(300)->as_number();
-    this->min_temp = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, min_temp_checksum)->by_default(0)->as_number();
+    this->max_temp = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, max_temp_checksum)->by_default(300)->as_number();
+    this->min_temp = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, min_temp_checksum)->by_default(0)->as_number();
 
     // Heater pin
-    this->heater_pin.from_string( THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, heater_pin_checksum)->by_default("nc")->as_string());
+    this->heater_pin.from_string( THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, heater_pin_checksum)->by_default("nc")->as_string());
     if(this->heater_pin.connected()){
         this->readonly= false;
         this->heater_pin.as_output();
@@ -176,7 +166,7 @@ void TemperatureControl::load_config()
     }
 
     // For backward compatibility, default to a thermistor sensor.
-    std::string sensor_type = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, sensor_checksum)->by_default("thermistor")->as_string();
+    std::string sensor_type = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, sensor_checksum)->by_default("thermistor")->as_string();
 
     // Instantiate correct sensor (TBD: TempSensor factory?)
     delete sensor;
@@ -194,8 +184,8 @@ void TemperatureControl::load_config()
     }
     sensor->UpdateConfig(temperature_control_checksum, this->name_checksum);
 
-    this->preset1 = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, preset1_checksum)->by_default(0)->as_number();
-    this->preset2 = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, preset2_checksum)->by_default(0)->as_number();
+    this->preset1 = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, preset1_checksum)->by_default(0)->as_number();
+    this->preset2 = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, preset2_checksum)->by_default(0)->as_number();
 
 
     // sigma-delta output modulation
@@ -203,29 +193,33 @@ void TemperatureControl::load_config()
 
     if(!this->readonly) {
         // used to enable bang bang control of heater
-        this->use_bangbang = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, bang_bang_checksum)->by_default(false)->as_bool();
-        this->hysteresis = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, hysteresis_checksum)->by_default(2)->as_number();
-        this->windup = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, windup_checksum)->by_default(false)->as_bool();
-        this->heater_pin.max_pwm( THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, max_pwm_checksum)->by_default(255)->as_number() );
+        this->use_bangbang = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, bang_bang_checksum)->by_default(false)->as_bool();
+        this->hysteresis = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, hysteresis_checksum)->by_default(2)->as_number();
+        this->windup = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, windup_checksum)->by_default(false)->as_bool();
+        this->heater_pin.max_pwm( THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, max_pwm_checksum)->by_default(255)->as_number() );
         this->heater_pin.set(0);
         set_low_on_debug(heater_pin.port_number, heater_pin.pin);
         // activate SD-DAC timer
-        THEKERNEL->slow_ticker->attach( THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, pwm_frequency_checksum)->by_default(2000)->as_number(), &heater_pin, &Pwm::on_tick);
+        tempcontrol_timer.setFrequency(
+            THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, pwm_frequency_checksum)->by_default(2000)->as_number()
+        );
+        tempcontrol_timer.start();
     }
 
-
     // reading tick
-    THEKERNEL->slow_ticker->attach( this->readings_per_second, this, &TemperatureControl::thermistor_read_tick );
+    thermistor_timer.setFrequency(this->readings_per_second);
+    thermistor_timer.start();
+
     this->PIDdt = 1.0 / this->readings_per_second;
 
     // PID
-    setPIDp( THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, p_factor_checksum)->by_default(10 )->as_number() );
-    setPIDi( THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, i_factor_checksum)->by_default(0.3f)->as_number() );
-    setPIDd( THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, d_factor_checksum)->by_default(200)->as_number() );
+    setPIDp( THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, p_factor_checksum)->by_default(10 )->as_number() );
+    setPIDi( THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, i_factor_checksum)->by_default(0.3f)->as_number() );
+    setPIDd( THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, d_factor_checksum)->by_default(200)->as_number() );
 
     if(!this->readonly) {
         // set to the same as max_pwm by default
-        this->i_max = THEKERNEL->config->value(temperature_control_checksum, this->name_checksum, i_max_checksum   )->by_default(this->heater_pin.max_pwm())->as_number();
+        this->i_max = THEKERNEL.config->value(temperature_control_checksum, this->name_checksum, i_max_checksum   )->by_default(this->heater_pin.max_pwm())->as_number();
     }
 
     this->iTerm = 0.0;
@@ -341,7 +335,7 @@ void TemperatureControl::on_gcode_received(void *argument)
 
             if(this->active) {
                 // required so temp change happens in order
-                THEKERNEL->conveyor->wait_for_idle();
+                THECONVEYOR.wait_for_idle();
 
                 float v = gcode->get_value('S');
 
@@ -353,17 +347,17 @@ void TemperatureControl::on_gcode_received(void *argument)
                     // wait for temp to be reached, no more gcodes will be fetched until this is complete
                     if( gcode->m == this->set_and_wait_m_code) {
                         if(isinf(get_temperature()) && isinf(sensor->get_temperature())) {
-                            THEKERNEL->streams->printf("Temperature reading is unreliable on %s HALT asserted - reset or M999 required\n", designator.c_str());
-                            THEKERNEL->call_event(ON_HALT, nullptr);
+                            printk("Temperature reading is unreliable on %s HALT asserted - reset or M999 required\n", designator.c_str());
+                            THEKERNEL.call_event(ON_HALT, nullptr);
                             return;
                         }
 
                         this->waiting = true; // on_second_tick will announce temps
                         while ( get_temperature() < target_temperature ) {
-                            THEKERNEL->call_event(ON_IDLE, this);
+                            THEKERNEL.call_event(ON_IDLE, this);
                             // check if ON_HALT was called (usually by kill button)
-                            if(THEKERNEL->is_halted() || this->target_temperature == UNDEFINED) {
-                                THEKERNEL->streams->printf("Wait on temperature aborted by kill\n");
+                            if(THEKERNEL.is_halted() || this->target_temperature == UNDEFINED) {
+                                printk("Wait on temperature aborted by kill\n");
                                 break;
                             }
                         }
@@ -473,7 +467,7 @@ float TemperatureControl::get_temperature()
     return last_reading;
 }
 
-uint32_t TemperatureControl::thermistor_read_tick(uint32_t dummy)
+void TemperatureControl::thermistor_read_tick()
 {
     float temperature = sensor->get_temperature();
     if(!this->readonly && target_temperature > 2) {
@@ -487,7 +481,6 @@ uint32_t TemperatureControl::thermistor_read_tick(uint32_t dummy)
     }
 
     last_reading = temperature;
-    return 0;
 }
 
 /**
@@ -544,20 +537,20 @@ void TemperatureControl::pid_process(float temperature)
 void TemperatureControl::on_second_tick(void *argument)
 {
 	if (this->readonly) {
-	    if(THEKERNEL->is_halted()) return;
+	    if(THEKERNEL.is_halted()) return;
 	    float temperature = sensor->get_temperature();
 		if (isinf(temperature) || temperature < min_temp || temperature > max_temp) {
-	        THEKERNEL->streams->printf("ERROR: Spindle overheated, max - %1.1f, current - %1.1f\n", max_temp, temperature);
-	        THEKERNEL->call_event(ON_HALT, nullptr);
-	        THEKERNEL->set_halt_reason(SPINDLE_OVERHEATED);
+	        printk("ERROR: Spindle overheated, max - %1.1f, current - %1.1f\n", max_temp, temperature);
+	        THEKERNEL.call_event(ON_HALT, nullptr);
+	        THEKERNEL.set_halt_reason(SPINDLE_OVERHEATED);
 		}
 	} else {
 	    // If waiting for a temperature to be reach, display it to keep host programs up to date on the progress
 	    if (waiting)
-	        THEKERNEL->streams->printf("%s:%3.1f /%3.1f @%d\n", designator.c_str(), get_temperature(), ((target_temperature <= 0) ? 0.0 : target_temperature), o);
+	        printk("%s:%3.1f /%3.1f @%d\n", designator.c_str(), get_temperature(), ((target_temperature <= 0) ? 0.0 : target_temperature), o);
 
 	    // Check whether or not there is a temperature runaway issue, if so stop everything and report it
-	    if(THEKERNEL->is_halted()) return;
+	    if(THEKERNEL.is_halted()) return;
 
 	    // see if runaway detection is enabled
 	    if(this->runaway_heating_timeout == 0 && this->runaway_range == 0) return;
@@ -591,8 +584,8 @@ void TemperatureControl::on_second_tick(void *argument)
 	                    uint16_t t= (runaway_state == HEATING_UP) ? this->runaway_heating_timeout : this->runaway_cooling_timeout;
 	                    // we are still heating up see if we have hit the max time allowed
 	                    if(t > 0 && ++this->runaway_timer > t){
-	                        THEKERNEL->streams->printf("ERROR: Temperature took too long to be reached on %s, HALT asserted, TURN POWER OFF IMMEDIATELY - reset or M999 required\n", designator.c_str());
-	                        THEKERNEL->call_event(ON_HALT, nullptr);
+	                        printk("ERROR: Temperature took too long to be reached on %s, HALT asserted, TURN POWER OFF IMMEDIATELY - reset or M999 required\n", designator.c_str());
+	                        THEKERNEL.call_event(ON_HALT, nullptr);
 	                        this->runaway_state = NOT_HEATING;
 	                        this->runaway_timer = 0;
 	                    }
@@ -607,8 +600,8 @@ void TemperatureControl::on_second_tick(void *argument)
 	                    // If the temperature is outside the acceptable range for 8 seconds, this allows for some noise spikes without halting
 	                    if(fabsf(delta) > this->runaway_range){
 	                        if(this->runaway_timer++ >= 1) { // this being 8 seconds
-	                            THEKERNEL->streams->printf("ERROR: Temperature runaway on %s (delta temp %f), HALT asserted, TURN POWER OFF IMMEDIATELY - reset or M999 required\n", designator.c_str(), delta);
-	                            THEKERNEL->call_event(ON_HALT, nullptr);
+	                            printk("ERROR: Temperature runaway on %s (delta temp %f), HALT asserted, TURN POWER OFF IMMEDIATELY - reset or M999 required\n", designator.c_str(), delta);
+	                            THEKERNEL.call_event(ON_HALT, nullptr);
 	                            this->runaway_state = NOT_HEATING;
 	                            this->runaway_timer= 0;
 	                        }

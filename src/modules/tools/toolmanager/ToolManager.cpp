@@ -54,7 +54,7 @@ void ToolManager::on_gcode_received(void *argument)
         } else {
             if(new_tool != this->active_tool) {
                 // We must wait for an empty queue before we can disable the current extruder
-                THEKERNEL->conveyor->wait_for_idle();
+                THECONVEYOR.wait_for_idle();
                 this->tools[active_tool]->deselect();
                 this->active_tool = new_tool;
                 this->current_tool_name = this->tools[active_tool]->get_name();
@@ -62,7 +62,7 @@ void ToolManager::on_gcode_received(void *argument)
 
                 //send new_tool_offsets to robot
                 const float *new_tool_offset = tools[new_tool]->get_offset();
-                THEROBOT->loadToolOffset(new_tool_offset);
+                THEROBOT.loadToolOffset(new_tool_offset);
             }
         }
     }
@@ -118,7 +118,7 @@ void ToolManager::add_tool(Tool* tool_to_add)
         this->current_tool_name = tool_to_add->get_name();
         //send new_tool_offsets to robot
         const float *new_tool_offset = tool_to_add->get_offset();
-        THEROBOT->loadToolOffset(new_tool_offset);
+        THEROBOT.loadToolOffset(new_tool_offset);
     } else {
         tool_to_add->deselect();
     }

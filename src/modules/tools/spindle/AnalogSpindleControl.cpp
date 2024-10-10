@@ -12,7 +12,7 @@
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "PwmOut.h"
 
 #define spindle_checksum                    CHECKSUM("spindle")
@@ -27,13 +27,13 @@ void AnalogSpindleControl::on_module_loaded()
 
     spindle_on = false;
     target_rpm = 0;
-    min_rpm = THEKERNEL->config->value(spindle_checksum, spindle_min_rpm_checksum)->by_default(100)->as_int();
-    max_rpm = THEKERNEL->config->value(spindle_checksum, spindle_max_rpm_checksum)->by_default(5000)->as_int();
+    min_rpm = THEKERNEL.config->value(spindle_checksum, spindle_min_rpm_checksum)->by_default(100)->as_int();
+    max_rpm = THEKERNEL.config->value(spindle_checksum, spindle_max_rpm_checksum)->by_default(5000)->as_int();
 
     // Get the pin for hardware pwm
     {
         Pin *smoothie_pin = new Pin();
-        smoothie_pin->from_string(THEKERNEL->config->value(spindle_checksum, spindle_pwm_pin_checksum)->by_default("nc")->as_string());
+        smoothie_pin->from_string(THEKERNEL.config->value(spindle_checksum, spindle_pwm_pin_checksum)->by_default("nc")->as_string());
         pwm_pin = smoothie_pin->as_output()->hardware_pwm();
         output_inverted = smoothie_pin->is_inverting();
         delete smoothie_pin;
@@ -41,19 +41,19 @@ void AnalogSpindleControl::on_module_loaded()
     // If we got no hardware PWM pin, delete this module
     if (pwm_pin == NULL)
     {
-        THEKERNEL->streams->printf("Error: Spindle PWM pin must be P2.0-2.5 or other PWM pin\n");
+        printk("Error: Spindle PWM pin must be P2.0-2.5 or other PWM pin\n");
         delete this;
         return;
     }
     
     // set pwm frequency
-    int period = THEKERNEL->config->value(spindle_checksum, spindle_pwm_period_checksum)->by_default(1000)->as_int();
+    int period = THEKERNEL.config->value(spindle_checksum, spindle_pwm_period_checksum)->by_default(1000)->as_int();
     pwm_pin->period_us(period);
     // invert pwm signal if necessary
     pwm_pin->write(output_inverted ? 1 : 0);
 
     // Get digital out pin for switching the VFD on and off (wired to a digital input on the VFD via an optocoupler)
-    std::string switch_on_pin = THEKERNEL->config->value(spindle_checksum, spindle_switch_on_pin_checksum)->by_default("nc")->as_string();
+    std::string switch_on_pin = THEKERNEL.config->value(spindle_checksum, spindle_switch_on_pin_checksum)->by_default("nc")->as_string();
     switch_on = NULL;
     if(switch_on_pin.compare("nc") != 0) {
         switch_on = new Pin();
@@ -105,7 +105,7 @@ void AnalogSpindleControl::report_speed()
 {
     // report the current PWM value, calculate the current RPM value and report it as well
     float current_pwm = pwm_pin->read();
-    THEKERNEL->streams->printf("Current RPM: %.0f Analog value: %5.3f Target RPM: %d\n",
+    printk("Current RPM: %.0f Analog value: %5.3f Target RPM: %d\n",
                                max_rpm * current_pwm, current_pwm, target_rpm);
 
 }

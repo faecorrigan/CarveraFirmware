@@ -13,10 +13,10 @@
 #include "Gcode.h"
 #include "Robot.h"
 #include "Conveyor.h"
-#include "SlowTicker.h"
 #include "StepperMotor.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "nuts_bolts.h"
+#include "StreamOutput.h"
 
 #include <math.h> /* fmod */
 
@@ -35,14 +35,11 @@
 #define enable_checksum         CHECKSUM("enable")
 #define dwell_units_checksum    CHECKSUM("dwell_units")
 
-Drillingcycles::Drillingcycles() {}
-
 void Drillingcycles::on_module_loaded()
 {
     // if the module is disabled -> do nothing
-    if(! THEKERNEL->config->value(drillingcycles_checksum, enable_checksum)->by_default(false)->as_bool()) {
+    if(! THEKERNEL.config->value(drillingcycles_checksum, enable_checksum)->by_default(false)->as_bool()) {
         // as this module is not needed free up the resource
-        delete this;
         return;
     }
 
@@ -65,7 +62,7 @@ void Drillingcycles::on_module_loaded()
 void Drillingcycles::on_config_reload(void *argument)
 {
     // take the dwell units configured by user, or select S (seconds) by default
-    string dwell_units = THEKERNEL->config->value(drillingcycles_checksum, dwell_units_checksum)->by_default("S")->as_string();
+    string dwell_units = THEKERNEL.config->value(drillingcycles_checksum, dwell_units_checksum)->by_default("S")->as_string();
     this->dwell_units  = (dwell_units == "P") ? DWELL_UNITS_P : DWELL_UNITS_S;
 }
 
@@ -118,10 +115,10 @@ int Drillingcycles::send_gcode(const char* format, ...)
     int n = vsnprintf(line, sizeof(line), format, args);
     va_end(args);
     // debug, print the gcode sended
-    //THEKERNEL->streams->printf(">>> %s\r\n", line);
+    //printk(">>> %s\r\n", line);
     // make gcode object and send it (right way)
     Gcode gc(line, &(StreamOutput::NullStream));
-    THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc);
+    THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc);
     // return the gcode srting length
     return n;
 }
@@ -181,7 +178,7 @@ void Drillingcycles::make_hole(Gcode *gcode)
             this->send_gcode("G4 S%f", this->sticky_p);
         }else{
             // dwell exprimed in milliseconds
-            if(THEKERNEL->is_grbl_mode()) {
+            if(THEKERNEL.is_grbl_mode()) {
                 // in grbl mode (and linuxcnc) P is decimal seconds
                 this->send_gcode("G4 P%f", this->sticky_p * 1000.0);
             }else{
@@ -210,12 +207,12 @@ void Drillingcycles::on_gcode_received(void* argument)
     // cycle start
     if (code == 98 || code == 99) {
         // wait for any moves left and current position is update
-        THEKERNEL->conveyor->wait_for_idle();
+        THECONVEYOR.wait_for_idle();
         // get actual position from robot
         float pos[3];
-        THEROBOT->get_axis_position(pos);
+        THEROBOT.get_axis_position(pos);
         // convert to WCS
-        Robot::wcs_t wpos= THEROBOT->mcs2wcs(pos);
+        Robot::wcs_t wpos= THEROBOT.mcs2wcs(pos);
         // backup Z position as Initial-Z value
         this->initial_z = std::get<Z_AXIS>(wpos); // must use the work coordinate position
         // set retract type
@@ -239,7 +236,7 @@ void Drillingcycles::on_gcode_received(void* argument)
     // in cycle
     else if (this->cycle_started) {
         // relative mode not supported for now...
-        if (THEROBOT->absolute_mode == false) {
+        if (THEROBOT.absolute_mode == false) {
             gcode->stream->printf("Drillingcycles: relative mode not supported.\r\n");
             gcode->stream->printf("Drillingcycles: skip hole...\r\n");
             // exit

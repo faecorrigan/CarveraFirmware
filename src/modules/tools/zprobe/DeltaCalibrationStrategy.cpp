@@ -2,7 +2,7 @@
 #include "Kernel.h"
 #include "Config.h"
 #include "Robot.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "Gcode.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -13,6 +13,7 @@
 #include "ZProbe.h"
 #include "BaseSolution.h"
 #include "StepperMotor.h"
+#include "StreamOutput.h"
 
 #include <cmath>
 #include <tuple>
@@ -27,16 +28,16 @@
 bool DeltaCalibrationStrategy::handleConfig()
 {
     // default is probably wrong
-    float r= THEKERNEL->config->value(leveling_strategy_checksum, delta_calibration_strategy_checksum, radius_checksum)->by_default(-1)->as_number();
+    float r= THEKERNEL.config->value(leveling_strategy_checksum, delta_calibration_strategy_checksum, radius_checksum)->by_default(-1)->as_number();
     if(r == -1) {
         // deprecated config syntax]
-        r =  THEKERNEL->config->value(zprobe_checksum, probe_radius_checksum)->by_default(100.0F)->as_number();
+        r =  THEKERNEL.config->value(zprobe_checksum, probe_radius_checksum)->by_default(100.0F)->as_number();
     }
     this->probe_radius= r;
 
     // the initial height above the bed we stop the intial move down after home to find the bed
     // this should be a height that is enough that the probe will not hit the bed and is an offset from max_z (can be set to 0 if max_z takes into account the probe offset)
-    this->initial_height= THEKERNEL->config->value(leveling_strategy_checksum, delta_calibration_strategy_checksum, initial_height_checksum)->by_default(10)->as_number();
+    this->initial_height= THEKERNEL.config->value(leveling_strategy_checksum, delta_calibration_strategy_checksum, initial_height_checksum)->by_default(10)->as_number();
     return true;
 }
 
@@ -46,10 +47,10 @@ bool DeltaCalibrationStrategy::handleGcode(Gcode *gcode)
         // G code processing
         if( gcode->g == 32 ) { // auto calibration for delta, Z bed mapping for cartesian
             // first wait for an empty queue i.e. no moves left
-            THEKERNEL->conveyor->wait_for_idle();
+            THECONVEYOR.wait_for_idle();
 
             // turn off any compensation transform as it will be invalidated anyway by this
-            THEROBOT->compensationTransform= nullptr;
+            THEROBOT.compensationTransform= nullptr;
 
             if(!gcode->has_letter('R')) {
                 if(!calibrate_delta_endstops(gcode)) {
@@ -116,7 +117,7 @@ bool DeltaCalibrationStrategy::probe_delta_points(Gcode *gcode)
 
     float max_delta= 0;
     float last_z= NAN;
-    float start_z= THEROBOT->actuators[2]->get_current_position();
+    float start_z= THEROBOT.actuators[2]->get_current_position();
 
     for(auto& i : pp) {
         float mm;
@@ -284,7 +285,7 @@ bool DeltaCalibrationStrategy::calibrate_delta_endstops(Gcode *gcode)
         trimz += (mmx.first - t3z) * trimscale;
 
         // flush the output
-        THEKERNEL->call_event(ON_IDLE);
+        THEKERNEL.call_event(ON_IDLE);
     }
 
     if((mmx.second - mmx.first) > target) {
@@ -336,7 +337,7 @@ bool DeltaCalibrationStrategy::calibrate_delta_radius(Gcode *gcode)
     // get current delta radius
     float delta_radius = 0.0F;
     BaseSolution::arm_options_t options;
-    if(THEROBOT->arm_solution->get_optional(options)) {
+    if(THEROBOT.arm_solution->get_optional(options)) {
         delta_radius = options['R'];
     }
     if(delta_radius == 0.0F) {
@@ -373,14 +374,14 @@ bool DeltaCalibrationStrategy::calibrate_delta_radius(Gcode *gcode)
 
         // set the new delta radius
         options['R'] = delta_radius;
-        THEROBOT->arm_solution->set_optional(options);
+        THEROBOT.arm_solution->set_optional(options);
         gcode->stream->printf("Setting delta radius to: %1.4f\n", delta_radius);
 
         zprobe->home();
         zprobe->coordinated_move(NAN, NAN, -bedht, zprobe->getFastFeedrate(), true); // needs to be a relative coordinated move
 
         // flush the output
-        THEKERNEL->call_event(ON_IDLE);
+        THEKERNEL.call_event(ON_IDLE);
     }
 
     if(!good) {

@@ -2,18 +2,25 @@
 #define MAINBUTTON_H
 
 #include "libs/Pin.h"
+#include "mbed.h"
+#include "SoftTimer.h"
 
 class MainButton : public Module {
     public:
-		MainButton();
+        MainButton()
+        : timer("MainButtonTimer", 1000, true, this, &MainButton::button_tick)
+        {}
+
         void on_module_loaded();
         void on_idle(void *argument);
-        uint32_t button_tick(uint32_t dummy);
+        void button_tick();
         void on_second_tick(void *);
         void on_get_public_data(void* argument);
         void on_set_public_data(void* argument);
 
     private:
+        SoftTimer timer;
+
         Pin main_button;
         Pin main_button_LED_R;
         Pin main_button_LED_G;
@@ -56,6 +63,7 @@ class MainButton : public Module {
         bool sd_ok;
         bool using_12v;
 
+        void e_stop_irq();
         void switch_power_12(int state);
         void switch_power_24(int state);
 };

@@ -151,7 +151,7 @@ bool FileConfigSource::write( string setting, string value )
                 unsigned int free_space = eol - bol - 4; // length of line
                 // check we have enough space for this insertion
                 if( (setting.length() + value.length() + 3) > free_space ) {
-                    //THEKERNEL->streams->printf("ERROR: Not enough room for value\r\n");
+                    //printk("ERROR: Not enough room for value\r\n");
                     fclose(lp);
                     return false;
                 }

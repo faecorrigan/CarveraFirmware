@@ -17,8 +17,6 @@ class StreamOutput;
 class Configurator
 {
 public:
-    Configurator() {}
-
     void config_get_command( string parameters, StreamOutput *stream );
     void config_set_command( string parameters, StreamOutput *stream );
     void config_load_command(string parameters, StreamOutput *stream );

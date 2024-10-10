@@ -9,6 +9,7 @@
 #include "Pin.h"
 #include "Pwm.h"
 #include "SoftPWM.h"
+#include "SoftTimer.h"
 
 #include <math.h>
 #include <string>
@@ -22,8 +23,13 @@ namespace mbed {
 
 class Switch : public Module {
     public:
-        Switch();
-        Switch(uint16_t name);
+        Switch(): Switch(0) {};
+
+        Switch(uint16_t name)
+            : name_checksum(name),
+            pinpoll_timer("SwitchPolling", 10, true, this, &Switch::pinpoll_tick),
+            pwm_timer("PWMTimer", 1, true, this->sigmadelta_pin, &Pwm::on_tick)
+        {}
 
         void on_module_loaded();
         void on_main_loop(void *argument);
@@ -33,7 +39,7 @@ class Switch : public Module {
         void on_set_public_data(void* argument);
         void on_halt(void *arg);
 
-        uint32_t pinpoll_tick(uint32_t dummy);
+        void pinpoll_tick();
         enum OUTPUT_TYPE {NONE, SIGMADELTA, DIGITAL, HWPWM, SWPWM, DIGITALPWM};
 
     private:
@@ -43,6 +49,9 @@ class Switch : public Module {
         bool match_input_off_gcode(const Gcode* gcode) const;
         void turn_on_switch(float value);
         void turn_off_switch();
+
+        SoftTimer pinpoll_timer;
+        SoftTimer pwm_timer;
 
         float switch_value;
         float default_on_value;

@@ -1,81 +1,109 @@
 #pragma once
 
-class Block;
+#include <array>
+#include "Block.h"
 
-class BlockQueue {
+template<unsigned int length>
+class __attribute__((packed)) BlockQueue {
 
     // friend classes
     friend class Planner;
     friend class Conveyor;
 
 public:
-    BlockQueue();
-    BlockQueue(unsigned int length);
-
-    ~BlockQueue();
+    BlockQueue() {
+        head_i = 0;
+        tail_i = 0;
+        isr_tail_i = tail_i;
+    }
 
     /*
      * direct accessors
      */
-    Block& head();
-    Block& tail();
+    Block& head() { return ring[head_i]; }
+    Block& tail() { return ring[tail_i]; }
 
-    void push_front(Block&) __attribute__ ((warning("Not thread-safe if pop_back() is used in ISR context!"))); // instead, prepare(head_ref()); produce_head();
-    Block& pop_back(void) __attribute__ ((warning("Not thread-safe if head_ref() is used to prepare new items, or push_front() is used in ISR context!"))); // instead, consume(tail_ref()); consume_tail();
+    void push_front(Block& item) { // instead, prepare(head_ref()); produce_head();
+        ring[head_i] = item;
+        head_i = next(head_i);
+    } __attribute__ ((warning("Not thread-safe if pop_back() is used in ISR context!")));
+
+    Block& pop_back(void)  { // instead, consume(tail_ref()); consume_tail();
+        Block& r = ring[tail_i];
+        tail_i = next(tail_i);
+        return r;
+    } __attribute__ ((warning("Not thread-safe if head_ref() is used to prepare new items, or push_front() is used in ISR context!")));
 
     /*
      * pointer accessors
      */
-    Block* head_ref();
-    Block* tail_ref();
+    Block* head_ref() { return &ring[head_i]; }
+    Block* tail_ref() { return &ring[tail_i]; }
 
-    void  produce_head(void);
-    void  consume_tail(void);
+    void produce_head(void) {
+        while (is_full());
+        head_i = next(head_i);
+    }
+
+    void consume_tail(void) {
+        if (!is_empty())
+            tail_i = next(tail_i);
+    }
 
     /*
      * queue status
      */
-    bool is_empty(void) const;
-    bool is_full(void) const;
+    bool is_empty(void) const {
+        //__disable_irq();
+        bool r = (head_i == tail_i);
+        //__enable_irq();
 
-    /*
-     * resize
-     *
-     * returns true on success, or false if queue is not empty or not enough memory available
-     */
-    bool resize(unsigned int);
+        return r;
+    }
 
-    /*
-     * provide
-     * Block*      - new buffer pointer
-     * int length - number of items in buffer (NOT size in bytes!)
-     *
-     * cause BlockQueue to use a specific memory location instead of allocating its own
-     *
-     * returns true on success, or false if queue is not empty
-     */
-    //bool provide(Block*, unsigned int length);
+    bool is_full(void) const {
+        //__disable_irq();
+        bool r = (next(head_i) == tail_i);
+        //__enable_irq();
+
+        return r;
+    }
 
 protected:
     /*
      * these functions are protected as they should only be used internally
      * or in extremely specific circumstances
      */
-    Block& item(unsigned int);
-    Block* item_ref(unsigned int);
+    Block& item(unsigned int i) { return ring[i]; }
+    Block* item_ref(unsigned int i) { return &ring[i]; }
 
-    unsigned int next(unsigned int) const;
-    unsigned int prev(unsigned int) const;
+    unsigned int next(unsigned int i) const {
+        if (length == 0)
+            return 0;
+
+        if (++i >= length)
+            return 0;
+
+        return i;
+    }
+
+    unsigned int prev(unsigned int i) const {
+        if (length == 0)
+            return 0;
+
+        if (i == 0)
+            return (length - 1);
+        else
+            return (i - 1);
+    }
 
     /*
      * buffer variables
      */
-    unsigned int length;
-
     volatile unsigned int head_i;
     volatile unsigned int tail_i;
     volatile unsigned int isr_tail_i;
 
 private:
-    Block* ring;
+    std::array<Block, length> ring;
 };

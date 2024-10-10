@@ -9,8 +9,6 @@
 #include "libs/Module.h"
 #include "libs/Config.h"
 #include "libs/nuts_bolts.h"
-#include "libs/SlowTicker.h"
-#include "libs/Adc.h"
 #include "libs/StreamOutputPool.h"
 #include <mri.h>
 #include "checksumm.h"
@@ -19,14 +17,12 @@
 #include "libs/StepTicker.h"
 #include "libs/PublicData.h"
 #include "modules/communication/SerialConsole.h"
-#include "modules/communication/GcodeDispatch.h"
 #include "modules/robot/Planner.h"
-#include "modules/robot/Robot.h"
 #include "modules/robot/Conveyor.h"
+#include "modules/robot/Robot.h"
 #include "StepperMotor.h"
 #include "BaseSolution.h"
 #include "EndstopsPublicAccess.h"
-#include "Configurator.h"
 #include "SimpleShell.h"
 #include "TemperatureControlPublicAccess.h"
 #include "LaserPublicAccess.h"
@@ -42,8 +38,6 @@
 #ifndef NO_TOOLS_LASER
 #include "Laser.h"
 #endif
-
-#include "platform_memory.h"
 
 #include <malloc.h>
 #include <array>
@@ -61,12 +55,11 @@
 #define feed_hold_enable_checksum                   CHECKSUM("enable_feed_hold")
 #define ok_per_line_checksum                        CHECKSUM("ok_per_line")
 
-Kernel* Kernel::instance;
-
 #define	EEP_MAX_PAGE_SIZE	32
 #define EEPROM_DATA_STARTPAGE	1
+
 // The kernel is the central point in Smoothie : it stores modules, and handles event calls
-Kernel::Kernel()
+void Kernel::init()
 {
     halted = false;
     feed_hold = false;
@@ -82,15 +75,13 @@ Kernel::Kernel()
     halt_reason = MANUAL;
     atc_state = 0;
 
-    instance = this; // setup the Singleton instance of the kernel
-
     // serial first at fixed baud rate (DEFAULT_SERIAL_BAUD_RATE) so config can report errors to serial
     // Set to UART0, this will be changed to use the same UART as MRI if it's enabled
-    this->serial = new(AHB0) SerialConsole(P2_8, P2_9, DEFAULT_SERIAL_BAUD_RATE);
+    this->serial = new SerialConsole(P2_8, P2_9, DEFAULT_SERIAL_BAUD_RATE);
     // this->serial = new SerialConsole(USBTX, USBRX, DEFAULT_SERIAL_BAUD_RATE);
 
     // Config next, but does not load cache yet
-    this->config = new(AHB0) Config();
+    this->config = new Config();
 
     // Pre-load the config cache, do after setting up serial so we can report errors to serial
     this->config->config_cache_load();
@@ -99,39 +90,17 @@ Kernel::Kernel()
     delete this->serial;
     this->serial = NULL;
 
-    this->streams = new(AHB0) StreamOutputPool();
-
     this->current_path   = "/";
 
     // Configure UART depending on MRI config
     // Match up the SerialConsole to MRI UART. This makes it easy to use only one UART for both debug and actual commands.
     NVIC_SetPriorityGrouping(0);
 
-    /*
-#if MRI_ENABLE != 0
-    switch( __mriPlatform_CommUartIndex() ) {
-        case 0:
-            this->serial = new(AHB0) SerialConsole(P2_8, P2_9, this->config->value(uart0_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
-            break;
-        case 1:
-            this->serial = new(AHB0) SerialConsole(  p13,   p14, this->config->value(uart0_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
-            break;
-        case 2:
-            this->serial = new(AHB0) SerialConsole(  p28,   p27, this->config->value(uart0_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
-            break;
-        case 3:
-            this->serial = new(AHB0) SerialConsole(   p9,   p10, this->config->value(uart0_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
-            break;
-    }
-#endif*/
-
-    // init FT232
-
 
     // default
     if(this->serial == NULL) {
-        // this->serial = new(AHB0) SerialConsole(P2_8, P2_9, this->config->value(uart_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
-    	this->serial = new(AHB0) SerialConsole(P2_8, P2_9, 115200);
+        // this->serial = new SerialConsole(P2_8, P2_9, this->config->value(uart_checksum, baud_rate_setting_checksum)->by_default(DEFAULT_SERIAL_BAUD_RATE)->as_number());
+    	this->serial = new SerialConsole(P2_8, P2_9, 115200);
     }
 
     //some boards don't have leds.. TOO BAD!
@@ -150,11 +119,7 @@ Kernel::Kernel()
 
     this->add_module( this->serial );
 
-    // HAL stuff
-    add_module( this->slow_ticker = new(AHB0) SlowTicker());
-
-    this->step_ticker = new(AHB0) StepTicker();
-    this->adc = new(AHB0) Adc();
+    this->adc.init();
 
     // TODO : These should go into platform-specific files
     // LPC17xx-specific
@@ -163,7 +128,7 @@ Kernel::Kernel()
     NVIC_SetPriority(TIMER1_IRQn, 1);
     NVIC_SetPriority(TIMER2_IRQn, 4);
     NVIC_SetPriority(TIMER3_IRQn, 4);
-    NVIC_SetPriority(PendSV_IRQn, 3);
+    NVIC_SetPriority(PendSV_IRQn, 6);
 
     // Set other priorities lower than the timers
     NVIC_SetPriority(ADC_IRQn, 5);
@@ -187,25 +152,32 @@ Kernel::Kernel()
     float microseconds_per_step_pulse = this->config->value(microseconds_per_step_pulse_checksum)->by_default(1)->as_number();
 
     // Configure the step ticker
-    this->step_ticker->set_frequency( this->base_stepping_frequency );
-    this->step_ticker->set_unstep_time( microseconds_per_step_pulse );
+    step_ticker.init();
+    step_ticker.set_frequency(this->base_stepping_frequency);
+    step_ticker.set_unstep_time(microseconds_per_step_pulse);
+
+    // Initialize slow ticker
+    this->add_module(&slow_ticker);
 
     // init EEPROM data
     this->i2c = new mbed::I2C(P0_27, P0_28);
     this->i2c->frequency(200000);
 
-    this->eeprom_data = new(AHB0) EEPROM_data();
     // read eeprom data
     this->read_eeprom_data();
 
-    // Core modules
-    this->add_module( this->conveyor       = new(AHB0) Conveyor()      );
-    this->add_module( this->gcode_dispatch = new(AHB0) GcodeDispatch() );
-    this->add_module( this->robot          = new(AHB0) Robot()         );
-    this->add_module( this->simpleshell    = new(AHB0) SimpleShell()   );
+    this->planner.init();
+}
 
-    this->planner = new(AHB0) Planner();
-    this->configurator = new(AHB0) Configurator();
+void Kernel::printk(const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    vprintk(format, args);
+    va_end(args);
+}
+
+void Kernel::vprintk(const char* format, va_list args) {
+    streams.vprintf(format, args);
 }
 
 // get current state
@@ -226,7 +198,7 @@ uint8_t Kernel::get_state()
     	return HOME;
     } else if (feed_hold) {
     	return HOLD;
-    } else if (this->conveyor->is_idle()) {
+    } else if (THECONVEYOR.is_idle()) {
     	return IDLE;
     } else {
     	return RUN;
@@ -268,29 +240,29 @@ std::string Kernel::get_query_string()
     char buf[128];
     if(running) {
         float mpos[3];
-        robot->get_current_machine_position(mpos);
+        THEROBOT.get_current_machine_position(mpos);
         // current_position/mpos includes the compensation transform so we need to get the inverse to get actual position
-        if(robot->compensationTransform) robot->compensationTransform(mpos, true, false); // get inverse compensation transform
+        if(THEROBOT.compensationTransform) THEROBOT.compensationTransform(mpos, true, false); // get inverse compensation transform
 
         // machine position
-        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(mpos[0]), robot->from_millimeters(mpos[1]), robot->from_millimeters(mpos[2]));
+        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", THEROBOT.from_millimeters(mpos[0]), THEROBOT.from_millimeters(mpos[1]), THEROBOT.from_millimeters(mpos[2]));
         if(n > sizeof(buf)) n= sizeof(buf);
 
         str.append("|MPos:").append(buf, n);
 
 #if MAX_ROBOT_ACTUATORS > 3
         // deal with the ABC axis (E will be A)
-        for (int i = A_AXIS; i < robot->get_number_registered_motors(); ++i) {
+        for (int i = A_AXIS; i < THEROBOT.get_number_registered_motors(); ++i) {
             // current actuator position
-            n = snprintf(buf, sizeof(buf), ",%1.4f", robot->actuators[i]->get_current_position());
+            n = snprintf(buf, sizeof(buf), ",%1.4f", THEROBOT.actuators[i]->get_current_position());
             if(n > sizeof(buf)) n= sizeof(buf);
             str.append(buf, n);
         }
 #endif
 
         // work space position
-        Robot::wcs_t pos = robot->mcs2wcs(mpos);
-        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(std::get<X_AXIS>(pos)), robot->from_millimeters(std::get<Y_AXIS>(pos)), robot->from_millimeters(std::get<Z_AXIS>(pos)));
+        Robot::wcs_t pos = THEROBOT.mcs2wcs(mpos);
+        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", THEROBOT.from_millimeters(std::get<X_AXIS>(pos)), THEROBOT.from_millimeters(std::get<Y_AXIS>(pos)), THEROBOT.from_millimeters(std::get<Z_AXIS>(pos)));
         if(n > sizeof(buf)) n= sizeof(buf);
 
         str.append("|WPos:").append(buf, n);
@@ -298,33 +270,33 @@ std::string Kernel::get_query_string()
     } else {
         // return the last milestone if idle
         // machine position
-        Robot::wcs_t mpos = robot->get_axis_position();
-        size_t n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(std::get<X_AXIS>(mpos)), robot->from_millimeters(std::get<Y_AXIS>(mpos)), robot->from_millimeters(std::get<Z_AXIS>(mpos)));
+        Robot::wcs_t mpos = THEROBOT.get_axis_position();
+        size_t n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", THEROBOT.from_millimeters(std::get<X_AXIS>(mpos)), THEROBOT.from_millimeters(std::get<Y_AXIS>(mpos)), THEROBOT.from_millimeters(std::get<Z_AXIS>(mpos)));
         if(n > sizeof(buf)) n= sizeof(buf);
 
         str.append("|MPos:").append(buf, n);
 
 #if MAX_ROBOT_ACTUATORS > 3
         // deal with the ABC axis (E will be A)
-        for (int i = A_AXIS; i < robot->get_number_registered_motors(); ++i) {
+        for (int i = A_AXIS; i < THEROBOT.get_number_registered_motors(); ++i) {
             // current actuator position
-            n = snprintf(buf, sizeof(buf), ",%1.4f", robot->actuators[i]->get_current_position());
+            n = snprintf(buf, sizeof(buf), ",%1.4f", THEROBOT.actuators[i]->get_current_position());
             if(n > sizeof(buf)) n= sizeof(buf);
             str.append(buf, n);
         }
 #endif
 
         // work space position
-        Robot::wcs_t pos = robot->mcs2wcs(mpos);
-        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", robot->from_millimeters(std::get<X_AXIS>(pos)), robot->from_millimeters(std::get<Y_AXIS>(pos)), robot->from_millimeters(std::get<Z_AXIS>(pos)));
+        Robot::wcs_t pos = THEROBOT.mcs2wcs(mpos);
+        n = snprintf(buf, sizeof(buf), "%1.4f,%1.4f,%1.4f", THEROBOT.from_millimeters(std::get<X_AXIS>(pos)), THEROBOT.from_millimeters(std::get<Y_AXIS>(pos)), THEROBOT.from_millimeters(std::get<Z_AXIS>(pos)));
         if(n > sizeof(buf)) n= sizeof(buf);
         str.append("|WPos:").append(buf, n);
     }
 
     // current feedrate and requested fr and override
-    float fr= running ? robot->from_millimeters(conveyor->get_current_feedrate()*60.0F) : 0;
-    float frr= robot->from_millimeters(robot->get_feed_rate());
-    float fro= 6000.0F / robot->get_seconds_per_minute();
+    float fr= running ? THEROBOT.from_millimeters(THECONVEYOR.get_current_feedrate()*60.0F) : 0;
+    float frr= THEROBOT.from_millimeters(THEROBOT.get_feed_rate());
+    float fro= 6000.0F / THEROBOT.get_seconds_per_minute();
     n = snprintf(buf, sizeof(buf), "|F:%1.1f,%1.1f,%1.1f", fr, frr, fro);
     if(n > sizeof(buf)) n= sizeof(buf);
     str.append(buf, n);
@@ -407,8 +379,8 @@ std::string Kernel::get_query_string()
     }
 
     // if auto leveling is active
-    if (robot->compensationTransform != nullptr) {
-        n = snprintf(buf, sizeof(buf), "|O:%1.3f", robot->get_max_delta());
+    if (THEROBOT.compensationTransform != nullptr) {
+        n = snprintf(buf, sizeof(buf), "|O:%1.3f", THEROBOT.get_max_delta());
         if(n > sizeof(buf)) n = sizeof(buf);
         str.append(buf, n);
     }
@@ -549,7 +521,7 @@ void Kernel::call_event(_EVENT_ENUM id_event, void * argument)
     if(id_event == ON_HALT) {
         this->halted = (argument == nullptr);
         if(!this->halted && this->feed_hold) this->feed_hold= false; // also clear feed hold
-        was_idle = conveyor->is_idle(); // see if we were doing anything like printing
+        was_idle = THECONVEYOR.is_idle(); // see if we were doing anything like printing
     }
 
     // send to all registered modules
@@ -562,7 +534,7 @@ void Kernel::call_event(_EVENT_ENUM id_event, void * argument)
             // if we were running and this is a HALT
             // or if we are clearing the halt with $X or M999
             // fix up the current positions in case they got out of sync due to backed up commands
-            this->robot->reset_position_from_current_actuator_position();
+            THEROBOT.reset_position_from_current_actuator_position();
         }
     }
 }
@@ -611,7 +583,7 @@ void Kernel::read_eeprom_data()
 
     wait(0.05);
 
-    memcpy(this->eeprom_data, i2c_buffer, size);
+    memcpy(&this->eeprom_data, i2c_buffer, size);
 }
 
 void Kernel::write_eeprom_data()
@@ -625,7 +597,7 @@ void Kernel::write_eeprom_data()
 	unsigned char * writeptr = 0;
 	unsigned int u8Pagebegin=EEPROM_DATA_STARTPAGE;
 
-	memcpy(Data_buffer, this->eeprom_data, size);
+	memcpy(Data_buffer, &this->eeprom_data, size);
 
 	writeptr = (unsigned char *)Data_buffer;
 	while(writenum < size)
@@ -645,9 +617,9 @@ void Kernel::write_eeprom_data()
 		}
 	}
 	if (result != 0) {
-		this->streams->printf("ALARM: EEPROM data write error:%d\n",pagenum);
+		printk("ALARM: EEPROM data write error:%d\n", pagenum);
 	} else {
-//		this->streams->printf("EEPROM data write finished.\n");
+//		printk("EEPROM data write finished.\n");
 	}
 }
 
@@ -683,9 +655,9 @@ void Kernel::erase_eeprom_data()
 		}
 	}
 	if (result != 0) {
-		this->streams->printf("ALARM: EEPROM data erase error.\n");
+		printk("ALARM: EEPROM data erase error.\n");
 	} else {
-		this->streams->printf("EEPROM data erase finished.\n");
+		printk("EEPROM data erase finished.\n");
 	}
 }
 int Kernel::iic_page_write(unsigned char u8PageNum, unsigned char u8len, unsigned char *pu8Array)

@@ -26,11 +26,10 @@ namespace mbed {
 class Adc
 {
 public:
-    Adc();
+    void init();
     void enable_pin(Pin *pin);
     unsigned int read(Pin *pin);
 
-    static Adc *instance;
     void new_sample(int chan, uint32_t value);
     // return the maximum ADC value, base is 12bits 4095.
 #ifdef OVERSAMPLE

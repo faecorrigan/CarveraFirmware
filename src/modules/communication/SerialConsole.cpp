@@ -15,11 +15,10 @@ using std::string;
 #include "libs/RingBuffer.h"
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "ATCHandlerPublicAccess.h"
 #include "PublicDataRequest.h"
 #include "PublicData.h"
-
 
 // Serial reading module
 // Treats every received line as a command and passes it ( via event call ) to the command dispatcher.
@@ -43,7 +42,7 @@ void SerialConsole::on_module_loaded() {
     this->register_for_event(ON_SET_PUBLIC_DATA);
 
     // Add to the pack of streams kernel can call to, for example for broadcasting
-    THEKERNEL->streams->append_stream(this);
+    THEKERNEL.streams.append_stream(this);
 }
 
 void SerialConsole::attach_irq(bool enable_irq) {
@@ -83,13 +82,13 @@ void SerialConsole::on_serial_char_received() {
 			halt_flag = true;
 			continue;
 		}
-        if(THEKERNEL->is_feed_hold_enabled()) {
+        if(THEKERNEL.is_feed_hold_enabled()) {
             if(received == '!') { // safe pause
-                THEKERNEL->set_feed_hold(true);
+                THEKERNEL.set_feed_hold(true);
                 continue;
             }
             if(received == '~') { // safe resume
-                THEKERNEL->set_feed_hold(false);
+                THEKERNEL.set_feed_hold(false);
                 continue;
             }
         }
@@ -101,23 +100,23 @@ void SerialConsole::on_serial_char_received() {
 
 void SerialConsole::on_idle(void * argument)
 {
-	if (THEKERNEL->is_uploading()) return;
+	if (THEKERNEL.is_uploading()) return;
 
     if (query_flag ) {
         query_flag = false;
-        puts(THEKERNEL->get_query_string().c_str(), 0);
+        puts(THEKERNEL.get_query_string().c_str(), 0);
     }
 
     if (diagnose_flag) {
     	diagnose_flag = false;
-    	puts(THEKERNEL->get_diagnose_string().c_str(), 0);
+    	puts(THEKERNEL.get_diagnose_string().c_str(), 0);
     }
 
     if (halt_flag) {
         halt_flag= false;
-        THEKERNEL->call_event(ON_HALT, nullptr);
-        THEKERNEL->set_halt_reason(MANUAL);
-        if(THEKERNEL->is_grbl_mode()) {
+        THEKERNEL.call_event(ON_HALT, nullptr);
+        THEKERNEL.set_halt_reason(MANUAL);
+        if(THEKERNEL.is_grbl_mode()) {
             puts("ALARM: Abort during cycle\r\n", 0);
         } else {
             puts("HALTED, M999 or $X to exit HALT state\r\n", 0);
@@ -138,7 +137,7 @@ void SerialConsole::on_main_loop(void * argument){
                 message.message = received;
                 message.stream = this;
                 message.line = 0;
-                THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+                THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message );
                 // this->puts(received.c_str());
                 return;
             }else{
@@ -152,24 +151,24 @@ int SerialConsole::puts(const char* s, int size)
 {
     size_t n = size == 0 ? strlen(s) : size;
     for (size_t i = 0; i < n; ++i) {
-        this->_putc(s[i]);
+        this->putc(s[i]);
     }
     return n;
 }
 
 int SerialConsole::gets(char** buf, int size)
 {
-	getc_result = this->_getc();
+	getc_result = this->getc();
 	*buf = &getc_result;
 	return 1;
 }
 
-int SerialConsole::_putc(int c)
+int SerialConsole::putc(int c)
 {
     return this->serial->putc(c);
 }
 
-int SerialConsole::_getc()
+int SerialConsole::getc()
 {
     return this->serial->getc();
 }

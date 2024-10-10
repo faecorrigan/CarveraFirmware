@@ -19,19 +19,25 @@
 #include "modules/tools/drillingcycles/Drillingcycles.h"
 #include "modules/tools/atc/ATCHandler.h"
 #include "modules/utils/wifi/WifiProvider.h"
+#include "modules/utils/webserver/WebServer.h"
 #include "modules/robot/Conveyor.h"
+#include "modules/robot/Robot.h"
 #include "modules/utils/simpleshell/SimpleShell.h"
-#include "modules/utils/configurator/Configurator.h"
 #include "modules/utils/player/Player.h"
 #include "modules/utils/mainbutton/MainButton.h"
-#include "modules/communication/SerialConsole2.h"
-#include "libs/USBDevice/MSCFileSystem.h"
+#include "modules/communication/GcodeDispatch.h"
+#include "modules/communication/WirelessProbe.h"
 #include "Config.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StepTicker.h"
-#include "SlowTicker.h"
 #include "Robot.h"
+
+// FreeRTOS
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+
+#include <mri.h>
 
 // #include "libs/ChaNFSSD/SDFileSystem.h"
 #include "libs/nuts_bolts.h"
@@ -45,42 +51,66 @@
 // #include "libs/USBDevice/USBSerial/USBSerial.h"
 // #include "libs/USBDevice/DFU.h"
 #include "libs/SDFAT.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "ToolManager.h"
 
 #include "libs/Watchdog.h"
 
 #include "version.h"
 #include "system_LPC17xx.h"
-#include "platform_memory.h"
 
 #include "mbed.h"
 
 // disable MSD
 #define DISABLEMSD
 #define second_usb_serial_enable_checksum  CHECKSUM("second_usb_serial_enable")
-// #define disable_msd_checksum  CHECKSUM("msd_disable")
-// #define dfu_enable_checksum  CHECKSUM("dfu_enable")
 #define watchdog_timeout_checksum  CHECKSUM("watchdog_timeout")
 
-// USB Stuff
-//SDCard sd  __attribute__ ((section ("AHBSRAM0"))) (P0_18, P0_17, P0_15, P0_16);      // this selects SPI1 as the sdcard as it is on Smoothieboard
-SDFileSystem sd __attribute__ ((section ("AHBSRAM0"))) (P0_18, P0_17, P0_15, P0_16, 12000000);
-//SDCard sd(P0_18, P0_17, P0_15, P0_16);  // this selects SPI0 as the sdcard
-//SDCard sd(P0_18, P0_17, P0_15, P2_8);  // this selects SPI0 as the sdcard witrh a different sd select
+extern "C" void vPortSVCHandler(void);
+extern "C" void xPortPendSVHandler(void);
+extern "C" void xPortSysTickHandler(void);
 
-// USB u __attribute__ ((section ("AHBSRAM0")));
-// USBSerial usbserial __attribute__ ((section ("AHBSRAM0"))) (&u);
+#if (configSUPPORT_STATIC_ALLOCATION == 1)
 
-/*
-#ifndef DISABLEMSD
-USBMSD msc __attribute__ ((section ("AHBSRAM0"))) (&u, &sd);
-#else
-USBMSD *msc= NULL;
+// Static allocation for the Idle Task
+static StaticTask_t xIdleTaskTCBBuffer;
+static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+
+// Static allocation for the Timer Task
+#if (configUSE_TIMERS == 1)
+static StaticTask_t xTimerTaskTCBBuffer;
+static StackType_t xTimerStack[configTIMER_TASK_STACK_DEPTH];
 #endif
-*/
 
-SDFAT mounter __attribute__ ((section ("AHBSRAM0"))) ("sd", &sd);
+extern "C" {
+
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
+                                    StackType_t **ppxIdleTaskStackBuffer,
+                                    uint32_t *pulIdleTaskStackSize ) {
+    *ppxIdleTaskTCBBuffer   = &xIdleTaskTCBBuffer;
+    *ppxIdleTaskStackBuffer = xIdleStack;
+    *pulIdleTaskStackSize   = configMINIMAL_STACK_SIZE;
+}
+
+#if (configUSE_TIMERS == 1)
+
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer,
+                                     StackType_t **ppxTimerTaskStackBuffer,
+                                     uint32_t *pulTimerTaskStackSize ) {
+    *ppxTimerTaskTCBBuffer   = &xTimerTaskTCBBuffer;
+    *ppxTimerTaskStackBuffer = xTimerStack;
+    *pulTimerTaskStackSize   = configTIMER_TASK_STACK_DEPTH;
+}
+
+#endif // configUSE_TIMERS
+
+} // extern "C"
+
+#endif // configSUPPORT_STATIC_ALLOCATION
+
+SDFileSystem sd __attribute__ ((section ("AHBSRAM"))) (P0_18, P0_17, P0_15, P0_16, 12000000);
+
+SDFAT mounter __attribute__ ((section ("AHBSRAM"))) ("sd", &sd);
 
 GPIO leds[4] = {
     GPIO(P4_29),
@@ -89,78 +119,65 @@ GPIO leds[4] = {
     GPIO(P1_17)
 };
 
-void init() {
+Watchdog watchdog __attribute__((section("AHBSRAM"))) (10000, WDT_RESET);  // 10 seconds default, WDT_RESET
+Kernel THEKERNEL __attribute__((section("AHBSRAM")));
+Conveyor THECONVEYOR __attribute__((section("AHBSRAM")));
+Robot THEROBOT __attribute__((section("AHBSRAM")));
+GcodeDispatch gcode_dispatch __attribute__((section("AHBSRAM")));
+SimpleShell simpleshell __attribute__((section("AHBSRAM")));
+WifiProvider wifi_provider __attribute__((section("AHBSRAM")));
+WebServer web_server __attribute__((section("AHBSRAM"))) (&wifi_provider);
 
+Player player __attribute__((section("AHBSRAM")));
+WirelessProbe wireless_probe __attribute__((section("AHBSRAM")));
+MainButton mainbutton __attribute__((section("AHBSRAM")));
+ATCHandler atc_handler __attribute__((section("AHBSRAM")));
+Endstops endstops __attribute__((section("AHBSRAM")));
+Laser laser __attribute__((section("AHBSRAM")));
+ZProbe zprobe __attribute__((section("AHBSRAM")));
+RotaryDeltaCalibration rotary_delta_calibration __attribute__((section("AHBSRAM")));
+TemperatureSwitch temperature_switch __attribute__((section("AHBSRAM")));
+Drillingcycles drilling_cycles __attribute__((section("AHBSRAM")));
+
+serial_t console;
+
+void init() {
     // Default pins to low status
     for (int i = 0; i < 4; i++){
         leds[i].output();
         leds[i]= 0;
     }
 
-    // open 12V
-    // GPIO v12 = GPIO(P0_11);
-    /*
-    GPIO v12 = GPIO(P0_9);
-    v12.output();
-    v12 = 1;
+    THEKERNEL.init();
 
-    // GPIO v24 = GPIO(P1_29);
-    GPIO v24 = GPIO(P0_0);
-    v24.output();
-    v24 = 1;
+    THECONVEYOR.init();
+    THEKERNEL.add_module(&THECONVEYOR);
 
-    GPIO vCharge = GPIO(P0_23);
-    vCharge.output();
-    vCharge = 1;
-    */
+    gcode_dispatch.init();
+    THEKERNEL.add_module(&gcode_dispatch);
 
-    Kernel* kernel = new Kernel();
+    THEROBOT.init();
+    THEKERNEL.add_module(&THEROBOT);
 
-    // kernel->streams->printf("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
-    SimpleShell::version_command("", kernel->streams);
+    THEKERNEL.add_module(&simpleshell);
+
+    printk("Smoothie Running @%ldMHz\r\n", SystemCoreClock / 1000000);
+    simpleshell.version_command("", &THEKERNEL.streams);
 
     bool sdok = (sd.disk_initialize() == 0);
-    if(!sdok) kernel->streams->printf("SDCard failed to initialize\r\n");
+    if(!sdok) printk("SDCard failed to initialize\r\n");
 
     #ifdef NONETWORK
-        kernel->streams->printf("NETWORK is disabled\r\n");
+        printk("NETWORK is disabled\r\n");
     #endif
 
-#ifdef DISABLEMSD
-	// msc = NULL;
-	// kernel->streams->printf("MSD is disabled\r\n");
-
-	/*
-    // attempt to be able to disable msd in config
-    if(sdok && !kernel->config->value( disable_msd_checksum )->by_default(true)->as_bool()){
-        // HACK to zero the memory USBMSD uses as it and its objects seem to not initialize properly in the ctor
-        size_t n= sizeof(USBMSD);
-        void *v = AHB0.alloc(n);
-        memset(v, 0, n); // clear the allocated memory
-        msc= new(v) USBMSD(&u, &sd); // allocate object using zeroed memory
-    }else{
-        msc = NULL;
-        kernel->streams->printf("MSD is disabled\r\n");
-    }*/
-
-#endif
-
     // Create and add main modules
-    kernel->add_module( new(AHB0) Player() );
-
-    // ATC Handler
-    kernel->add_module( new(AHB0) ATCHandler() );
-
-    // MSC File System Handler
-    kernel->add_module( new(AHB0) MSCFileSystem("ud") );
-
-    // Serial Console 2
-    kernel->add_module( new(AHB0) SerialConsole2() );
-
-    kernel->add_module( new(AHB0) MainButton() );
-    // Wifi Provider
-    kernel->add_module( new(AHB0) WifiProvider() );
-
+    THEKERNEL.add_module(&player);
+    THEKERNEL.add_module(&atc_handler);
+    THEKERNEL.add_module(&wireless_probe);
+    THEKERNEL.add_module(&mainbutton);
+    THEKERNEL.add_module(&wifi_provider);
+    THEKERNEL.add_module(&web_server);
 
     // these modules can be completely disabled in the Makefile by adding to EXCLUDE_MODULES
     #ifndef NO_TOOLS_SWITCH
@@ -169,100 +186,58 @@ void init() {
     delete sp;
     #endif
 
-    #ifndef NO_TOOLS_EXTRUDER
-    // NOTE this must be done first before Temperature control so ToolManager can handle Tn before temperaturecontrol module does
-    ExtruderMaker *em= new(AHB0) ExtruderMaker();
-    em->load_tools();
-    delete em;
-    #endif
-
     // #ifndef NO_TOOLS_TEMPERATURECONTROL
     // Note order is important here must be after extruder so Tn as a parameter will get executed first
-    TemperatureControlPool *tp= new(AHB0) TemperatureControlPool();
+    TemperatureControlPool *tp= new TemperatureControlPool();
     tp->load_tools();
     delete tp;
 
     // #endif
     #ifndef NO_TOOLS_ENDSTOPS
-    kernel->add_module( new(AHB0) Endstops() );
+    THEKERNEL.add_module(&endstops);
     #endif
     #ifndef NO_TOOLS_LASER
-    kernel->add_module( new(AHB0) Laser() );
+    THEKERNEL.add_module(&laser);
     #endif
 
     #ifndef NO_TOOLS_SPINDLE
-    SpindleMaker *sm = new(AHB0) SpindleMaker();
+    SpindleMaker *sm = new SpindleMaker();
     sm->load_spindle();
     delete sm;
-    //kernel->add_module( new(AHB0) Spindle() );
-    #endif
-    #ifndef NO_UTILS_PANEL
-    // kernel->add_module( new(AHB0) Panel() );
     #endif
     #ifndef NO_TOOLS_ZPROBE
-    kernel->add_module( new(AHB0) ZProbe() );
+    THEKERNEL.add_module(&zprobe);
     #endif
     #ifndef NO_TOOLS_SCARACAL
-    kernel->add_module( new(AHB0) SCARAcal() );
+    THEKERNEL.add_module( new SCARAcal() );
     #endif
     #ifndef NO_TOOLS_ROTARYDELTACALIBRATION
-    kernel->add_module( new(AHB0) RotaryDeltaCalibration() );
+    THEKERNEL.add_module(&rotary_delta_calibration);
     #endif
-//    #ifndef NONETWORK
-//    kernel->add_module( new Network() );
-//    #endif
     #ifndef NO_TOOLS_TEMPERATURESWITCH
     // Must be loaded after TemperatureControl
-    kernel->add_module( new(AHB0) TemperatureSwitch() );
+    THEKERNEL.add_module(&temperature_switch);
     #endif
     #ifndef NO_TOOLS_DRILLINGCYCLES
-    kernel->add_module( new(AHB0) Drillingcycles() );
+    THEKERNEL.add_module(&drilling_cycles);
     #endif
-    // Create and initialize USB stuff
-    // u.init();
-
-/*
-#ifdef DISABLEMSD
-    if(sdok && msc != NULL){
-        kernel->add_module( msc );
-    }
-#else
-    if (!kernel->config->value( disable_msd_checksum )->by_default(false)->as_bool()) {
-        kernel->add_module( &msc );
-    }
-#endif
-*/
-
-    /* disable USB module
-    kernel->add_module( &usbserial );
-    if( kernel->config->value( second_usb_serial_enable_checksum )->by_default(false)->as_bool() ){
-        kernel->add_module( new(AHB0) USBSerial(&u) );
-    }
-    */
-
-    // if( kernel->config->value( dfu_enable_checksum )->by_default(false)->as_bool() ){
-    //     kernel->add_module( new(AHB0) DFU(&u));
-    // }
 
     // 10 second watchdog timeout (or config as seconds)
-    float t= kernel->config->value( watchdog_timeout_checksum )->by_default(10.0F)->as_number();
-    if(t > 0.1F) {
+    float t= THEKERNEL.config->value( watchdog_timeout_checksum )->by_default(10.0F)->as_number();
+    if (t > 0.1F) {
+        watchdog.configure(t * 1000000, WDT_RESET);
+        watchdog.arm();
         // NOTE setting WDT_RESET with the current bootloader would leave it in DFU mode which would be suboptimal
-        kernel->add_module( new(AHB0) Watchdog(t * 1000000, WDT_RESET )); // WDT_RESET));
-        kernel->streams->printf("Watchdog enabled for %1.3f seconds\n", t);
-    }else{
-        kernel->streams->printf("WARNING Watchdog is disabled\n");
+        THEKERNEL.add_module(&watchdog);
+        printk("Watchdog enabled for %1.3f seconds\n", t);
+    } else {
+        printk("WARNING Watchdog is disabled\n");
     }
 
-    // kernel->add_module( &u );
-
-    // memory before cache is cleared
-    //SimpleShell::print_mem(kernel->streams);
-
     // clear up the config cache to save some memory
-    kernel->config->config_cache_clear();
+    THEKERNEL.config->config_cache_clear();
 
-    if(kernel->is_using_leds()) {
+    if(THEKERNEL.is_using_leds()) {
         // set some leds to indicate status... led0 init done, led1 mainloop running, led2 idle loop running, led3 sdcard ok
         leds[0]= 1; // indicate we are done with init
         leds[3]= sdok?1:0; // 4th led indicates sdcard is available (TODO maye should indicate config was found)
@@ -271,39 +246,86 @@ void init() {
     if(sdok) {
         // load config override file if present
         // NOTE only Mxxx commands that set values should be put in this file. The file is generated by M500
-        FILE *fp= fopen(kernel->config_override_filename(), "r");
+        FILE *fp= fopen(THEKERNEL.config_override_filename(), "r");
         if(fp != NULL) {
             char buf[132];
-            kernel->streams->printf("Loading config override file: %s...\n", kernel->config_override_filename());
+            printk("Loading config override file: %s...\n", THEKERNEL.config_override_filename());
             while(fgets(buf, sizeof buf, fp) != NULL) {
-                kernel->streams->printf("  %s", buf);
+                printk("  %s", buf);
                 if(buf[0] == ';') continue; // skip the comments
                 struct SerialMessage message= {&(StreamOutput::NullStream), buf, 0};
-                kernel->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
+                THEKERNEL.call_event(ON_CONSOLE_LINE_RECEIVED, &message);
             }
-            kernel->streams->printf("config override file executed\n");
+            printk("config override file executed\n");
             fclose(fp);
         }
     }
 
     // start the timers and interrupts
-    THEKERNEL->conveyor->start(THEROBOT->get_number_registered_motors());
-    THEKERNEL->step_ticker->start();
-    THEKERNEL->slow_ticker->start();
+    THECONVEYOR.start(THEROBOT.get_number_registered_motors());
+    
+    THEKERNEL.step_ticker.start();
+    THEKERNEL.slow_ticker.start();
 }
 
-int main()
-{
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
+    /* Log or print the overflow information */
+    printk("Stack overflow detected in task: %s\n", pcTaskName);
+
+    /* Trigger MRI abort */
+    abort();
+}
+
+void vTaskMainLoop(void *pvParameters) {
+    uint16_t cnt = 0;
+
     init();
 
-    uint16_t cnt= 0;
-    // Main loop
-    while(1){
-        if(THEKERNEL->is_using_leds()) {
+    printk("Mainloop started\n");
+
+    while (true) {
+        if(THEKERNEL.is_using_leds()) {
             // flash led 2 to show we are alive
             leds[1]= (cnt++ & 0x1000) ? 1 : 0;
         }
-        THEKERNEL->call_event(ON_MAIN_LOOP);
-        THEKERNEL->call_event(ON_IDLE);
+
+        THEKERNEL.call_event(ON_MAIN_LOOP);
+        THEKERNEL.call_event(ON_IDLE);
+
+        vTaskDelay(1);
     }
+}
+
+#define MAINLOOP_STACK_SIZE 768
+
+StackType_t mainLoopStackBuffer[MAINLOOP_STACK_SIZE];
+StaticTask_t mainLoopTaskBuffer __attribute__((section("AHBSRAM")));
+
+int main() {
+    serial_init(&console, P2_8, P2_9);
+    serial_baud(&console, DEFAULT_SERIAL_BAUD_RATE);
+
+    NVIC_SetVector(SVCall_IRQn, (uint32_t)vPortSVCHandler);
+    NVIC_SetVector(PendSV_IRQn, (uint32_t)xPortPendSVHandler);
+    NVIC_SetVector(SysTick_IRQn, (uint32_t)xPortSysTickHandler);
+
+    // Create a FreeRTOS task main loop
+    TaskHandle_t xHandle = xTaskCreateStatic(
+        vTaskMainLoop,        // Task function
+        "MainLoop",           // Task name (for debugging)
+        MAINLOOP_STACK_SIZE,  // Stack size (in words, not bytes)
+        NULL,                 // Task parameters (none)
+        1,                    // Task priority
+        mainLoopStackBuffer,
+        &mainLoopTaskBuffer
+    );
+
+    // Start the FreeRTOS scheduler
+    vTaskStartScheduler();
+
+    // The program should never reach this point
+    // This is only reached if there is insufficient memory to start the scheduler
+    abort();
+
+    return 0;
 }

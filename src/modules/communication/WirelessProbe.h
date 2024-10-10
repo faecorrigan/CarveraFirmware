@@ -21,10 +21,8 @@ using std::string;
 
 #define baud_rate2_setting_checksum CHECKSUM("baud_rate2")
 
-class SerialConsole2 : public Module {
+class WirelessProbe : public Module {
     public:
-        SerialConsole2();
-
         void on_module_loaded();
         void on_serial_char_received();
         void on_main_loop(void * argument);
@@ -38,8 +36,8 @@ class SerialConsole2 : public Module {
 
         bool has_char(char letter);
 
-        int _putc(int c);
-        int _getc(void);
+        int putc(int c);
+        int getc(void);
         int puts(const char*);
         int gets(char** buf);
         char getc_result;

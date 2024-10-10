@@ -11,19 +11,17 @@
 #include <cmath>
 #include <string>
 #include "Block.h"
-#include "Planner.h"
 #include "Conveyor.h"
 #include "Gcode.h"
-#include "libs/StreamOutputPool.h"
-#include "StepTicker.h"
-#include "platform_memory.h"
+#include "libs/Logging.h"
 
 #include "mri.h"
 #include <inttypes.h>
 
 using std::string;
+using std::min;
 
-#define STEP_TICKER_FREQUENCY THEKERNEL->step_ticker->get_frequency()
+#define STEP_TICKER_FREQUENCY THEKERNEL.step_ticker.get_frequency()
 
 uint8_t Block::n_actuators= 0;
 double Block::fp_scale= 0;
@@ -35,7 +33,6 @@ double Block::fp_scale= 0;
 
 Block::Block()
 {
-    tick_info= nullptr;
     line = 0;
     clear();
 }
@@ -86,14 +83,6 @@ void Block::clear()
     */
 
     total_move_ticks= 0;
-    if(tick_info == nullptr) {
-        // we create this once for this block
-        tick_info= new tickinfo_t[n_actuators]; //(tickinfo_t *)malloc(sizeof(tickinfo_t) * n_actuators);
-        if(tick_info == nullptr) {
-            // if we ran out of memory in AHB0 just stop here
-            __debugbreak();
-        }
-    }
 
     for(int i = 0; i < n_actuators; ++i) {
         tick_info[i].steps_per_tick= 0;
@@ -109,11 +98,11 @@ void Block::clear()
 
 void Block::debug() const
 {
-    THEKERNEL->streams->printf("%p: steps-X:%lu Y:%lu Z:%lu ", this, this->steps[0], this->steps[1], this->steps[2]);
+    printk("%p: steps-X:%lu Y:%lu Z:%lu ", this, this->steps[0], this->steps[1], this->steps[2]);
     for (size_t i = E_AXIS; i < n_actuators; ++i) {
-        THEKERNEL->streams->printf("%c:%lu ", 'A' + i-E_AXIS, this->steps[i]);
+        printk("%c:%lu ", 'A' + i-E_AXIS, this->steps[i]);
     }
-    THEKERNEL->streams->printf("(max:%lu) nominal:r%1.4f/s%1.4f mm:%1.4f acc:%1.2f accu:%lu decu:%lu ticks:%lu rates:%1.4f/%1.4f entry/max:%1.4f/%1.4f exit:%1.4f primary:%d ready:%d locked:%d ticking:%d recalc:%d nomlen:%d time:%f\r\n",
+    printk("(max:%lu) nominal:r%1.4f/s%1.4f mm:%1.4f acc:%1.2f accu:%lu decu:%lu ticks:%lu rates:%1.4f/%1.4f entry/max:%1.4f/%1.4f exit:%1.4f primary:%d ready:%d locked:%d ticking:%d recalc:%d nomlen:%d time:%f\r\n",
                                this->steps_event_count,
                                this->nominal_rate,
                                this->nominal_speed,
@@ -364,7 +353,7 @@ void Block::prepare(float acceleration_in_steps, float deceleration_in_steps)
         this->tick_info[m].plateau_rate= (int64_t)round(((this->maximum_rate * aratio) / STEP_TICKER_FREQUENCY) * STEPTICKER_FPSCALE);
 
         #if 0
-        THEKERNEL->streams->printf("spt: %08lX %08lX, ac: %08lX %08lX, dc: %08lX %08lX, pr: %08lX %08lX\n",
+        printk("spt: %08lX %08lX, ac: %08lX %08lX, dc: %08lX %08lX, pr: %08lX %08lX\n",
             (uint32_t)(this->tick_info[m].steps_per_tick>>32), // 2.62 fixed point
             (uint32_t)(this->tick_info[m].steps_per_tick&0xFFFFFFFF), // 2.62 fixed point
             (uint32_t)(this->tick_info[m].acceleration_change>>32), // 2.62 fixed point signed

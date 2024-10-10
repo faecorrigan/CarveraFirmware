@@ -7,9 +7,6 @@ class Gcode;
 class RotaryDeltaCalibration : public Module
 {
 public:
-    RotaryDeltaCalibration(){};
-    virtual ~RotaryDeltaCalibration(){};
-
     void on_module_loaded();
 
 private:

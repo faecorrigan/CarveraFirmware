@@ -8,6 +8,7 @@
 #pragma once
 
 #include "libs/Module.h"
+#include "SoftTimer.h"
 
 #include <stdint.h>
 
@@ -19,8 +20,10 @@ class Block;
 
 class Laser : public Module{
     public:
-        Laser();
-        virtual ~Laser() {};
+        Laser()
+        : laser_power_timer("LaserPower", 1, true, this, &Laser::set_proportional_power)
+        {}
+
         void on_module_loaded();
         void on_halt(void* argument);
         void on_gcode_received(void *argument);
@@ -32,9 +35,11 @@ class Laser : public Module{
         bool set_laser_power(float p);
 
     private:
-        uint32_t set_proportional_power(uint32_t dummy);
+        void set_proportional_power();
         bool get_laser_power(float& power) const;
         float current_speed_ratio(const Block *block) const;
+
+        SoftTimer laser_power_timer;
 
         Pin *laser_pin;
         mbed::PwmOut *pwm_pin;    // PWM output to regulate the laser power

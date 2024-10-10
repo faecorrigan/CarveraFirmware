@@ -27,8 +27,7 @@ class Block;
 
 class StepTicker{
     public:
-        StepTicker();
-        ~StepTicker();
+        void init();
         void set_frequency( float frequency );
         void set_unstep_time( float microseconds );
         int register_motor(StepperMotor* motor);
@@ -43,10 +42,10 @@ class StepTicker{
         // whatever setup the block should register this to know when it is done
         std::function<void()> finished_fnc{nullptr};
 
-        static StepTicker *getInstance() { return instance; }
-
     private:
         static StepTicker *instance;
+        static void _TIMER0_isr(void);
+        static void _TIMER1_isr(void);
 
         bool start_next_block();
 

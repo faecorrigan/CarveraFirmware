@@ -8,9 +8,10 @@
 #pragma once
 
 #include <bitset>
+#include <cstdint>
 #include "ActuatorCoordinates.h"
 
-class Block {
+class __attribute__((packed)) Block {
     public:
         Block();
 
@@ -54,7 +55,7 @@ class Block {
         std::bitset<k_max_actuators> direction_bits;     // Direction for each axis in bit form, relative to the direction port's mask
 
         // this is the data needed to determine when each motor needs to be issued a step
-        using tickinfo_t= struct {
+        using tickinfo_t = struct {
             int64_t steps_per_tick; // 2.62 fixed point
             int64_t counter; // 2.62 fixed point
             int64_t acceleration_change; // 2.62 fixed point signed
@@ -66,14 +67,14 @@ class Block {
         };
 
         // need info for each active motor
-        tickinfo_t *tick_info;
+        tickinfo_t tick_info[k_max_actuators];
 
         static uint8_t n_actuators;
 
         // 2024
         // uint16_t s_values[8];
 
-        struct {
+        struct __attribute__((packed)) {
             bool recalculate_flag:1;             // Planner flag to recalculate trapezoids on entry junction
             bool nominal_length_flag:1;          // Planner flag for nominal speed always reached
             bool is_ready:1;

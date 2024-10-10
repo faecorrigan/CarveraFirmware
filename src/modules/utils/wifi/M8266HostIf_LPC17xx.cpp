@@ -17,6 +17,7 @@
 #include "brd_cfg.h"
 #include "M8266WIFIDrv.h"
 #include "M8266HostIf.h"
+#include "mbed.h"
 
 /***********************************************************************************
  * M8266HostIf_GPIO_SPInCS_nRESET_Pin_Init                                         *
@@ -261,22 +262,11 @@ void M8266HostIf_Set_SPI_nCS_Pin(u8 level)
  * Return:                                                                         *
  *    none                                                                         *
  ***********************************************************************************/
-extern uint32_t SystemCoreClock;
 void M8266HostIf_delay_us(u8 nus)
 {
-	volatile u32 temp;
-	SysTick->LOAD = SystemCoreClock / 1000000 * nus; 								//  The System Tick will use SystemFrequency. see below SysTick_CTRL_CLKSOURCE_Msk
-	SysTick->VAL  = 0x00;        								 								//	Clear the counter value
-	SysTick->CTRL = (SysTick->CTRL & (~SysTick_CTRL_TICKINT_Msk))	//  Disable the System Tick interrupt
-									| SysTick_CTRL_CLKSOURCE_Msk	//  System Tick Select CPU Clock
-									| SysTick_CTRL_ENABLE_Msk ; 	//	Start the down counter
-	do
-	{
-		temp=SysTick->CTRL;
-	}while((temp&0x01)&&!(temp&SysTick_CTRL_COUNTFLAG_Msk));		//	Wait the time reached
-
-	SysTick->CTRL&=~SysTick_CTRL_ENABLE_Msk; 	//	Stop the counter
-	SysTick->VAL =0x00;       								//	Clear the counter value
+	uint32_t start = us_ticker_read();
+	while ((us_ticker_read() - start) < nus) 
+		;
 }
 
 /***********************************************************************************

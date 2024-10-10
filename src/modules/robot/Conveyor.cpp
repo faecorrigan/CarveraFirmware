@@ -13,13 +13,11 @@
 #include "wait_api.h" // mbed.h lib
 #include "Block.h"
 #include "Conveyor.h"
-#include "Planner.h"
 #include "mri.h"
 #include "checksumm.h"
 #include "Config.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "ConfigValue.h"
-#include "StepTicker.h"
 #include "Robot.h"
 #include "StepperMotor.h"
 
@@ -27,7 +25,6 @@
 
 #include "mbed.h"
 
-#define planner_queue_size_checksum CHECKSUM("planner_queue_size")
 #define queue_delay_time_ms_checksum CHECKSUM("queue_delay_time_ms")
 
 /*
@@ -58,11 +55,11 @@
  */
 
 
-Conveyor::Conveyor()
+void Conveyor::init()
 {
     running = false;
     allow_fetch = false;
-    flush= false;
+    flush = false;
 }
 
 void Conveyor::on_module_loaded()
@@ -71,16 +68,13 @@ void Conveyor::on_module_loaded()
     register_for_event(ON_HALT);
 
     // Attach to the end_of_move stepper event
-    //THEKERNEL->step_ticker->finished_fnc = std::bind( &Conveyor::all_moves_finished, this);
-    queue_size = THEKERNEL->config->value(planner_queue_size_checksum)->by_default(32)->as_number();
-    queue_delay_time_ms = THEKERNEL->config->value(queue_delay_time_ms_checksum)->by_default(100)->as_number();
+    queue_delay_time_ms = THEKERNEL.config->value(queue_delay_time_ms_checksum)->by_default(100)->as_number();
 }
 
 // we allocate the queue here after config is completed so we do not run out of memory during config
-void Conveyor::start(uint8_t n)
+void Conveyor::start(uint8_t n_actuators)
 {
-    Block::init(n); // set the number of motors which determines how big the tick info vector is
-    queue.resize(queue_size);
+    Block::init(n_actuators);
     running = true;
 }
 
@@ -117,7 +111,7 @@ void Conveyor::on_idle(void*)
 bool Conveyor::is_idle() const
 {
     if(queue.is_empty()) {
-        for(auto &a : THEROBOT->actuators) {
+        for(auto &a : THEROBOT.actuators) {
             if(a->is_moving()) return false;
         }
         return true;
@@ -134,13 +128,13 @@ void Conveyor::wait_for_idle(bool wait_for_motors)
     running = false; // stops on_idle calling check_queue
     while (!queue.is_empty()) {
         check_queue(true); // forces queue to be made available to stepticker
-        THEKERNEL->call_event(ON_IDLE, this);
+        THEKERNEL.call_event(ON_IDLE, this);
     }
 
     if(wait_for_motors) {
         // now we wait for all motors to stop moving
         while(!is_idle()) {
-            THEKERNEL->call_event(ON_IDLE, this);
+            THEKERNEL.call_event(ON_IDLE, this);
         }
     }
 
@@ -154,12 +148,12 @@ void Conveyor::wait_for_idle(bool wait_for_motors)
 void Conveyor::queue_head_block()
 {
     // upstream caller will block on this until there is room in the queue
-    while (queue.is_full() && !THEKERNEL->is_halted()) {
+    while (queue.is_full() && !THEKERNEL.is_halted()) {
         //check_queue();
-        THEKERNEL->call_event(ON_IDLE, this); // will call check_queue();
+        THEKERNEL.call_event(ON_IDLE, this); // will call check_queue();
     }
 
-    if(THEKERNEL->is_halted()) {
+    if(THEKERNEL.is_halted()) {
         // we do not want to stick more stuff on the queue if we are in halt state
         // clear and release the block on the head
         queue.head_ref()->clear();
@@ -169,7 +163,7 @@ void Conveyor::queue_head_block()
     queue.produce_head();
 
     // not sure if this is the correct place but we need to turn on the motors if they were not already on
-    THEKERNEL->call_event(ON_ENABLE, (void*)1); // turn all enable pins on
+    THEKERNEL.call_event(ON_ENABLE, (void*)1); // turn all enable pins on
 }
 
 void Conveyor::check_queue(bool force)
@@ -204,7 +198,7 @@ bool Conveyor::get_next_block(Block **block)
     // default the feerate to zero if there is no block available
     this->current_feedrate= 0;
 
-    if(THEKERNEL->is_halted() || queue.isr_tail_i == queue.head_i) return false; // we do not have anything to give
+    if(THEKERNEL.is_halted() || queue.isr_tail_i == queue.head_i) return false; // we do not have anything to give
 
     // wait for queue to fill up, optimizes planning
     if(!allow_fetch) return false;
@@ -255,7 +249,7 @@ void Conveyor::flush_queue()
 void Conveyor::dump_queue()
 {
     for (unsigned int index = queue.tail_i, i = 0; true; index = queue.next(index), i++ ) {
-        THEKERNEL->streams->printf("block %03d > ", i);
+        printk("block %03d > ", i);
         queue.item_ref(index)->debug();
 
         if (index == queue.head_i)

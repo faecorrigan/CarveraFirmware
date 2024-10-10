@@ -18,6 +18,9 @@
 
 #include "mbed.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 using std::string;
 
 uint16_t get_checksum(const string &to_check)
@@ -125,7 +128,7 @@ string shift_parameter( string &parameters )
     if ( beginning == string::npos ) {
         string temp = parameters;
         parameters = "";
-        for (int i = 0; i < temp.length(); i ++) {
+        for (unsigned int i = 0; i < temp.length(); i ++) {
         	if (temp[i] == 0x01) {
         		temp[i] = ' ';
         	} else if (temp[i] == 0x02) {
@@ -142,7 +145,7 @@ string shift_parameter( string &parameters )
     }
     string temp = parameters.substr( 0, beginning );
     parameters = parameters.substr(beginning + 1, parameters.size());
-    for (int i = 0; i < temp.length(); i ++) {
+    for (unsigned int i = 0; i < temp.length(); i ++) {
     	if (temp[i] == 0x01) {
     		temp[i] = ' ';
     	} else if (temp[i] == 0x02) {
@@ -198,10 +201,10 @@ void system_reset( bool dfu )
 // Convert a path indication ( absolute or relative ) into a path ( absolute )
 std::string absolute_from_relative( std::string path )
 {
-    string cwd = THEKERNEL->current_path;
+    string cwd = THEKERNEL.current_path;
 
     if ( path.empty() ) {
-        return THEKERNEL->current_path;
+        return THEKERNEL.current_path;
     }
 
     if ( path[0] == '/' ) {
@@ -282,8 +285,6 @@ void check_and_make_path( std::string origin )
 {
 	size_t pos = 0;
     std::string dir;
-    int res;
-    int ret = 0;
 
     while ((pos = origin.find_first_of('/', pos)) != std::string::npos) {
         dir = origin.substr(0, pos++);
@@ -356,15 +357,7 @@ string wcs2gcode(int wcs) {
 
 void safe_delay_ms(uint32_t delay)
 {
-    safe_delay_us(delay*1000);
-}
-
-void safe_delay_us(uint32_t dus)
-{
-    uint32_t start = us_ticker_read();
-    while ((us_ticker_read() - start) < dus) {
-        THEKERNEL->call_event(ON_IDLE);
-    }
+    vTaskDelay(pdMS_TO_TICKS(delay));
 }
 
 struct tm *get_fftime(unsigned short t_date, unsigned short t_time, struct tm *timeinfo) {

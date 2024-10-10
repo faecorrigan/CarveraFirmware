@@ -11,6 +11,8 @@
 using namespace std;
 #include <vector>
 #include <queue>
+#include <map>
+#include <functional>
 
 #include "Pin.h"
 #include "Module.h"
@@ -26,8 +28,6 @@ using namespace std;
 class WifiProvider : public Module, public StreamOutput
 {
 public:
-	WifiProvider();
-
     void on_module_loaded();
     void on_gcode_received(void *argument);
     void on_main_loop( void* argument );
@@ -36,17 +36,21 @@ public:
     void on_get_public_data(void* argument);
     void on_set_public_data(void* argument);
 
+    uint8_t initializeTcpServer(uint16_t local_port, uint8_t max_clients);
+    void removeTcpServer(uint8_t link_no);
+    void registerTcpDataCallback(uint8_t link_no, std::function<void(uint8_t*, uint16_t, uint8_t*, uint16_t)> callback);
+    bool sendTcpDataToClient(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no, const uint8_t* data, uint16_t length);
+    bool closeTcpConnection(const uint8_t* remote_ip, uint16_t remote_port, uint8_t link_no);
     int gets(char** buf, int size = 0);
     int puts(const char*, int size = 0);
-    int _putc(int c);
-    int _getc(void);
+    int putc(int c);
+    int getc(void);
     bool ready();
     bool has_char(char letter);
     int type(); // 0: serial, 1: wifi
 
 
 private:
-    void M8266WIFI_Module_delay_ms(u16 nms);
     void set_wifi_op_mode(u8 op_mode);
 
     void M8266WIFI_Module_Hardware_Reset(void);
@@ -62,13 +66,22 @@ private:
     void on_pin_rise();
     void receive_wifi_data();
 
+    void halt();
+
+    uint8_t getNextLinkNo();
+
+    uint8_t next_available_link_no;
+
     mbed::InterruptIn *wifi_interrupt_pin; // Interrupt pin for measuring speed
     float probe_slow_rate;
 
     RingBuffer<char, 256> buffer; // Receive buffer
     string test_buffer;
 
-	u8 WifiData[WIFI_DATA_MAX_SIZE];
+    u8 txData[WIFI_DATA_MAX_SIZE];
+    u8 rxData[WIFI_DATA_MAX_SIZE];
+
+    std::map<u8, std::function<void(u8*, u16, u8*, u16)>> data_callbacks;
 
 	int tcp_port;
 	int udp_send_port;
@@ -85,9 +98,6 @@ private:
     	u8  tcp_link_no;
     	u8  udp_link_no;
     	bool wifi_init_ok:1;
-    	volatile bool halt_flag:1;
-    	volatile bool query_flag:1;
-    	volatile bool diagnose_flag:1;
     	volatile bool has_data_flag:1;
     };
 

@@ -19,7 +19,7 @@ using namespace std;
 #include "libs/SerialMessage.h"
 #include "libs/ConfigSources/FileConfigSource.h"
 #include "libs/ConfigSources/FirmConfigSource.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 
 // Add various config sources. Config can be fetched from several places.
 // All values are read into a cache, that is then used by modules to read their configuration
@@ -108,7 +108,7 @@ static ConfigValue dummyValue;
 ConfigValue *Config::value(uint16_t check_sums[])
 {
     if( !is_config_cache_loaded() ) {
-        THEKERNEL->streams->printf("ERROR: calling value after config cache has been cleared\n");
+        printk("ERROR: calling value after config cache has been cleared\n");
         // note this will cause whatever called it to blow up!
         return NULL;
     }

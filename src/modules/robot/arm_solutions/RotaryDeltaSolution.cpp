@@ -7,7 +7,7 @@
 #include "libs/nuts_bolts.h"
 #include "libs/Config.h"
 #include "libs/utils.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include <fastmath.h>
 
 #define delta_e_checksum                CHECKSUM("delta_e")
@@ -171,12 +171,12 @@ void RotaryDeltaSolution::cartesian_to_actuator(const float cartesian_mm[], Actu
 
         //DEBUG CODE, uncomment the following to help determine what may be happening if you are trying to adapt this to your own different rotary delta.
         if(debug_flag) {
-            THEKERNEL->streams->printf("//ERROR: Delta calculation fail!  Unable to move to:\n");
-            THEKERNEL->streams->printf("//    x= %f\n", cartesian_mm[X_AXIS]);
-            THEKERNEL->streams->printf("//    y= %f\n", cartesian_mm[Y_AXIS]);
-            THEKERNEL->streams->printf("//    z= %f\n", cartesian_mm[Z_AXIS]);
-            THEKERNEL->streams->printf("// CalcZ= %f\n", z_calc_offset);
-            THEKERNEL->streams->printf("// Offz= %f\n", z_with_offset);
+            printk("//ERROR: Delta calculation fail!  Unable to move to:\n");
+            printk("//    x= %f\n", cartesian_mm[X_AXIS]);
+            printk("//    y= %f\n", cartesian_mm[Y_AXIS]);
+            printk("//    z= %f\n", cartesian_mm[Z_AXIS]);
+            printk("// CalcZ= %f\n", z_calc_offset);
+            printk("// Offz= %f\n", z_with_offset);
         }
     } else {
         actuator_mm[ALPHA_STEPPER] = alpha_theta;
@@ -184,13 +184,13 @@ void RotaryDeltaSolution::cartesian_to_actuator(const float cartesian_mm[], Actu
         actuator_mm[GAMMA_STEPPER] = gamma_theta;
 
         if(debug_flag) {
-            THEKERNEL->streams->printf("//cartesian x= %f\n\r", cartesian_mm[X_AXIS]);
-            THEKERNEL->streams->printf("// y= %f\n\r", cartesian_mm[Y_AXIS]);
-            THEKERNEL->streams->printf("// z= %f\n\r", cartesian_mm[Z_AXIS]);
-            THEKERNEL->streams->printf("// Offz= %f\n\r", z_with_offset);
-            THEKERNEL->streams->printf("// actuator x= %f\n\r", actuator_mm[X_AXIS]);
-            THEKERNEL->streams->printf("// y= %f\n\r", actuator_mm[Y_AXIS]);
-            THEKERNEL->streams->printf("// z= %f\n\r", actuator_mm[Z_AXIS]);
+            printk("//cartesian x= %f\n\r", cartesian_mm[X_AXIS]);
+            printk("// y= %f\n\r", cartesian_mm[Y_AXIS]);
+            printk("// z= %f\n\r", cartesian_mm[Z_AXIS]);
+            printk("// Offz= %f\n\r", z_with_offset);
+            printk("// actuator x= %f\n\r", actuator_mm[X_AXIS]);
+            printk("// y= %f\n\r", actuator_mm[Y_AXIS]);
+            printk("// z= %f\n\r", actuator_mm[Z_AXIS]);
         }
     }
 

@@ -10,13 +10,11 @@
 #include "Kernel.h"
 #include "nuts_bolts.h"
 #include "Config.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 #include "SerialMessage.h"
 #include "checksumm.h"
 #include "ConfigValue.h"
-#include "StepTicker.h"
 #include "Block.h"
-#include "SlowTicker.h"
 #include "Robot.h"
 #include "utils.h"
 #include "Pin.h"
@@ -44,38 +42,31 @@
 #define laser_module_max_power_checksum         CHECKSUM("laser_module_max_power")
 #define laser_module_maximum_s_value_checksum   CHECKSUM("laser_module_maximum_s_value")
 
-Laser::Laser()
+void Laser::on_module_loaded()
 {
     laser_on = false;
     scale = 1;
     testing = false;
-}
 
-void Laser::on_module_loaded()
-{
-    if( !THEKERNEL->config->value( laser_module_enable_checksum )->by_default(true)->as_bool() ) {
-        // as not needed free up resource
-        delete this;
+    if( !THEKERNEL.config->value( laser_module_enable_checksum )->by_default(true)->as_bool() ) {
         return;
     }
 
     // Get smoothie-style pin from config
     this->laser_pin = new Pin();
-    this->laser_pin->from_string(THEKERNEL->config->value(laser_module_pin_checksum)->by_default("2.12")->as_string())->as_output();
+    this->laser_pin->from_string(THEKERNEL.config->value(laser_module_pin_checksum)->by_default("2.12")->as_string())->as_output();
     if (!this->laser_pin->connected()) {
         delete this->laser_pin;
         this->laser_pin= nullptr;
-        delete this;
         return;
 	}
 
 	Pin *dummy_pin = new Pin();
-	dummy_pin->from_string(THEKERNEL->config->value(laser_module_pwm_pin_checksum)->by_default("2.4")->as_string())->as_output();
+	dummy_pin->from_string(THEKERNEL.config->value(laser_module_pwm_pin_checksum)->by_default("2.4")->as_string())->as_output();
     pwm_pin = dummy_pin->hardware_pwm();
     if (pwm_pin == NULL) {
-        THEKERNEL->streams->printf("Error: Laser cannot use P%d.%d (P2.0 - P2.5, P1.18, P1.20, P1.21, P1.23, P1.24, P1.26, P3.25, P3.26 only). Laser module disabled.\n", dummy_pin->port_number, dummy_pin->pin);
+        printk("Error: Laser cannot use P%d.%d (P2.0 - P2.5, P1.18, P1.20, P1.21, P1.23, P1.24, P1.26, P3.25, P3.26 only). Laser module disabled.\n", dummy_pin->port_number, dummy_pin->pin);
         delete dummy_pin;
-        delete this;
         return;
     }
 
@@ -87,7 +78,7 @@ void Laser::on_module_loaded()
 
     // TTL settings
     this->ttl_pin = new Pin();
-    ttl_pin->from_string( THEKERNEL->config->value(laser_module_ttl_pin_checksum)->by_default("nc" )->as_string())->as_output();
+    ttl_pin->from_string( THEKERNEL.config->value(laser_module_ttl_pin_checksum)->by_default("nc" )->as_string())->as_output();
     this->ttl_used = ttl_pin->connected();
     this->ttl_inverting = ttl_pin->is_inverting();
     if (ttl_used) {
@@ -98,15 +89,15 @@ void Laser::on_module_loaded()
     }
 
 
-    uint32_t period = THEKERNEL->config->value(laser_module_pwm_period_checksum)->by_default(20)->as_number();
+    uint32_t period = THEKERNEL.config->value(laser_module_pwm_period_checksum)->by_default(20)->as_number();
     this->pwm_pin->period_us(period);
     this->pwm_pin->write(this->pwm_inverting ? 1 : 0);
-    this->laser_test_power = THEKERNEL->config->value(laser_module_test_power_checksum)->by_default(0.1f)->as_number() ;
-    this->laser_maximum_power = THEKERNEL->config->value(laser_module_maximum_power_checksum)->by_default(1.0f)->as_number() ;
-    this->laser_minimum_power = THEKERNEL->config->value(laser_module_minimum_power_checksum)->by_default(0)->as_number() ;
+    this->laser_test_power = THEKERNEL.config->value(laser_module_test_power_checksum)->by_default(0.1f)->as_number() ;
+    this->laser_maximum_power = THEKERNEL.config->value(laser_module_maximum_power_checksum)->by_default(1.0f)->as_number() ;
+    this->laser_minimum_power = THEKERNEL.config->value(laser_module_minimum_power_checksum)->by_default(0)->as_number() ;
 
     // S value that represents maximum (default 1)
-    this->laser_maximum_s_value = THEKERNEL->config->value(laser_module_maximum_s_value_checksum)->by_default(1.0f)->as_number() ;
+    this->laser_maximum_s_value = THEKERNEL.config->value(laser_module_maximum_s_value_checksum)->by_default(1.0f)->as_number() ;
 
     set_laser_power(0);
 
@@ -119,15 +110,16 @@ void Laser::on_module_loaded()
     // no point in updating the power more than the PWM frequency, but not faster than 1KHz
     ms_per_tick = 1000 / std::min(1000UL, 1000000 / period);
     // 2024
-    THEKERNEL->slow_ticker->attach(std::min(1000UL, 1000000 / period), this, &Laser::set_proportional_power);
-    // THEKERNEL->slow_ticker->attach(std::min(4000UL, 1000000 / period), this, &Laser::set_proportional_power);
-    // THEKERNEL->slow_ticker->attach(1, this, &Laser::set_proportional_power);
+    laser_power_timer.setFrequency(std::min(1000UL, 1000000 / period));
+	laser_power_timer.start();
+    // THEKERNEL.attach_periodic_timer(std::min(4000UL, 1000000 / period), this, &Laser::set_proportional_power);
+    // THEKERNEL.attach_periodic_timer(1, this, &Laser::set_proportional_power);
 
 }
 
 void Laser::on_console_line_received( void *argument )
 {
-    if(THEKERNEL->is_halted()) return; // if in halted state ignore any commands
+    if(THEKERNEL.is_halted()) return; // if in halted state ignore any commands
 
     SerialMessage *msgp = static_cast<SerialMessage *>(argument);
     string possible_command = msgp->message;
@@ -143,24 +135,24 @@ void Laser::on_console_line_received( void *argument )
     if (cmd == "laser") {
         string laser_cmd = shift_parameter(possible_command);
         if (laser_cmd.empty()) {
-        	THEKERNEL->streams->printf("Usage: laser on|off|status|test|testoff\n");
+        	printk("Usage: laser on|off|status|test|testoff\n");
             return;
         }
         if (laser_cmd == "on") {
-        	THEKERNEL->set_laser_mode(true);
+        	THEKERNEL.set_laser_mode(true);
         	// turn on laser pin
         	this->laser_pin->set(true);
-        	THEKERNEL->streams->printf("turning laser mode on\n");
+        	printk("turning laser mode on\n");
         } else if (laser_cmd == "off") {
-        	THEKERNEL->set_laser_mode(false);
+        	THEKERNEL.set_laser_mode(false);
         	this->laser_pin->set(false);
         	this->testing = false;
         	this->set_laser_power(0);
         	// turn off laser pin
-        	THEKERNEL->streams->printf("turning laser mode off and return to CNC mode\n");
+        	printk("turning laser mode off and return to CNC mode\n");
         } else if (laser_cmd == "status") {
-        	THEKERNEL->streams->printf("laser mode state: %s\n", THEKERNEL->get_laser_mode() ? "on" : "off");
-        } else if (laser_cmd == "test" && THEKERNEL->get_laser_mode()) {
+        	printk("laser mode state: %s\n", THEKERNEL.get_laser_mode() ? "on" : "off");
+        } else if (laser_cmd == "test" && THEKERNEL.get_laser_mode()) {
         	this->testing = true;
         }
     }
@@ -174,7 +166,7 @@ void Laser::on_get_public_data(void* argument)
     if(pdr->second_element_is(get_laser_status_checksum)) {
 		// ok this is targeted at us, so set the requ3sted data in the pointer passed into us
 		struct laser_status *t= static_cast<laser_status*>(pdr->get_data_ptr());
-		t->mode = THEKERNEL->get_laser_mode();
+		t->mode = THEKERNEL.get_laser_mode();
 		t->state = this->laser_on;
 		t->testing = this->testing;
 	    float p = pwm_pin->read();
@@ -192,75 +184,75 @@ void Laser::on_gcode_received(void *argument)
 
     // M codes execute immediately
     if (gcode->has_m) {
-    	if (gcode->m == 3 && THEKERNEL->get_laser_mode())
+    	if (gcode->m == 3 && THEKERNEL.get_laser_mode())
 		{
-    		THECONVEYOR->wait_for_idle();
+    		THECONVEYOR.wait_for_idle();
             // M3 with S value provided: set speed
             if (gcode->has_letter('S'))
             {
-            	THEROBOT->set_s_value(gcode->get_value('S'));
+            	THEROBOT.set_s_value(gcode->get_value('S'));
             }
     		this->laser_on = true;
     		this->testing = false;
-    		// THEKERNEL->streams->printf("Laser on, S: %1.4f\n", THEROBOT->get_s_value());
+    		// printk("Laser on, S: %1.4f\n", THEROBOT.get_s_value());
 		} else if (gcode->m == 5) {
-    		THECONVEYOR->wait_for_idle();
+    		THECONVEYOR.wait_for_idle();
 			this->laser_on = false;
 			this->testing = false;
-		} else if (gcode->m == 321 && !THEKERNEL->get_laser_mode()) { // change to laser mode
-			THECONVEYOR->wait_for_idle();
-        	THEKERNEL->set_laser_mode(true);
+		} else if (gcode->m == 321 && !THEKERNEL.get_laser_mode()) { // change to laser mode
+			THECONVEYOR.wait_for_idle();
+        	THEKERNEL.set_laser_mode(true);
         	// turn on laser pin
         	this->laser_pin->set(true);
         	if (gcode->subcode == 2) {
-            	THEKERNEL->streams->printf("turning laser mode on\n");
+            	printk("turning laser mode on\n");
         	} else {
             	char buf[32];
             	// drop current tool
                 int n = snprintf(buf, sizeof(buf), "M6T-1");
                 string g1(buf, n);
                 Gcode gc1(g1, &(StreamOutput::NullStream));
-                THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc1);
+                THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc1);
             	// change g92 offset
                 n = snprintf(buf, sizeof(buf), "G92.5Z0");
                 string g2(buf, n);
                 Gcode gc2(g2, &(StreamOutput::NullStream));
-                THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc2);
+                THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc2);
 
-            	THEKERNEL->streams->printf("turning laser mode on and change offset\n");
+            	printk("turning laser mode on and change offset\n");
         	}
 
         } else if (gcode->m == 322) { // change to CNC mode
-        	THECONVEYOR->wait_for_idle();
-        	THEKERNEL->set_laser_mode(false);
+        	THECONVEYOR.wait_for_idle();
+        	THEKERNEL.set_laser_mode(false);
         	this->laser_pin->set(false);
         	this->testing = false;
         	if (gcode->subcode == 2) {
-            	THEKERNEL->streams->printf("turning laser mode off and return to CNC mode\n");
+            	printk("turning laser mode off and return to CNC mode\n");
         	} else {
             	// change g92 offset
                 char buf[32];
                 int n = snprintf(buf, sizeof(buf), "G92.1");
                 string g(buf, n);
                 Gcode gc(g, &(StreamOutput::NullStream));
-                THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc);
+                THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc);
 
             	// turn off laser pin
-            	THEKERNEL->streams->printf("turning laser mode off and restore offset\n");
+            	printk("turning laser mode off and restore offset\n");
         	}
         } else if (gcode->m == 323) {
         	this->testing = true;
 			// turn on test mode
-        	THEKERNEL->streams->printf("turning laser test mode on\n");
+        	printk("turning laser test mode on\n");
         } else if (gcode->m == 324) {
         	this->testing = false;
 			// turn off test mode
-        	THEKERNEL->streams->printf("turning laser test mode off\n");
+        	printk("turning laser test mode off\n");
         } else if (gcode->m == 325) { // M223 S100 change laser power by percentage S
             if(gcode->has_letter('S')) {
                 this->scale = gcode->get_value('S') / 100.0F;
             } else {
-            	THEKERNEL->streams->printf("Laser power scale at %6.2f %%\n", this->scale * 100.0F);
+            	printk("Laser power scale at %6.2f %%\n", this->scale * 100.0F);
             }
         }
     }
@@ -274,7 +266,7 @@ float Laser::current_speed_ratio(const Block *block) const
 	// 2024
     size_t pm = 0;
     uint32_t max_steps = 0;
-    for (size_t i = 0; i < THEROBOT->get_number_registered_motors(); i++) {
+    for (size_t i = 0; i < THEROBOT.get_number_registered_motors(); i++) {
         // find the motor with the most steps
         if(block->steps[i] > max_steps) {
             max_steps = block->steps[i];
@@ -303,7 +295,7 @@ float Laser::current_speed_ratio(const Block *block) const
 // get laser power for the currently executing block, returns false if nothing running or a G0
 bool Laser::get_laser_power(float& power) const
 {
-    const Block *block = StepTicker::getInstance()->get_current_block();
+    const Block *block = THEKERNEL.step_ticker.get_current_block();
 
     // Note to avoid a race condition where the block is being cleared we check the is_ready flag which gets cleared first,
     // as this is an interrupt if that flag is not clear then it cannot be cleared while this is running and the block will still be valid (albeit it may have finished)
@@ -331,14 +323,14 @@ bool Laser::get_laser_power(float& power) const
 }
 
 // called every millisecond from timer ISR
-uint32_t Laser::set_proportional_power(uint32_t dummy)
+void Laser::set_proportional_power()
 {
-	if (!THEKERNEL->get_laser_mode()) {
-		return 0;
+	if (!THEKERNEL.get_laser_mode()) {
+		return;
 	}
     if (this->testing) {
         set_laser_power(this->laser_test_power * scale);
-        return 0;
+        return;
     }
 
     if (laser_on) {
@@ -357,7 +349,7 @@ uint32_t Laser::set_proportional_power(uint32_t dummy)
         set_laser_power(0);
     }
 
-    return 0;
+    return;
 }
 
 bool Laser::set_laser_power(float power)
@@ -381,9 +373,9 @@ void Laser::on_halt(void *argument)
     if(argument == nullptr) {
         set_laser_power(0);
         this->laser_on = false;
-    	THEKERNEL->set_laser_mode(false);
+    	THEKERNEL.set_laser_mode(false);
     	this->laser_pin->set(false);
     	this->testing = false;
-    	THEROBOT->clearLaserOffset();
+    	THEROBOT.clearLaserOffset();
     }
 }

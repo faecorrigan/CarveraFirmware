@@ -41,7 +41,7 @@ endif
 
 # Default variables.
 SRC ?= .
-BUILD_TYPE ?= Release
+BUILD_TYPE ?= Checked
 MRI_BREAK_ON_INIT ?= 1
 MRI_UART ?= MRI_UART_MBED_USB
 HEAP_TAGS ?= 0
@@ -51,7 +51,7 @@ STACK_SIZE ?= 0
 
 # Configure MRI variables based on BUILD_TYPE build type variable.
 ifeq "$(BUILD_TYPE)" "Release"
-OPTIMIZATION ?= 2
+OPTIMIZATION ?= s
 MRI_ENABLE = 0
 MRI_SEMIHOST_STDIO ?= 0
 endif
@@ -65,7 +65,7 @@ endif
 
 
 ifeq "$(BUILD_TYPE)" "Checked"
-OPTIMIZATION ?= 2
+OPTIMIZATION ?= s
 MRI_ENABLE = 1
 MRI_SEMIHOST_STDIO ?= 1
 endif
@@ -135,6 +135,8 @@ OBJECTS += $(OUTDIR)/mbed_custom.o
 
 OBJECTS += $(OUTDIR)/configdefault.o
 
+OBJECTS += $(patsubst %.c,$(OUTDIR)/%.o,$(FREERTOS_SRC))
+
 # List of the header dependency files, one per object file.
 DEPFILES = $(patsubst %.o,%.d,$(OBJECTS))
 
@@ -144,17 +146,20 @@ LSCRIPT=$(MBED_DIR)/$(DEVICE)/GCC_ARM/$(DEVICE).ld
 # Location of external library and header dependencies.
 MBED_DIR = $(BUILD_DIR)/../mbed/drop
 MRI_DIR  = $(BUILD_DIR)/../mri
+FREERTOS_DIR = $(BUILD_DIR)/../freertos
 
+FREERTOS_PORT = $(FREERTOS_DIR)/portable/GCC/ARM_CM3
+FREERTOS_SRC = $(FREERTOS_DIR)/tasks.c $(FREERTOS_DIR)/queue.c $(FREERTOS_DIR)/list.c $(FREERTOS_DIR)/timers.c $(FREERTOS_DIR)/event_groups.c $(FREERTOS_PORT)/port.c
 # Include path which points to external library headers and to subdirectories of this project which contain headers.
 SUBDIRS = $(wildcard $(SRC)/* $(SRC)/*/* $(SRC)/*/*/* $(SRC)/*/*/*/* $(SRC)/*/*/*/*/* $(SRC)/*/*/*/*/*/*)
 PROJINCS = $(sort $(dir $(SUBDIRS)))
-INCDIRS += $(SRC) $(PROJINCS) $(MRI_DIR) $(MBED_DIR) $(MBED_DIR)/$(DEVICE)
+INCDIRS += $(SRC) $(PROJINCS) $(MRI_DIR)/core $(MBED_DIR) $(MBED_DIR)/$(DEVICE) $(FREERTOS_DIR)/include $(FREERTOS_PORT)
 
 # DEFINEs to be used when building C/C++ code
 DEFINES += -DTARGET_$(DEVICE)
 DEFINES += -DMRI_ENABLE=$(MRI_ENABLE) -DMRI_INIT_PARAMETERS='"$(MRI_INIT_PARAMETERS)"'
 DEFINES += -DMRI_BREAK_ON_INIT=$(MRI_BREAK_ON_INIT) -DMRI_SEMIHOST_STDIO=$(MRI_SEMIHOST_STDIO)
-DEFINES += -DWRITE_BUFFER_DISABLE=$(WRITE_BUFFER_DISABLE) -DSTACK_SIZE=$(STACK_SIZE)
+DEFINES += -DWRITE_BUFFER_DISABLE=$(WRITE_BUFFER_DISABLE) -D__STACK_SIZE=$(STACK_SIZE)
 
 ifeq "$(OPTIMIZATION)" "0"
 DEFINES += -DDEBUG
@@ -167,7 +172,7 @@ SYS_LIBS = -specs=nano.specs -lstdc++ -lsupc++ -lm -lgcc -lc -lnosys
 LIBS = $(LIBS_PREFIX)
 
 ifeq "$(MRI_ENABLE)" "1"
-LIBS += $(MRI_DIR)/mri.ar
+LIBS += $(MRI_DIR)/lib/armv7-m/libmri_mbed1768.a
 endif
 
 LIBS += $(MBED_LIBS)

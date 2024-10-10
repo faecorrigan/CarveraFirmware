@@ -8,15 +8,19 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
-#define THEKERNEL Kernel::instance
-#define THECONVEYOR THEKERNEL->conveyor
-#define THEROBOT THEKERNEL->robot
-
 #include "Module.h"
+#include "StreamOutputPool.h"
+#include "StepTicker.h"
+#include "SlowTicker.h"
+#include "Planner.h"
+#include "Adc.h"
 #include "I2C.h" // mbed.h lib
 #include <array>
 #include <vector>
 #include <string>
+
+#include "FreeRTOS.h"
+#include "timers.h"
 
 // 9 WCS offsets
 #define MAX_WCS 9UL
@@ -24,17 +28,11 @@
 class Config;
 class Module;
 class Conveyor;
-class SlowTicker;
 class SerialConsole;
-class StreamOutputPool;
 class GcodeDispatch;
 class Robot;
-class Planner;
-class StepTicker;
-class Adc;
 class PublicData;
 class SimpleShell;
-class Configurator;
 
 enum STATE {
 	IDLE    = 0,
@@ -98,15 +96,18 @@ typedef struct {
 
 class Kernel {
     public:
-        Kernel();
+        Kernel() {};
 
         ~Kernel() {
             delete this->i2c;
-            delete this->eeprom_data;
         }
 
-        static Kernel* instance; // the Singleton instance of Kernel usable anywhere
+        void init();
+
         const char* config_override_filename(){ return "/sd/config-override"; }
+
+        void printk(const char* format, ...) __attribute__ ((format(printf, 2, 3)));
+        void vprintk(const char* format, va_list args);
 
         void add_module(Module* module);
         void register_for_event(_EVENT_ENUM id_event, Module *module);
@@ -171,25 +172,19 @@ class Kernel {
 
         // These modules are available to all other modules
         SerialConsole*    serial;
-        StreamOutputPool* streams;
-        GcodeDispatch*    gcode_dispatch;
-        Robot*            robot;
-        Planner*          planner;
+        StreamOutputPool  streams;
+        Planner           planner;
         Config*           config;
-        Conveyor*         conveyor;
-        Configurator*     configurator;
-        SimpleShell*      simpleshell;
-
-        SlowTicker*       slow_ticker;
-        StepTicker*       step_ticker;
-        Adc*              adc;
+        SlowTicker        slow_ticker;
+        StepTicker        step_ticker;
+        Adc               adc;
         std::string       current_path;
         uint32_t          base_stepping_frequency;
 
         uint8_t get_state();
         uint8_t halt_reason;
         uint8_t atc_state;
-        EEPROM_data *eeprom_data;
+        EEPROM_data eeprom_data;
         float local_vars[20];
 
     private:
@@ -217,5 +212,11 @@ class Kernel {
         int iic_page_write(unsigned char u8PageNum, unsigned char u8len, unsigned char *pu8Array);
 
 };
+
+extern Kernel THEKERNEL;
+extern Conveyor THECONVEYOR;
+extern Robot THEROBOT;
+extern SimpleShell simpleshell;
+extern GcodeDispatch gcode_dispatch;    
 
 #endif

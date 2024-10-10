@@ -1325,31 +1325,6 @@ u8 M8266WIFI_SPI_Disconnect_TcpClient(u8 link_no, ClientInfo *client_info, u16* 
 
 
 /***********************************************************************************
- * M8266WIFI_SPI_Disconnect_TcpClient                                              *
- * .Description:                                                                   *
- *     To disconnect a client connections on M8266WIFI TCP server via SPI          *
- *     For more details, please refer to the API document per this function        *
- * .Parameter(s)                                                                   *
- *     1. link_no     : the number of link to be deleted/disconnected              *
- *     2. client_info : pointer to the remote tcp client info to disconnect        *
- *                      use NULL to disconnect all the remote clients if any       *
- *     3. status      : pointer to return errcode(LSB) and status(MSB) upon error  *
- *                      Use NULL if you don't expect them returned                 *
- *                      errcode(LSB)                                               *
- *                      = 0x54, disconnect a tcp client socket not present         *
- *                      = 0x55, disconnect a TCP socket when busy in receiving     *
- *                      = 0x56, disconnect a TCP socket when busy in reading       *
- *                      = 0x57, no need to disconnect the sockets since it is      *
- *                            - UDP, use M8266WIFI_SPI_Delete_Connection. OR       *
- *                            - TCP Server without clients connecting to. OR       *
- *                            - TCP Client already disconnected                    *
- * .Return value:                                                                  *
- *     =1, success                                                                 *
- *     =0, has error(s)                                                            *
- ***********************************************************************************/
- u8 M8266WIFI_SPI_Disconnect_TcpClient(u8 link_no, ClientInfo *client_info, u16* status);
-
-/***********************************************************************************
  * M8266WIFI_SPI_Query_Tcp_Retran_Max                                              *
  * .Description:                                                                   *
  *     To query the tcp max retransmission                                         *

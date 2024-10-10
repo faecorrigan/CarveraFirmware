@@ -14,8 +14,7 @@ This is aprt of the Smoothie test framework, it generates a Mockable Kernl so ke
 #include "libs/Config.h"
 #include "libs/nuts_bolts.h"
 #include "libs/SlowTicker.h"
-#include "libs/Adc.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include <mri.h>
 #include "checksumm.h"
 #include "ConfigValue.h"
@@ -112,15 +111,15 @@ void Kernel::unregister_for_event(_EVENT_ENUM id_event, Module *mod)
 
 void test_kernel_setup_config(const char* start, const char* end)
 {
-    THEKERNEL->config= new Config(new FirmConfigSource("rom", start, end) );
+    THEKERNEL.config= new Config(new FirmConfigSource("rom", start, end) );
     // Pre-load the config cache
-    THEKERNEL->config->config_cache_load();
+    THEKERNEL.config->config_cache_load();
 }
 
 void test_kernel_teardown()
 {
-    delete THEKERNEL->config;
-    THEKERNEL->config= nullptr;
+    delete THEKERNEL.config;
+    THEKERNEL.config= nullptr;
     event_callbacks.clear();
 }
 

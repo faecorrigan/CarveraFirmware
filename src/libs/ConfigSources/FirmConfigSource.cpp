@@ -57,7 +57,7 @@ bool FirmConfigSource::is_named( uint16_t check_sum ){
 
 // Write a config setting to the file *** FirmConfigSource is read only ***
 bool FirmConfigSource::write( string setting, string value ){
-    //THEKERNEL->streams->printf("ERROR: FirmConfigSource is read only\r\n");
+    //printk("ERROR: FirmConfigSource is read only\r\n");
     return false;
 }
 

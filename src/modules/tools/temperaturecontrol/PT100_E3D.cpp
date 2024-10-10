@@ -10,9 +10,8 @@
 #include "libs/Pin.h"
 #include "Config.h"
 #include "checksumm.h"
-#include "Adc.h"
 #include "ConfigValue.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 
 #define e3d_amplifier_pin_checksum  CHECKSUM("e3d_amplifier_pin")
 
@@ -28,8 +27,8 @@ PT100_E3D::~PT100_E3D()
 void PT100_E3D::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
 {
 	// Pin used for ADC readings
-    this->amplifier_pin.from_string(THEKERNEL->config->value(module_checksum, name_checksum, e3d_amplifier_pin_checksum)->required()->as_string());
-    THEKERNEL->adc->enable_pin(&amplifier_pin);
+    this->amplifier_pin.from_string(THEKERNEL.config->value(module_checksum, name_checksum, e3d_amplifier_pin_checksum)->required()->as_string());
+    THEKERNEL.adc.enable_pin(&amplifier_pin);
 }
 
 float PT100_E3D::get_temperature()
@@ -45,14 +44,14 @@ void PT100_E3D::get_raw()
 {
     int adc_value= new_pt100_reading();
     float t = adc_value_to_temperature(new_pt100_reading());
-    THEKERNEL->streams->printf("PT100_E3D: adc= %d, temp= %f\n", adc_value, t);
+    printk("PT100_E3D: adc= %d, temp= %f\n", adc_value, t);
     // reset the min/max
     min_temp = max_temp = t;
 }
 
 float PT100_E3D::adc_value_to_temperature(uint32_t adc_value)
 {
-    const uint32_t max_adc_value= THEKERNEL->adc->get_max_value();
+    const uint32_t max_adc_value= THEKERNEL.adc.get_max_value();
     if ((adc_value >= max_adc_value) || (adc_value == 0))
         return infinityf();
 
@@ -66,5 +65,5 @@ float PT100_E3D::adc_value_to_temperature(uint32_t adc_value)
 
 int PT100_E3D::new_pt100_reading()
 {
-    return THEKERNEL->adc->read(&amplifier_pin);
+    return THEKERNEL.adc.read(&amplifier_pin);
 }

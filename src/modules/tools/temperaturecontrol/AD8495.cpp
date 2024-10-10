@@ -10,11 +10,10 @@
 #include "libs/Pin.h"
 #include "Config.h"
 #include "checksumm.h"
-#include "Adc.h"
 #include "ConfigValue.h"
 #include "libs/Median.h"
 #include "utils.h"
-#include "StreamOutputPool.h"
+#include "Logging.h"
 
 #include <fastmath.h>
 
@@ -39,10 +38,10 @@ AD8495::~AD8495()
 void AD8495::UpdateConfig(uint16_t module_checksum, uint16_t name_checksum)
 {
     // Thermistor pin for ADC readings
-    this->AD8495_pin.from_string(THEKERNEL->config->value(module_checksum, name_checksum, AD8495_pin_checksum)->required()->as_string());
-    this->AD8495_offset = THEKERNEL->config->value(module_checksum, name_checksum, AD8495_offset_checksum)->by_default(0)->as_number(); // Stated offset. For Adafruit board it is 250C. If pin 2(REF) of amplifier is connected to 0V then there is 0C offset.
+    this->AD8495_pin.from_string(THEKERNEL.config->value(module_checksum, name_checksum, AD8495_pin_checksum)->required()->as_string());
+    this->AD8495_offset = THEKERNEL.config->value(module_checksum, name_checksum, AD8495_offset_checksum)->by_default(0)->as_number(); // Stated offset. For Adafruit board it is 250C. If pin 2(REF) of amplifier is connected to 0V then there is 0C offset.
 	
-    THEKERNEL->adc->enable_pin(&AD8495_pin);
+    THEKERNEL.adc.enable_pin(&AD8495_pin);
 }
 
 
@@ -59,12 +58,12 @@ void AD8495::get_raw()
 {
 
     int adc_value= new_AD8495_reading();
-    const uint32_t max_adc_value= THEKERNEL->adc->get_max_value();
+    const uint32_t max_adc_value= THEKERNEL.adc.get_max_value();
     float t=((float)adc_value)/(((float)max_adc_value)/3.3*0.005);
 
     t = t - this->AD8495_offset;
 	
-    THEKERNEL->streams->printf("adc= %d, max_adc= %lu, temp= %f, offset = %f\n", adc_value,max_adc_value,t, this->AD8495_offset);
+    printk("adc= %d, max_adc= %lu, temp= %f, offset = %f\n", adc_value,max_adc_value,t, this->AD8495_offset);
 
     // reset the min/max
     min_temp= max_temp= t;
@@ -72,7 +71,7 @@ void AD8495::get_raw()
 
 float AD8495::adc_value_to_temperature(uint32_t adc_value)
 {
-    const uint32_t max_adc_value= THEKERNEL->adc->get_max_value();
+    const uint32_t max_adc_value= THEKERNEL.adc.get_max_value();
     if ((adc_value >= max_adc_value))
         return infinityf();
 
@@ -86,5 +85,5 @@ float AD8495::adc_value_to_temperature(uint32_t adc_value)
 int AD8495::new_AD8495_reading()
 {
     // filtering now done in ADC
-    return THEKERNEL->adc->read(&AD8495_pin);
+    return THEKERNEL.adc.read(&AD8495_pin);
 }

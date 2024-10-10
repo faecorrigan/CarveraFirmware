@@ -172,7 +172,7 @@ TESTF(TemperatureSwitch,level_low_high)
     test_kernel_untrap_event(ON_GET_PUBLIC_DATA);
 
     // test it registered the event
-    ASSERT_TRUE(THEKERNEL->kernel_has_event(ON_GCODE_RECEIVED, nts.get()));
+    ASSERT_TRUE(THEKERNEL.kernel_has_event(ON_GCODE_RECEIVED, nts.get()));
 
     // set the first temperature
     ASSERT_TRUE(set_temp(nts.get(), 25));
@@ -220,7 +220,7 @@ TESTF(TemperatureSwitch,edge_high_low)
     test_kernel_untrap_event(ON_GET_PUBLIC_DATA);
 
     // test it registered the event
-    ASSERT_TRUE(THEKERNEL->kernel_has_event(ON_GCODE_RECEIVED, nts.get()));
+    ASSERT_TRUE(THEKERNEL.kernel_has_event(ON_GCODE_RECEIVED, nts.get()));
     ASSERT_TRUE(!nts->is_armed());
 
     // set initial temp low
@@ -243,7 +243,7 @@ TESTF(TemperatureSwitch,edge_high_low)
     ASSERT_TRUE(switch_state);
 
     // now arm it
-    Gcode gc("M1100 S1", (StreamOutput *)THEKERNEL->serial, false);
+    Gcode gc("M1100 S1", (StreamOutput *)THEKERNEL.serial, false);
     nts->on_gcode_received(&gc);
 
     ASSERT_TRUE(nts->is_armed());

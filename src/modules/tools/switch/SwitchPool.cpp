@@ -22,13 +22,13 @@ using namespace std;
 void SwitchPool::load_tools()
 {
     vector<uint16_t> modules;
-    THEKERNEL->config->get_module_list( &modules, switch_checksum );
+    THEKERNEL.config->get_module_list( &modules, switch_checksum );
 
     for( unsigned int i = 0; i < modules.size(); i++ ) {
         // If module is enabled
-        if( THEKERNEL->config->value(switch_checksum, modules[i], enable_checksum )->as_bool() == true ) {
+        if( THEKERNEL.config->value(switch_checksum, modules[i], enable_checksum )->as_bool() == true ) {
             Switch *controller = new Switch(modules[i]);
-            THEKERNEL->add_module(controller);
+            THEKERNEL.add_module(controller);
         }
     }
 

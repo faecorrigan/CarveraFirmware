@@ -77,13 +77,13 @@ TESTF(Switch,set_on_off_with_gcode)
     //__debugbreak();
 
     // now turn it on
-    Gcode gc1("M106", (StreamOutput *)THEKERNEL->serial);
+    Gcode gc1("M106", (StreamOutput *)THEKERNEL.serial);
     ts->on_gcode_received(&gc1);
     ASSERT_TRUE(get_switch_state(ts, s));
     ASSERT_TRUE(s.state);
 
     // now turn it off
-    Gcode gc2("M107", (StreamOutput *)THEKERNEL->serial);
+    Gcode gc2("M107", (StreamOutput *)THEKERNEL.serial);
     ts->on_gcode_received(&gc2);
     ASSERT_TRUE(get_switch_state(ts, s));
     ASSERT_TRUE(!s.state);

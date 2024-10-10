@@ -14,7 +14,7 @@
 #include "modules/robot/Conveyor.h"
 #include "libs/SerialMessage.h"
 #include "libs/StreamOutput.h"
-#include "libs/StreamOutputPool.h"
+#include "libs/Logging.h"
 #include "libs/FileStream.h"
 #include "libs/AppendFileStream.h"
 #include "Config.h"
@@ -39,7 +39,7 @@ static bool is_allowed_mcode(int m) {
     return false;
 }
 
-GcodeDispatch::GcodeDispatch()
+void GcodeDispatch::init()
 {
     uploading = false;
     modal_group_1= 0;
@@ -166,11 +166,15 @@ try_again:
 					gcode->set_variable_value();
 				}
 
-				if(THEKERNEL->is_halted()) {
+				if ( first_char == '#'){
+					gcode->set_variable_value();
+				}
+
+				if(THEKERNEL.is_halted()) {
 					// we ignore all commands until M999, unless it is in the exceptions list (like M105 get temp)
 					if(gcode->has_m && gcode->m == 999) {
-						if(THEKERNEL->is_halted()) {
-							THEKERNEL->call_event(ON_HALT, (void *)1); // clears on_halt
+						if(THEKERNEL.is_halted()) {
+							THEKERNEL.call_event(ON_HALT, (void *)1); // clears on_halt
 							new_message.stream->printf("WARNING: After HALT you should HOME as position is currently unknown\n");
 						}
 						new_message.stream->printf("ok\n");
@@ -179,7 +183,7 @@ try_again:
 
 					}else if(!is_allowed_mcode(gcode->m)) {
 						// ignore everything, return error string to host
-						if(THEKERNEL->is_grbl_mode()) {
+						if(THEKERNEL.is_grbl_mode()) {
 							new_message.stream->printf("error:Alarm lock\n");
 
 						}else{
@@ -218,7 +222,7 @@ try_again:
 							}
 						}
 						// makes it handle the parameters as a machine position
-						THEROBOT->next_command_is_MCS= true;
+						THEROBOT.next_command_is_MCS= true;
 
 					} else if(gcode->g == 1) {
 						// optimize G1 to send ok immediately (one per line) before it is planned
@@ -256,32 +260,32 @@ try_again:
 							continue;
 
 						case 30: // end of program
-							if(!THEKERNEL->is_grbl_mode()) break; // Special case M30 as it is also delete sd card file so only do this if in grbl mode
-							// fall through to M2
+							if(!THEKERNEL.is_grbl_mode()) break; // Special case M30 as it is also delete sd card file so only do this if in grbl mode
+							// fall through
 						case 2:
 							{
 								modal_group_1= 1; // set to G1
 								// issue M5 and M9 in case spindle and coolant are being used
 								Gcode gc1("M5", &StreamOutput::NullStream);
-								THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc1);
+								THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc1);
 								Gcode gc2("M9", &StreamOutput::NullStream);
-								THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc2);
+								THEKERNEL.call_event(ON_GCODE_RECEIVED, &gc2);
 							}
 							break;
 
 						case 112: // emergency stop, do the best we can with this
 							// this is also handled out-of-band (it is now with ^X in the serial driver)
 							// disables heaters and motors, ignores further incoming Gcode and clears block queue
-							THEKERNEL->call_event(ON_HALT, nullptr);
-							THEKERNEL->set_halt_reason(MANUAL);
-							THEKERNEL->streams->printf("ok Emergency Stop Requested - reset or M999 required to exit HALT state\r\n");
+							THEKERNEL.call_event(ON_HALT, nullptr);
+							THEKERNEL.set_halt_reason(MANUAL);
+							printk("ok Emergency Stop Requested - reset or M999 required to exit HALT state\r\n");
 							delete gcode;
 							return;
 
 						case 115: { // M115 Get firmware version and capabilities
 							Version vers;
 
-							new_message.stream->printf("FIRMWARE_NAME:Smoothieware, FIRMWARE_URL:http%%3A//smoothieware.org, X-SOURCE_CODE_URL:https://github.com/Smoothieware/Smoothieware, FIRMWARE_VERSION:%s, X-FIRMWARE_BUILD_DATE:%s, X-SYSTEM_CLOCK:%ldMHz, X-AXES:%d, X-GRBL_MODE:%d", vers.get_build(), vers.get_build_date(), SystemCoreClock / 1000000, MAX_ROBOT_ACTUATORS, THEKERNEL->is_grbl_mode());
+							new_message.stream->printf("FIRMWARE_NAME:Smoothieware, FIRMWARE_URL:http%%3A//smoothieware.org, X-SOURCE_CODE_URL:https://github.com/Smoothieware/Smoothieware, FIRMWARE_VERSION:%s, X-FIRMWARE_BUILD_DATE:%s, X-SYSTEM_CLOCK:%ldMHz, X-AXES:%d, X-GRBL_MODE:%d", vers.get_build(), vers.get_build_date(), SystemCoreClock / 1000000, MAX_ROBOT_ACTUATORS, THEKERNEL.is_grbl_mode());
 
 							#ifdef CNC
 							new_message.stream->printf(", X-CNC:1");
@@ -295,7 +299,7 @@ try_again:
 							new_message.stream->printf(", X-MSD:1");
 							#endif
 
-							if(THEKERNEL->is_bad_mcu()) {
+							if(THEKERNEL.is_bad_mcu()) {
 								new_message.stream->printf(", X-WARNING:deprecated_MCU");
 							}
 							new_message.stream->printf("\nok\n");
@@ -320,13 +324,13 @@ try_again:
 							delete gcode;
 
 							if(str.empty()) {
-								SimpleShell::parse_command("help", "", new_message.stream);
+								simpleshell.parse_command("help", "", new_message.stream);
 
 							}else{
 								string args= lc(str);
 								string cmd = shift_parameter(args);
 								// find command and execute it
-								if(!SimpleShell::parse_command(cmd.c_str(), args, new_message.stream)) {
+								if(!simpleshell.parse_command(cmd.c_str(), args, new_message.stream)) {
 									new_message.stream->printf("Command not found: %s\n", cmd.c_str());
 								}
 							}
@@ -336,22 +340,22 @@ try_again:
 						}
 
 						case 500: // M500 save volatile settings to config-override
-							THEKERNEL->conveyor->wait_for_idle(); //just to be safe as it can take a while to run
-							//remove(THEKERNEL->config_override_filename()); // seems to cause a hang every now and then
+							THECONVEYOR.wait_for_idle(); //just to be safe as it can take a while to run
+							//remove(THEKERNEL.config_override_filename()); // seems to cause a hang every now and then
 							__disable_irq();
 							{
-								FileStream fs(THEKERNEL->config_override_filename());
+								FileStream fs(THEKERNEL.config_override_filename());
 								fs.printf("; DO NOT EDIT THIS FILE\n");
 								// this also will truncate the existing file instead of deleting it
 							}
 							// replace stream with one that writes to config-override file
-							gcode->stream = new AppendFileStream(THEKERNEL->config_override_filename());
+							gcode->stream = new AppendFileStream(THEKERNEL.config_override_filename());
 							// dispatch the M500 here so we can free up the stream when done
-							THEKERNEL->call_event(ON_GCODE_RECEIVED, gcode );
+							THEKERNEL.call_event(ON_GCODE_RECEIVED, gcode );
 							delete gcode->stream;
 							delete gcode;
 							__enable_irq();
-							new_message.stream->printf("Settings Stored to %s\r\nok\r\n", THEKERNEL->config_override_filename());
+							new_message.stream->printf("Settings Stored to %s\r\nok\r\n", THEKERNEL.config_override_filename());
 							continue;
 
 						case 501: // load config override
@@ -361,23 +365,23 @@ try_again:
 								if(arg.empty()) arg= "/sd/config-override";
 								else arg= "/sd/config-override." + arg;
 								//new_message.stream->printf("args: <%s>\n", arg.c_str());
-								SimpleShell::parse_command((gcode->m == 501) ? "load_command" : "save_command", arg, new_message.stream);
+								simpleshell.parse_command((gcode->m == 501) ? "load_command" : "save_command", arg, new_message.stream);
 							}
 							delete gcode;
 							new_message.stream->printf("ok\r\n");
 							return;
 
 						case 502: // M502 deletes config-override so everything defaults to what is in config
-							remove(THEKERNEL->config_override_filename());
+							remove(THEKERNEL.config_override_filename());
 							delete gcode;
-							new_message.stream->printf("config override file deleted %s, reboot needed\r\nok\r\n", THEKERNEL->config_override_filename());
+							new_message.stream->printf("config override file deleted %s, reboot needed\r\nok\r\n", THEKERNEL.config_override_filename());
 							continue;
 
 						case 503: { // M503 display live settings and indicates if there is an override file
-							FILE *fd = fopen(THEKERNEL->config_override_filename(), "r");
+							FILE *fd = fopen(THEKERNEL.config_override_filename(), "r");
 							if(fd != NULL) {
 								fclose(fd);
-								new_message.stream->printf("; config override present: %s\n",  THEKERNEL->config_override_filename());
+								new_message.stream->printf("; config override present: %s\n",  THEKERNEL.config_override_filename());
 
 							} else {
 								new_message.stream->printf("; No config override\n");
@@ -391,11 +395,11 @@ try_again:
 
 				// new_message.stream->printf("dispatch gcode command: '%s' G%d M%d...", gcode->get_command(), gcode->g, gcode->m);
 				//Dispatch message!
-				THEKERNEL->call_event(ON_GCODE_RECEIVED, gcode );
+				THEKERNEL.call_event(ON_GCODE_RECEIVED, gcode );
 
 				if (gcode->is_error) {
 					// report error
-					if(THEKERNEL->is_grbl_mode()) {
+					if(THEKERNEL.is_grbl_mode()) {
 						new_message.stream->printf("error:");
 					}else{
 						new_message.stream->printf("Error: ");
@@ -411,7 +415,7 @@ try_again:
 
 					// we cannot continue safely after an error so we enter HALT state
 					new_message.stream->printf("Entering Alarm/Halt state\n");
-					THEKERNEL->call_event(ON_HALT, nullptr);
+					THEKERNEL.call_event(ON_HALT, nullptr);
 
 				}else if(!sent_ok) {
 
@@ -423,7 +427,7 @@ try_again:
 						gcode->txt_after_ok.clear();
 
 					} else {
-						if(THEKERNEL->is_ok_per_line() || THEKERNEL->is_grbl_mode()) {
+						if(THEKERNEL.is_ok_per_line() || THEKERNEL.is_grbl_mode()) {
 							// only send ok once per line if this is a multi g code line send ok on the last one
 							if(possible_command.empty())
 								new_message.stream->printf("ok\r\n");

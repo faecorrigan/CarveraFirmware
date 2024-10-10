@@ -33,7 +33,7 @@ using namespace std;
 // It makes sure the speed stays within the configured constraints ( acceleration, junction_deviation, etc )
 // It goes over the list in both direction, every time a block is added, re-doing the math to make sure everything is optimal
 
-Planner::Planner()
+void Planner::init()
 {
     memset(this->previous_unit_vec, 0, sizeof this->previous_unit_vec);
     config_load();
@@ -42,9 +42,9 @@ Planner::Planner()
 // Configure acceleration
 void Planner::config_load()
 {
-    this->junction_deviation = THEKERNEL->config->value(junction_deviation_checksum)->by_default(0.05F)->as_number();
-    this->z_junction_deviation = THEKERNEL->config->value(z_junction_deviation_checksum)->by_default(NAN)->as_number(); // disabled by default
-    this->minimum_planner_speed = THEKERNEL->config->value(minimum_planner_speed_checksum)->by_default(0.0f)->as_number();
+    this->junction_deviation = THEKERNEL.config->value(junction_deviation_checksum)->by_default(0.05F)->as_number();
+    this->z_junction_deviation = THEKERNEL.config->value(z_junction_deviation_checksum)->by_default(NAN)->as_number(); // disabled by default
+    this->minimum_planner_speed = THEKERNEL.config->value(minimum_planner_speed_checksum)->by_default(0.0f)->as_number();
 }
 
 
@@ -54,7 +54,7 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
 // bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors, float rate_mm_s, float distance, float *unit_vec, float acceleration, float *s_values, int s_count, bool g123, unsigned int _line)
 {
     // Create ( recycle ) a new block
-    Block* block = THECONVEYOR->queue.head_ref();
+    Block* block = THECONVEYOR.queue.head_ref();
     block->line = _line;
 
     // Direction bits
@@ -67,10 +67,10 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
     */
 
     for (size_t i = 0; i < n_motors; i++) {
-        int32_t steps = THEROBOT->actuators[i]->steps_to_target(actuator_pos[i]);
+        int32_t steps = THEROBOT.actuators[i]->steps_to_target(actuator_pos[i]);
         // Update current position
         if(steps != 0) {
-            THEROBOT->actuators[i]->update_last_milestones(actuator_pos[i], steps);
+            THEROBOT.actuators[i]->update_last_milestones(actuator_pos[i], steps);
             has_steps = true;
         }
 
@@ -172,8 +172,8 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
     float vmax_junction = minimum_planner_speed; // Set default max junction speed
 
     // if unit_vec was null then it was not a primary axis move so we skip the junction deviation stuff
-    if (unit_vec != nullptr && !THECONVEYOR->is_queue_empty()) {
-        Block *prev_block = THECONVEYOR->queue.item_ref(THECONVEYOR->queue.prev(THECONVEYOR->queue.head_i));
+    if (unit_vec != nullptr && !THECONVEYOR.is_queue_empty()) {
+        Block *prev_block = THECONVEYOR.queue.item_ref(THECONVEYOR.queue.prev(THECONVEYOR.queue.head_i));
         float previous_nominal_speed = prev_block->primary_axis ? prev_block->nominal_speed : 0;
 
         if (junction_deviation > 0.0F && previous_nominal_speed > 0.0F) {
@@ -233,14 +233,14 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
     // The block can now be used
     block->ready();
 
-    THECONVEYOR->queue_head_block();
+    THECONVEYOR.queue_head_block();
 
     return true;
 }
 
 void Planner::recalculate()
 {
-    Conveyor::Queue_t &queue = THECONVEYOR->queue;
+    Conveyor::Queue_t &queue = THECONVEYOR.queue;
 
     unsigned int block_index;
 

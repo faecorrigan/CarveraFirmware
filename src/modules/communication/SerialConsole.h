@@ -32,8 +32,8 @@ class SerialConsole : public Module, public StreamOutput {
         bool has_char(char letter);
         void attach_irq(bool enable_irq);
 
-        int _putc(int c);
-        int _getc(void);
+        int putc(int c);
+        int getc(void);
         int puts(const char*, int size = 0);
         int gets(char** buf, int size = 0);
         bool ready();

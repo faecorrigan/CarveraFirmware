@@ -11,13 +11,14 @@
 
 #include <stdio.h>
 #include <string>
+#include <cstdint>
 
 class StreamOutput;
 
 class GcodeDispatch : public Module
 {
 public:
-    GcodeDispatch();
+    void init();
 
     virtual void on_module_loaded();
     virtual void on_console_line_received(void *line);

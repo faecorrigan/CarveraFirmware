@@ -12,10 +12,10 @@
 
 class Block;
 
-class Conveyor : public Module
+class Conveyor : public Module 
 {
 public:
-    Conveyor();
+    void init();
     void start(uint8_t n_actuators);
 
     void on_module_loaded(void);
@@ -42,11 +42,10 @@ private:
     void check_queue(bool force= false);
     void queue_head_block(void);
 
-    using  Queue_t= BlockQueue;
-    Queue_t queue;  // Queue of Blocks
+    using Queue_t = BlockQueue<32>;
+    Queue_t queue; // Queue of Blocks
 
     uint32_t queue_delay_time_ms;
-    size_t queue_size;
     float current_feedrate{0}; // actual nominal feedrate that current block is running at in mm/sec
 
     struct {
@@ -54,5 +53,4 @@ private:
         volatile bool allow_fetch:1;
         bool flush:1;
     };
-
 };

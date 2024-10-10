@@ -7,10 +7,16 @@ using namespace std;
 #include <queue>
 #include "Pin.h"
 
+#include "SoftTimer.h"
+
 class ATCHandler : public Module
 {
 public:
-    ATCHandler();
+    ATCHandler()
+    : probe_laser_timer("ProbeLaserCountdown", 1000, true, this, &ATCHandler::countdown_probe_laser),
+	read_endstop_timer("AtcReadEndstop", 1, true, this, &ATCHandler::read_endstop), // 1kHz
+	read_detector_timer("AtcReadDetector", 1, true, this, &ATCHandler::read_detector) // 1kHz
+    {}
 
     void on_module_loaded();
     void on_gcode_received(void *argument);
@@ -20,7 +26,6 @@ public:
     void on_halt(void *argument);
     int get_active_tool() const { return active_tool; }
     void on_config_reload(void *argument);
-
 
 private:
     typedef enum {
@@ -49,9 +54,9 @@ private:
 
     ATC_STATUS atc_status;
 
-    uint32_t read_endstop(uint32_t dummy);
-    uint32_t read_detector(uint32_t dummy);
-    uint32_t countdown_probe_laser(uint32_t dummy);
+    void read_endstop(void);
+    void read_detector(void);
+    void countdown_probe_laser();
 
     void switch_probe_laser(bool state);
 
@@ -101,7 +106,10 @@ private:
     bool playing_file;
     bool g28_triggered;
 
-    uint16_t probe_laser_last;
+    uint16_t probe_laser_countdown;
+    SoftTimer probe_laser_timer;
+    SoftTimer read_endstop_timer;
+    SoftTimer read_detector_timer;
 
     using atc_homing_info_t = struct {
         Pin pin;

@@ -12,11 +12,23 @@
 #include "Pwm.h"
 #include "TempSensor.h"
 #include "TemperatureControlPublicAccess.h"
+#include "SoftTimer.h"
 
 class TemperatureControl : public Module {
 
     public:
-        TemperatureControl(uint16_t name, int index);
+        TemperatureControl(uint16_t name, int index)
+        : tempcontrol_timer("TempControl", 1, true, &heater_pin, &Pwm::on_tick),
+        thermistor_timer("ThermistorReading", 100, true, this, &TemperatureControl::thermistor_read_tick),
+        name_checksum(name),
+        pool_index(index),
+        waiting(false),
+        temp_violated(false),
+        sensor(nullptr),
+        readonly(false),
+        tick(0)
+        {}
+
         ~TemperatureControl();
 
         void on_module_loaded();
@@ -37,11 +49,14 @@ class TemperatureControl : public Module {
 
     private:
         void load_config();
-        uint32_t thermistor_read_tick(uint32_t dummy);
+        void thermistor_read_tick();
         void pid_process(float);
         void setPIDp(float p);
         void setPIDi(float i);
         void setPIDd(float d);
+
+        SoftTimer tempcontrol_timer;
+        SoftTimer thermistor_timer;
 
         int pool_index;
 

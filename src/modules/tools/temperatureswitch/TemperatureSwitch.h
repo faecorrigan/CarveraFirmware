@@ -21,15 +21,13 @@ using namespace std;
 #include "libs/Module.h"
 #include <string>
 #include <vector>
+#include <cstdint>
 
 class TemperatureSwitch : public Module
 {
     public:
-        TemperatureSwitch();
-        ~TemperatureSwitch();
         void on_module_loaded();
         void on_second_tick(void *argument);
-        void on_gcode_received(void *argument);
         TemperatureSwitch* load_config(uint16_t modcs);
 
 
@@ -46,11 +44,8 @@ class TemperatureSwitch : public Module
         // temperatureswitch.hotend.switch
         uint16_t temperatureswitch_switch_cs;
 
-
         // our internal second counter
         int cooldown_delay_counter;
-
-
 };
 
 #endif

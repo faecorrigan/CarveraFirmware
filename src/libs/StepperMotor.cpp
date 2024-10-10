@@ -8,7 +8,6 @@
 
 #include "Kernel.h"
 #include "MRI_Hooks.h"
-#include "StepTicker.h"
 
 #include <math.h>
 #include "mbed.h"
@@ -40,8 +39,8 @@ StepperMotor::StepperMotor(Pin &step, Pin &dir, Pin &en) : step_pin(step), dir_p
 
 StepperMotor::~StepperMotor()
 {
-    THEKERNEL->unregister_for_event(ON_HALT, this);
-    THEKERNEL->unregister_for_event(ON_ENABLE, this);
+    THEKERNEL.unregister_for_event(ON_HALT, this);
+    THEKERNEL.unregister_for_event(ON_ENABLE, this);
 }
 
 void StepperMotor::on_halt(void *argument)
