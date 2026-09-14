@@ -12,6 +12,7 @@
 #include "libs/nuts_bolts.h"
 #include "libs/SlowTicker.h"
 #include "libs/Adc.h"
+#include "libs/compiler.h"
 #include "libs/StreamOutputPool.h"
 #include <mri.h>
 #include "checksumm.h"
@@ -48,7 +49,6 @@
 
 #include "platform_memory.h"
 
-#include <malloc.h>
 #include <array>
 #include <string>
 
@@ -64,10 +64,11 @@
 #define ok_per_line_checksum                        CHECKSUM("ok_per_line")
 #define disable_serial_console_checksum             CHECKSUM("disable_serial_console")
 #define halt_on_error_debug_checksum                CHECKSUM("halt_on_error_debug")
+#define protocol_checksum                           CHECKSUM("protocol")
 Kernel* Kernel::instance;
 
-static float ahb_local_vars[20]   __attribute__((section("AHBSRAM")));
-static float ahb_local_params[30] __attribute__((section("AHBSRAM")));
+static float ahb_local_vars[20] LOCATED_IN_AHBSRAM;
+static float ahb_local_params[30] LOCATED_IN_AHBSRAM;
 
 #define	EEP_MAX_PAGE_SIZE	32
 #define EEPROM_DATA_STARTPAGE	1
@@ -163,6 +164,8 @@ Kernel::Kernel()
     // Check if we should break into the debugger on halt
     this->halt_on_error_debug = this->config->value( halt_on_error_debug_checksum )->as_bool(false);
 
+    this->protocol_from_name(this->config->value( protocol_checksum )->as_string("smoothie"), communication_protocol);
+
     if (this->disable_serial_console) {
         this->streams->remove_stream(this->serial);
         delete this->serial;
@@ -227,6 +230,21 @@ Kernel::Kernel()
 
     this->planner = new Planner();
     this->configurator = new Configurator();
+}
+
+void Kernel::protocol_from_name(const std::string& name, ProtocolMode& protocol)
+{
+    if (name == "smoothie") {
+        protocol = PROTOCOL_SMOOTHIE;
+        return;
+    }
+
+    if (name == "makera") {
+        protocol = PROTOCOL_MAKERA;
+        return;
+    }
+    protocol = PROTOCOL_MAKERA;
+    return;
 }
 
 // get current state
@@ -1271,4 +1289,3 @@ void Kernel::set_tool_waiting(bool f) {
 		}
 	}
 }
-
