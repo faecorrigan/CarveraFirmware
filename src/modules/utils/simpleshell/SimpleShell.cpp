@@ -12,6 +12,7 @@
 #include "rtc_time.h"
 #include "../mainbutton/MainButtonPublicAccess.h"
 #include "libs/Kernel.h"
+#include "libs/CRC16.h"
 #include "libs/nuts_bolts.h"
 #include "libs/utils.h"
 #include "libs/SerialMessage.h"
@@ -43,7 +44,8 @@
 #include "EndstopsPublicAccess.h"
 #include "ATCHandlerPublicAccess.h"
 // #include "NetworkPublicAccess.h"
-#include "platform_memory.h"
+#include "heap/heap_debug.h"
+#include "heap/heap_5.h"
 #include "SwitchPublicAccess.h"
 #include "SDFAT.h"
 #include "FATFileSystem.h"
@@ -63,8 +65,6 @@
 #include <string.h>
 #include <vector>
 
-extern unsigned int g_maximumHeapAddress;
-extern const unsigned short crc_table[256];
 #define XBUFF_LENGTH	8208
 extern unsigned char xbuff[XBUFF_LENGTH];
 extern unsigned char fbuff[4096];
@@ -78,9 +78,6 @@ extern unsigned char fbuff[4096];
 #include <stdlib.h>
 #include <functional>
 
-extern "C" uint32_t  __end__;
-extern "C" uint32_t  __malloc_free_list;
-extern "C" void*     _sbrk(int size);
 
 // support upload file type definition
 #define FILETYPE	"lz"		//compressed by quicklz
@@ -141,65 +138,6 @@ const SimpleShell::ptentry_t SimpleShell::commands_table[] = {
 };
 
 int SimpleShell::reset_delay_secs = 0;
-
-// Adam Greens heap walk from http://mbed.org/forum/mbed/topic/2701/?page=4#comment-22556
-static uint32_t heapWalk(StreamOutput *stream, bool verbose)
-{
-    uint32_t chunkNumber = 1;
-    // The __end__ linker symbol points to the beginning of the heap.
-    uintptr_t chunkCurr = reinterpret_cast<uintptr_t>(&__end__);
-    // __malloc_free_list is the head pointer to newlib-nano's link list of free chunks.
-    uintptr_t freeCurr = __malloc_free_list;
-    // Calling _sbrk() with 0 reserves no more memory but it returns the current top of heap.
-    uintptr_t heapEnd = reinterpret_cast<uintptr_t>(_sbrk(0));
-    // accumulate totals
-    uint32_t freeSize = 0;
-    uint32_t usedSize = 0;
-
-    stream->printf("Used Heap Size: %lu\n", static_cast<unsigned long>(heapEnd - chunkCurr));
-
-    // Walk through the chunks until we hit the end of the heap.
-    while (chunkCurr < heapEnd) {
-        // Assume the chunk is in use.  Will update later.
-        int      isChunkFree = 0;
-        // The first 32-bit word in a chunk is the size of the allocation.  newlib-nano over allocates by 8 bytes.
-        // 4 bytes for this 32-bit chunk size and another 4 bytes to allow for 8 byte-alignment of returned pointer.
-        uint32_t chunkSize = *reinterpret_cast<uint32_t *>(chunkCurr);
-        // The start of the next chunk is right after the end of this one.
-        uintptr_t chunkNext = chunkCurr + chunkSize;
-
-        // The free list is sorted by address.
-        // Check to see if we have found the next free chunk in the heap.
-        if (chunkCurr == freeCurr) {
-            // Chunk is free so flag it as such.
-            isChunkFree = 1;
-            // The second 32-bit word in a free chunk is a pointer to the next free chunk (again sorted by address).
-            freeCurr = *reinterpret_cast<uint32_t *>(freeCurr + 4);
-        }
-
-        // Skip past the 32-bit size field in the chunk header.
-        chunkCurr += 4;
-        // 8-byte align the data pointer.
-        chunkCurr = (chunkCurr + 7) & ~7;
-        // newlib-nano over allocates by 8 bytes, 4 bytes for the 32-bit chunk size and another 4 bytes to allow for 8
-        // byte-alignment of the returned pointer.
-        chunkSize -= 8;
-        if (verbose)
-            stream->printf("  Chunk: %lu  Address: 0x%08lX  Size: %lu  %s\n",
-                           static_cast<unsigned long>(chunkNumber), static_cast<unsigned long>(chunkCurr),
-                           static_cast<unsigned long>(chunkSize), isChunkFree ? "CHUNK FREE" : "");
-
-        if (isChunkFree) freeSize += chunkSize;
-        else usedSize += chunkSize;
-
-        chunkCurr = chunkNext;
-        chunkNumber++;
-    }
-    stream->printf("Allocated: %lu, Free: %lu\r\n", static_cast<unsigned long>(usedSize),
-                   static_cast<unsigned long>(freeSize));
-    return freeSize;
-}
-
 
 void SimpleShell::on_module_loaded()
 {
@@ -329,14 +267,43 @@ void SimpleShell::on_gcode_received(void *argument)
 			THEKERNEL->set_line_by_line_exec_mode(true);
 			gcode->stream->printf("turning line by line execute mode on.\r\nPlaying file will pause after every valid gcode line, skipping empty and commented lines\r\n");
 		}else if (gcode->m == 337){
-            struct led_rgb colors;
-            colors.r = 0;
-            colors.g = 0;
-            colors.b = 0;
-            if (gcode->has_letter('R')) colors.r = gcode->get_value('R');
-            if (gcode->has_letter('U')) colors.g = gcode->get_value('U');
-            if (gcode->has_letter('B')) colors.b = gcode->get_value('B');
-            PublicData::set_value(main_button_checksum, set_led_bar_checksum, &colors);
+            int index = 0;
+            if (gcode->has_letter('I')) index = gcode->get_int('I');
+            if (gcode->has_letter('R') || gcode->has_letter('U') || gcode->has_letter('B')) {
+                struct led_rgb colors;
+                colors.r = 0;
+                colors.g = 0;
+                colors.b = 0;
+                colors.i = index;
+                if (gcode->has_letter('R')) colors.r = gcode->get_value('R');
+                if (gcode->has_letter('U')) colors.g = gcode->get_value('U');
+                if (gcode->has_letter('B')) colors.b = gcode->get_value('B');
+                PublicData::set_value(main_button_checksum, set_led_bar_checksum, &colors);
+            } else {
+                struct led_bar_state bar;
+                if (PublicData::get_value(main_button_checksum, get_led_bar_checksum, &bar)) {
+                    if (index >= 1 && index <= bar.n) {
+                        gcode->stream->printf("I%d R:%dG:%dB:%d\r\n", index, bar.r[index - 1], bar.g[index - 1], bar.b[index - 1]);
+                    } else {
+                        bool same = true;
+                        for (uint8_t i = 1; i < bar.n; i++) {
+                            if (bar.r[i] != bar.r[0] || bar.g[i] != bar.g[0] || bar.b[i] != bar.b[0]) {
+                                same = false;
+                                break;
+                            }
+                        }
+                        if (same || bar.n == 1) {
+                            gcode->stream->printf("R:%dG:%dB:%d\r\n", bar.r[0], bar.g[0], bar.b[0]);
+                        } else {
+                            for (uint8_t i = 0; i < bar.n; i++) {
+                                gcode->stream->printf("I%d R:%dG:%dB:%d\r\n", i + 1, bar.r[i], bar.g[i], bar.b[i]);
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (gcode->m == 338) {
+            PublicData::set_value(main_button_checksum, restore_led_bar_checksum, nullptr);
         } else if (gcode->m == 485) { //swap communication protocols
             if (gcode->subcode == 1) {
                 gcode->stream->printf("setting to smoothie communication protocol\n");
@@ -804,7 +771,7 @@ void SimpleShell::cat_command( string parameters, StreamOutput *stream )
             // if (sentcnt < strlen()(int)buffer.size()) {
             if (sentcnt < (int)strlen(buffer)) {
             	fwfs::fclose(lp);
-            	stream->printf("Caching error, line: %d, size: %d, sent: %d", newlines, strlen(buffer), sentcnt);
+            	stream->printf("Caching error, line: %d, size: %d, sent: %d\n", newlines, strlen(buffer), sentcnt);
             	return;
             }
             // buffer.clear();
@@ -825,6 +792,9 @@ void SimpleShell::cat_command( string parameters, StreamOutput *stream )
     if (strlen(buffer) > 0) {
     	// stream->puts(buffer.c_str());
     	stream->puts(buffer);
+        if (buffer[strlen(buffer) - 1] != '\n') {
+            stream->printf("\n");
+        }
     }
 }
 
@@ -856,6 +826,10 @@ void SimpleShell::load_command( string parameters, StreamOutput *stream )
         stream->printf("Loading config override file: %s...\n", filename.c_str());
         while(fwfs::fgets(buf, sizeof buf, fp) != NULL) {
             stream->printf("  %s", buf);
+            size_t len = strlen(buf);
+            if (len == 0 || buf[len - 1] != '\n') {
+                stream->printf("\n");
+            }
             if(buf[0] == ';') continue; // skip the comments
             // NOTE only Gcodes and Mcodes can be in the config-override
             Gcode *gcode = new Gcode(buf, &StreamOutput::NullStream);
@@ -907,28 +881,80 @@ void SimpleShell::save_command( string parameters, StreamOutput *stream )
     stream->printf("Settings Stored to %s\r\n", filename.c_str());
 }
 
+struct HeapDumpBuffer {
+    char *data;
+    size_t capacity;
+    size_t length;
+    bool truncated;
+};
+
+static void format_heap_area(const HeapAreaInfo_t *area, void *context)
+{
+    auto *output = static_cast<HeapDumpBuffer *>(context);
+    if(output->truncated) return;
+
+    int written = snprintf(output->data + output->length, output->capacity - output->length,
+                           "  %p: %s, %lu bytes\n", area->address,
+                           area->allocated ? "used" : "free", (unsigned long)area->size);
+    if(written < 0 || static_cast<size_t>(written) >= output->capacity - output->length) {
+        output->truncated = true;
+        output->data[output->length] = '\0';
+        return;
+    }
+    output->length += written;
+}
+
 // show free memory
 void SimpleShell::mem_command( string parameters, StreamOutput *stream)
 {
     bool verbose = shift_parameter( parameters ).find_first_of("Vv") != string::npos;
-    unsigned long heap_top = (unsigned long)_sbrk(0);
-    unsigned long heap_unallocated_top = (STACK_SIZE && g_maximumHeapAddress != 0) ? g_maximumHeapAddress - heap_top : 0; // Calculate unallocated space at the top if stack limit is set
-    stream->printf("Main Heap Unallocated Top: %lu bytes\r\n", heap_unallocated_top);
-
-    uint32_t heap_fragmented_free = heapWalk(stream, verbose); // Calculates and prints used/free within allocated heap part
-    stream->printf("Total Free RAM (Main Heap): %lu bytes\r\n", heap_unallocated_top + heap_fragmented_free);
-
-    // Use MemoryPool::free() which calculates total free space in the pool
-    uint32_t ahb_total_free = AHB.free();
-    stream->printf("AHB Pool Total Free: %lu bytes\r\n", ahb_total_free);
-
-    if (verbose) {
-        stream->printf("--- AHB Pool Details ---\n");
-        AHB.debug(stream); // Detailed AHB pool breakdown
-        stream->printf("--- End AHB Pool Details ---\n");
+    HeapStats_t stats;
+    HeapLayoutStats_t layout;
+    vPortGetHeapStats(&stats);
+    bool layout_valid = heapVisitAreas(nullptr, nullptr, &layout);
+    stream->printf("Heap free: %lu bytes, minimum ever free: %lu bytes\r\n",
+                   (unsigned long)stats.xAvailableHeapSpaceInBytes,
+                   (unsigned long)stats.xMinimumEverFreeBytesRemaining);
+    if(layout_valid) {
+        stream->printf("Largest contiguous free area: %lu bytes, free areas: %lu\r\n",
+                       (unsigned long)stats.xSizeOfLargestFreeBlockInBytes,
+                       (unsigned long)layout.freeAreas);
+    } else {
+        stream->printf("Largest contiguous free area: %lu bytes, free areas: unavailable\r\n",
+                       (unsigned long)stats.xSizeOfLargestFreeBlockInBytes);
+    }
+    if(verbose) {
+        stream->printf("Smallest free area: %lu bytes, allocations: %lu, frees: %lu\r\n",
+                       (unsigned long)stats.xSizeOfSmallestFreeBlockInBytes,
+                       (unsigned long)stats.xNumberOfSuccessfulAllocations,
+                       (unsigned long)stats.xNumberOfSuccessfulFrees);
+        stream->printf("Heap areas (sizes include allocator overhead):\r\n");
+        HeapDumpBuffer output = {
+            reinterpret_cast<char *>(xbuff), XBUFF_LENGTH, 0, false,
+        };
+        output.data[0] = '\0';
+        layout_valid = heapVisitAreas(format_heap_area, &output, &layout);
+        if(layout_valid) {
+            char *line = output.data;
+            char *end = output.data + output.length;
+            while(line < end) {
+                char *newline = static_cast<char *>(memchr(line, '\n', end - line));
+                if(newline == nullptr) break;
+                *newline = '\0';
+                stream->printf("%s\r\n", line);
+                line = newline + 1;
+            }
+            if(output.truncated) stream->printf("  area list truncated\r\n");
+            stream->printf("Heap area totals: %lu bytes used in %lu areas, "
+                           "%lu bytes free in %lu areas\r\n",
+                           (unsigned long)layout.usedBytes, (unsigned long)layout.usedAreas,
+                           (unsigned long)layout.freeBytes, (unsigned long)layout.freeAreas);
+        } else {
+            stream->printf("Heap area walk failed\r\n");
+        }
     }
 
-    stream->printf("Block size: %u bytes, Tickinfo size: %u bytes\n", sizeof(Block), sizeof(Block::tickinfo_t) * Block::n_actuators);
+    stream->printf("Planner block size: %u bytes, Tickinfo size: %u bytes\n", sizeof(Block), sizeof(Block::tickinfo_t) * Block::n_actuators);
 }
 
 /*
@@ -1066,7 +1092,7 @@ void SimpleShell::wlan_command( string parameters, StreamOutput *stream)
             } else {
                 PacketMessage(PTYPE_LOAD_INFO, str, 0, stream);
             }
-            AHB.dealloc(str);
+            free(str);
         	if (send_eof) {
                 if (communication_protocol == PROTOCOL_SMOOTHIE) {
                     stream->_putc(EOT);
@@ -2518,8 +2544,7 @@ void SimpleShell::md5check_file_command( string parameters, StreamOutput *stream
 
     char stored[33];
     if (!read_stored_md5(md5_path, stored)) {
-        stream->printf("ERROR: No MD5 hash found for ");
-        stream->printf("%s\n", filename.c_str());
+        stream->printf("ERROR: No MD5 hash found for %s\n", filename.c_str());
         return;
     }
 
@@ -3318,21 +3343,10 @@ void SimpleShell::PacketMessage(char cmd, const char* s, int size, StreamOutput 
 	len = total_length + 3;
 	fbuff[2] = (len>>8)&0xFF;
 	fbuff[3] = len&0xFF;
-	crc = crc16_ccitt(&fbuff[2], len);
+	crc = crc16::ccitt(&fbuff[2], len);
 	fbuff[total_length+5] = (crc>>8)&0xFF;
 	fbuff[total_length+6] = crc&0xFF;
 	fbuff[total_length+7] = (FOOTER>>8)&0xFF;
 	fbuff[total_length+8] = FOOTER&0xFF;
 	stream->puts((char *)fbuff, len+6);
-}
-
-unsigned int SimpleShell::crc16_ccitt(unsigned char *data, unsigned int len)
-{
-	unsigned char tmp;
-	unsigned short crc = 0;
-	for (unsigned int i = 0; i < len; i ++) {
-        tmp = ((crc >> 8) ^ data[i]) & 0xff;
-        crc = ((crc << 8) ^ crc_table[tmp]) & 0xffff;
-	}
-	return crc & 0xffff;
 }

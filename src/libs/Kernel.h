@@ -39,6 +39,7 @@ class Adc;
 class PublicData;
 class SimpleShell;
 class Configurator;
+struct SerialMessage;
 
 enum STATE {
 	IDLE    = 0,
@@ -130,6 +131,8 @@ class Kernel {
         void add_module(Module* module);
         void register_for_event(_EVENT_ENUM id_event, Module *module);
         void call_event(_EVENT_ENUM id_event, void * argument= nullptr);
+        bool dispatch_console_line(SerialMessage& message);
+        bool is_dispatching_console_line() const { return dispatching_console_line; }
 
         bool kernel_has_event(_EVENT_ENUM id_event, Module *module);
         void unregister_for_event(_EVENT_ENUM id_event, Module *module);
@@ -226,8 +229,6 @@ class Kernel {
         bool Check_Factory_Data(unsigned char *data, unsigned int len);
         bool Factroy_readLine(std::string& line, int lineno, FILE *fp);
         bool process_line(const std::string &buffer, uint16_t *check_sum, unsigned char *value);
-        unsigned int crc16_ccitt(unsigned char *data, unsigned int len);
-
         std::string get_query_string();
 
         std::string get_diagnose_string();
@@ -269,10 +270,6 @@ class Kernel {
         float  probe_tip_diameter = 1.6;
         bool disable_endstops = false;
 
-        // #1–#30 (local_params) and #101–#120 (local_vars) are stored in static
-        // AHBSRAM arrays and referenced here through pointers, so they do not add
-        // to the size of the heap-allocated Kernel object.
-        // The arrays and their initialisation live in Kernel.cpp.
         float* local_params;      // #1–#30: subroutine call parameters
         float* local_vars;        // #101–#120: user defined variables
 
@@ -312,6 +309,7 @@ class Kernel {
             bool halt_on_error_debug:1;
             bool flex_compensation_active:1;
             bool config_load_error:1;
+            bool dispatching_console_line:1;
         };
         int iic_page_write(unsigned char u8PageNum, unsigned char u8len, unsigned char *pu8Array);
 

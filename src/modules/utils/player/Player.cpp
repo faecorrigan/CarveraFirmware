@@ -9,6 +9,7 @@
 #include "libs/FirmwareFileSystem.h"
 
 #include "libs/Kernel.h"
+#include "libs/CRC16.h"
 #include "Robot.h"
 #include "libs/nuts_bolts.h"
 #include "libs/utils.h"
@@ -42,7 +43,6 @@
 #include <algorithm>
 
 #include "mbed.h"
-#include "libs/compiler.h"
 
 #define home_on_boot_checksum             CHECKSUM("home_on_boot")
 #define on_boot_gcode_checksum            CHECKSUM("on_boot_gcode")
@@ -56,8 +56,8 @@
 extern SDFAT mounter;
 
 #define XBUFF_LENGTH	8208
-unsigned char xbuff[XBUFF_LENGTH] LOCATED_IN_AHBSRAM; /* 2 for data length, 8192 for XModem + 3 head chars + 2 crc + nul */
-unsigned char fbuff[4096] LOCATED_IN_AHBSRAM;
+unsigned char xbuff[XBUFF_LENGTH]; /* 2 for data length, 8192 for XModem + 3 head chars + 2 crc + nul */
+unsigned char fbuff[4096];
 
 // used for XMODEM - smoothie
 #define SOH  0x01
@@ -69,10 +69,8 @@ unsigned char fbuff[4096] LOCATED_IN_AHBSRAM;
 #define CTRLZ 0x1A
 
 
-char error_msg[64] LOCATED_IN_AHBSRAM;
-char md5buf[64] LOCATED_IN_AHBSRAM;
-extern const unsigned short crc_table[256];
-
+char error_msg[64];
+char md5buf[64];
 // used for XMODEM 
 #define WAIT_MD5  0x01
 #define WAIT_FILE_VIEW  0x02
@@ -554,9 +552,6 @@ void Player::on_console_line_received( void *argument )
     	this->upload_command( possible_command, new_message.stream );
     }else if (cmd == "download") {
         memset(md5_str, 0, sizeof(md5_str));
-    	if (possible_command.find("config.txt") != string::npos) {
-        	this->test_command( possible_command, new_message.stream );
-    	}
     	this->download_command( possible_command, new_message.stream );
     }
 }
@@ -1053,8 +1048,16 @@ void Player::on_main_loop(void *argument)
 
             } else {
                 // discard long line
-                if (this->current_stream != nullptr) { this->current_stream->printf("Warning: Discarded long line\n"); }
+                if (!discard && this->current_stream != nullptr) {
+                    this->current_stream->printf("Warning: Discarded long line\n");
+                }
                 discard = true;
+
+                uint32_t now_us = us_ticker_read();
+                if ((now_us - last_idle_us) >= 200000) {
+                    THEKERNEL->call_event(ON_IDLE);
+                    last_idle_us = now_us;
+                }
             }
         }
 
@@ -1424,23 +1427,10 @@ void Player::resume_command(string parameters, StreamOutput *stream )
 	stream->printf("Playing file resumed\n");
 }
 
-unsigned int Player::crc16_ccitt(unsigned char *data, unsigned int len)
-{
-	unsigned char tmp;
-	unsigned short crc = 0;
-
-	for (unsigned int i = 0; i < len; i ++) {
-        tmp = ((crc >> 8) ^ data[i]) & 0xff;
-        crc = ((crc << 8) ^ crc_table[tmp]) & 0xffff;
-	}
-
-	return crc & 0xffff;
-}
-
 int Player::check_crc(int crc, unsigned char *data, unsigned int len)
 {
     if (crc) {
-        unsigned short crc = crc16_ccitt(data, len);
+        unsigned short crc = crc16::ccitt(data, len);
         unsigned short tcrc = (data[len] << 8) + data[len+1];
         if (crc == tcrc)
             return 1;
@@ -1549,8 +1539,6 @@ int Player::decompress(string sfilename, string dfilename, uint32_t sfilesize, S
 		{
 			u16Sum += fbuff[j];
 		}
-		// Set the file write system buffer 4096 Byte
-		setvbuf(f_out, (char*)&xbuff[4096], _IOFBF, 4096);
 		fwfs::fwrite(fbuff, sizeof(char),u32DcmprsSize, f_out);
 		u32TotalDcmprsSize += u32DcmprsSize;
 		u32BlockNum += 1;
@@ -1873,7 +1861,7 @@ void Player::upload_command( string parameters, StreamOutput *stream )
                             xbuff[6] = (sequence>>16)&0xff;
                             xbuff[7] = (sequence>>8)&0xff;
                             xbuff[8] = sequence&0xff;
-                            crc = crc16_ccitt(&xbuff[2], len);
+                            crc = crc16::ccitt(&xbuff[2], len);
                             xbuff[len+2] = (crc>>8)&0xFF;
                             xbuff[len+3] = crc&0xFF;
                             xbuff[len+4] = (FOOTER>>8)&0xFF;
@@ -1933,7 +1921,7 @@ void Player::upload_command( string parameters, StreamOutput *stream )
                                 xbuff[6] = (sequence>>16)&0xff;
                                 xbuff[7] = (sequence>>8)&0xff;
                                 xbuff[8] = sequence&0xff;
-                                crc = crc16_ccitt(&xbuff[2], len);
+                                crc = crc16::ccitt(&xbuff[2], len);
                                 xbuff[len+2] = (crc>>8)&0xFF;
                                 xbuff[len+3] = crc&0xFF;
                                 xbuff[len+4] = (FOOTER>>8)&0xFF;
@@ -1965,7 +1953,7 @@ void Player::upload_command( string parameters, StreamOutput *stream )
                                 xbuff[6] = (sequence>>16)&0xff;
                                 xbuff[7] = (sequence>>8)&0xff;
                                 xbuff[8] = sequence&0xff;
-                                crc = crc16_ccitt(&xbuff[2], len);
+                                crc = crc16::ccitt(&xbuff[2], len);
                                 xbuff[len+2] = (crc>>8)&0xFF;
                                 xbuff[len+3] = crc&0xFF;
                                 xbuff[len+4] = (FOOTER>>8)&0xFF;
@@ -2074,26 +2062,50 @@ upload_success:
 }
 
 
+static bool md5_digest_usable(const char *s)
+{
+    if (s == NULL) {
+        return false;
+    }
+    for (int i = 0; i < 32; i++) {
+        char c = s[i];
+        if (c >= 'A' && c <= 'F') {
+            c = static_cast<char>(c + 32);
+        }
+        if ((c < '0' || c > '9') && (c < 'a' || c > 'f')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool fill_md5_from_path(const char *path, char *out, size_t out_size)
+{
+    if (out == NULL || out_size < 33) {
+        return false;
+    }
+    memset(out, 0, out_size);
+    FILE *fd = fwfs::fopen(path, "rb");
+    if (fd == NULL) {
+        return false;
+    }
+    MD5 md5;
+    uint8_t buf[64];
+    do {
+        size_t n = fwfs::fread(buf, 1, sizeof(buf), fd);
+        if (n > 0) {
+            md5.update(buf, n);
+        }
+        THEKERNEL->call_event(ON_IDLE);
+    } while (!fwfs::feof(fd));
+    fwfs::fclose(fd);
+    strcpy(out, md5.finalize().hexdigest().c_str());
+    return md5_digest_usable(out);
+}
+
 void Player::test_command( string parameters, StreamOutput* stream ) {
     string filename = absolute_from_relative(shift_parameter(parameters));
-	FILE *fd = fwfs::fopen(filename.c_str(), "rb");
-	if (NULL != fd) {
-        MD5 md5;
-        uint8_t smoothie_md5_buf[64];
-        do {
-            if (communication_protocol == PROTOCOL_SMOOTHIE) { 
-                size_t n = fwfs::fread(smoothie_md5_buf, 1, sizeof(smoothie_md5_buf), fd);
-                if (n > 0) md5.update(smoothie_md5_buf, n);
-            } else {
-                size_t n = fwfs::fread(md5buf, 1, sizeof(md5buf), fd);
-                if (n > 0) md5.update(md5buf, n);
-            }
-            THEKERNEL->call_event(ON_IDLE);
-        } while (!fwfs::feof(fd));
-        strcpy(md5_str, md5.finalize().hexdigest().c_str());
-        fwfs::fclose(fd);
-        fd = NULL;
-	}
+    fill_md5_from_path(filename.c_str(), md5_str, sizeof(md5_str));
 }
 
 void Player::download_command( string parameters, StreamOutput *stream )
@@ -2172,19 +2184,23 @@ void Player::download_command( string parameters, StreamOutput *stream )
     
 
     FILE *fd = fwfs::fopen(md5_filename.c_str(), "rb");
+    bool have_digest = false;
     if (fd != NULL) {
         if (communication_protocol == PROTOCOL_SMOOTHIE) {
             fwfs::fread(md5, sizeof(char), 64, fd);
+            have_digest = md5_digest_usable(md5);
         } else {
             fwfs::fread(md5buf, sizeof(char), 64, fd);
+            have_digest = md5_digest_usable(md5buf);
         }
         fwfs::fclose(fd);
         fd = NULL;
-    } else {
+    }
+    if (!have_digest) {
         if (communication_protocol == PROTOCOL_SMOOTHIE) {
-            strcpy(md5, this->md5_str);
+            fill_md5_from_path(filename.c_str(), md5, sizeof(md5));
         } else {
-            strcpy(md5buf, this->md5_str);
+            fill_md5_from_path(filename.c_str(), md5buf, sizeof(md5buf));
         }
     }
 	
@@ -2282,7 +2298,7 @@ void Player::download_command( string parameters, StreamOutput *stream )
                 }
 
                 if (crc) {
-                    unsigned short ccrc = crc16_ccitt(&xbuff[3], bufsz + 1 + is_stx);
+                    unsigned short ccrc = crc16::ccitt(&xbuff[3], bufsz + 1 + is_stx);
                     xbuff[bufsz + 4 + is_stx] = (ccrc >> 8) & 0xFF;
                     xbuff[bufsz + 5 + is_stx] = ccrc & 0xFF;
                 } else {
@@ -2362,7 +2378,7 @@ void Player::download_command( string parameters, StreamOutput *stream )
                         xbuff[8] = packetno&0xff;
                         xbuff[9] = (bufsz>>8)&0xff;
                         xbuff[10] = bufsz&0xff;
-                        crc = crc16_ccitt(&xbuff[2], len);
+                        crc = crc16::ccitt(&xbuff[2], len);
                         xbuff[6+5] = (crc>>8)&0xFF;
                         xbuff[6+6] = crc&0xFF;
                         xbuff[6+7] = (FOOTER>>8)&0xFF;
@@ -2391,7 +2407,7 @@ void Player::download_command( string parameters, StreamOutput *stream )
                         len = c + 7;
                         xbuff[2] = (len>>8)&0xFF;
                         xbuff[3] = len&0xFF;
-                        crc = crc16_ccitt(&xbuff[2], len);
+                        crc = crc16::ccitt(&xbuff[2], len);
                         xbuff[c+9] = (crc>>8)&0xFF;
                         xbuff[c+10] = crc&0xFF;
                         xbuff[c+11] = (FOOTER>>8)&0xFF;
@@ -2479,7 +2495,7 @@ void Player::SendMessage(char cmd, char* s, int size , StreamOutput *stream)
 	len = total_length + 3;
 	xbuff[2] = (len>>8)&0xFF;
 	xbuff[3] = len&0xFF;
-	crc = crc16_ccitt(&xbuff[2], len);
+	crc = crc16::ccitt(&xbuff[2], len);
 	xbuff[total_length+5] = (crc>>8)&0xFF;
 	xbuff[total_length+6] = crc&0xFF;
 	xbuff[total_length+7] = (FOOTER>>8)&0xFF;

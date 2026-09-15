@@ -103,7 +103,6 @@ public:
     void on_module_loaded();
     void on_gcode_received(void *argument);
     void on_main_loop(void *argument);
-    void after_config_cache_clear();
 
     bool check_last_probe_ok();
     bool run_probe(float& mm, float feedrate, float max_dist= -1, bool reverse= false);
@@ -185,6 +184,7 @@ private:
     volatile bool calibrate_detected;
     volatile bool probe_triggered;
     volatile bool halt_pending;
+    volatile uint32_t probe_crash_count;
 
     PROBING_CYCLES probing_cycle;
 

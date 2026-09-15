@@ -256,7 +256,7 @@ GCFLAGS += -fanalyzer -floop-unroll-and-jam \
 endif
 
 
-GPFLAGS += $(GCFLAGS) -fno-rtti -std=gnu++11
+GPFLAGS += $(GCFLAGS) -fno-rtti -std=gnu++17
 
 AS_GCFLAGS += -g3 $(DEVICE_FLAGS) -x assembler-with-cpp
 AS_GCFLAGS += $(patsubst %,-I%,$(INCDIRS))
@@ -270,7 +270,7 @@ LDFLAGS += -flto
 else
 LDFLAGS += -flto=auto
 endif
-LDFLAGS += -flto-partition=max -Wl,-Map=$(OUTDIR)/$(PROJECT).map,--cref,--gc-sections,--wrap=_isatty,--wrap=malloc,--wrap=realloc,--wrap=free$(MRI_WRAPS)
+LDFLAGS += -flto-partition=max -Wl,-Map=$(OUTDIR)/$(PROJECT).map,--cref,--gc-sections,--wrap=_isatty,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=free,--wrap=_malloc_r,--wrap=_calloc_r,--wrap=_realloc_r,--wrap=_free_r$(MRI_WRAPS)
 
 LDFLAGS += -T$(LSCRIPT)  -L $(EXTERNAL_DIR)/gcc/LPC1768
 #LDFLAGS += -L $(BUILD_DIR) -lM8266WIFI
